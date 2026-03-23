@@ -1,0 +1,231 @@
+/**
+ * 统一设计系统
+ * 定义项目的颜色、字体、间距等设计规范
+ */
+
+:root {
+  /* ========== 颜色系统 ========== */
+  
+  /* 主色调：深蓝灰，体现专业与知识 */
+  --primary-dark: #2C3E50;      /* 导航、重要标题 */
+  --primary-main: #3498DB;      /* 主按钮、重要元素 */
+  --primary-light: #5DADE2;     /* 悬停状态 */
+  
+  /* 兼容旧变量名 */
+  --color-primary: #3498DB;
+  --color-primary-light-1: #5DADE2;
+  --color-primary-light-2: #85C1E9;
+  --color-primary-light-3: #AED6F1;
+  --color-primary-light-4: #D6EAF8;
+  --color-primary-light-5: #EBF5FB;
+  --color-primary-light-6: #F0F8FF;
+  --color-primary-light-7: #F5FAFF;
+  --color-primary-light-8: #FAFDFF;
+  --color-primary-light-9: #FDFEFF;
+  --color-primary-dark-1: #2C3E50;
+  --color-primary-dark-2: #1B2631;
+  
+  /* 辅助色：暖橙，增加活力与行动感 */
+  --accent-primary: #E67E22;    /* 购买按钮、会员福利 */
+  --accent-secondary: #F39C12;  /* 促销标签 */
+  
+  /* 中性色 */
+  --background: #F8F9FA;        /* 页面背景 */
+  --card-bg: #FFFFFF;           /* 卡片背景 */
+  --border: #E8E8E8;            /* 边框 */
+  --text-primary: #2C3E50;      /* 主要文字 */
+  --text-secondary: #7F8C8D;    /* 次要文字 */
+  
+  /* 算法专用色 */
+  --algo-collab: #3498DB;       /* 协同过滤 */
+  --algo-content: #27AE60;      /* 内容推荐 */
+  --algo-trend: #E74C3C;        /* 热门趋势 */
+  --algo-special: #9B59B6;      /* 特殊推荐 */
+  
+  /* 成功色 - 绿色（使用算法内容推荐色） */
+  --color-success: #27AE60;
+  --color-success-light: #52BE80;
+  --color-success-dark: #1E8449;
+  --color-success-lighter: #E8F8F5;
+  
+  /* 警告色 - 橙色（使用辅助色） */
+  --color-warning: #F39C12;
+  --color-warning-light: #F5B041;
+  --color-warning-dark: #D68910;
+  --color-warning-lighter: #FEF5E7;
+  
+  /* 危险色 - 红色（使用算法趋势色） */
+  --color-danger: #E74C3C;
+  --color-danger-light: #EC7063;
+  --color-danger-dark: #C0392B;
+  --color-danger-lighter: #FADBD8;
+  
+  /* 信息色 - 灰色 */
+  --color-info: #7F8C8D;
+  --color-info-light: #99A3A4;
+  --color-info-dark: #5D6D7E;
+  --color-info-lighter: #EBEDEF;
+  
+  /* 文字颜色 */
+  --color-text-primary: #2C3E50;
+  --color-text-regular: #34495E;
+  --color-text-secondary: #7F8C8D;
+  --color-text-placeholder: #BDC3C7;
+  
+  /* 边框颜色 */
+  --color-border-base: #E8E8E8;
+  --color-border-light: #ECF0F1;
+  --color-border-lighter: #F2F3F4;
+  --color-border-extra-light: #F8F9FA;
+  
+  /* 背景颜色 */
+  --color-bg-base: #F8F9FA;
+  --color-bg-page: #F8F9FA;
+  --color-bg-white: #FFFFFF;
+  
+  /* ========== 字体系统 ========== */
+  
+  /* 字体大小 */
+  --font-size-extra-large: 20px;
+  --font-size-large: 18px;
+  --font-size-medium: 16px;
+  --font-size-base: 14px;
+  --font-size-small: 13px;
+  --font-size-extra-small: 12px;
+  
+  /* 字重 */
+  --font-weight-primary: 500;
+  --font-weight-regular: 400;
+  --font-weight-light: 300;
+  
+  /* 行高 */
+  --line-height-base: 1.5;
+  --line-height-small: 1.2;
+  
+  /* ========== 间距系统 ========== */
+  /* 基于4px的倍数系统 */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+  --spacing-xl: 20px;
+  --spacing-xxl: 24px;
+  --spacing-xxxl: 32px;
+  --spacing-huge: 40px;
+  --spacing-massive: 48px;
+  
+  /* ========== 圆角系统 ========== */
+  --border-radius-base: 4px;
+  --border-radius-small: 2px;
+  --border-radius-large: 8px;
+  --border-radius-round: 20px;
+  --border-radius-circle: 100%;
+  
+  /* ========== 阴影系统 ========== */
+  --box-shadow-base: 0 2px 4px rgba(0, 0, 0, 0.12), 0 0 6px rgba(0, 0, 0, 0.04);
+  --box-shadow-dark: 0 2px 4px rgba(0, 0, 0, 0.12), 0 0 6px rgba(0, 0, 0, 0.12);
+  --box-shadow-light: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  
+  /* ========== 过渡动画 ========== */
+  --transition-base: all 0.3s cubic-bezier(0.645, 0.045, 0.355, 1);
+  --transition-fast: all 0.2s cubic-bezier(0.645, 0.045, 0.355, 1);
+  
+  /* ========== 层级系统 ========== */
+  --z-index-normal: 1;
+  --z-index-top: 1000;
+  --z-index-popper: 2000;
+  
+  /* ========== 布局 ========== */
+  --layout-header-height: 60px;
+  --layout-sidebar-width: 200px;
+  --layout-sidebar-collapsed-width: 64px;
+}
+
+/* ========== 工具类 ========== */
+
+/* 文字颜色工具类 */
+.text-primary {
+  color: var(--color-text-primary);
+}
+
+.text-regular {
+  color: var(--color-text-regular);
+}
+
+.text-secondary {
+  color: var(--color-text-secondary);
+}
+
+.text-placeholder {
+  color: var(--color-text-placeholder);
+}
+
+/* 背景颜色工具类 */
+.bg-white {
+  background-color: var(--color-bg-white);
+}
+
+.bg-base {
+  background-color: var(--color-bg-base);
+}
+
+/* 间距工具类 */
+.mt-xs { margin-top: var(--spacing-xs); }
+.mt-sm { margin-top: var(--spacing-sm); }
+.mt-md { margin-top: var(--spacing-md); }
+.mt-lg { margin-top: var(--spacing-lg); }
+.mt-xl { margin-top: var(--spacing-xl); }
+
+.mb-xs { margin-bottom: var(--spacing-xs); }
+.mb-sm { margin-bottom: var(--spacing-sm); }
+.mb-md { margin-bottom: var(--spacing-md); }
+.mb-lg { margin-bottom: var(--spacing-lg); }
+.mb-xl { margin-bottom: var(--spacing-xl); }
+
+.pt-xs { padding-top: var(--spacing-xs); }
+.pt-sm { padding-top: var(--spacing-sm); }
+.pt-md { padding-top: var(--spacing-md); }
+.pt-lg { padding-top: var(--spacing-lg); }
+.pt-xl { padding-top: var(--spacing-xl); }
+
+.pb-xs { padding-bottom: var(--spacing-xs); }
+.pb-sm { padding-bottom: var(--spacing-sm); }
+.pb-md { padding-bottom: var(--spacing-md); }
+.pb-lg { padding-bottom: var(--spacing-lg); }
+.pb-xl { padding-bottom: var(--spacing-xl); }
+
+/* 卡片样式 */
+.card {
+  background: var(--color-bg-white);
+  border-radius: var(--border-radius-large);
+  box-shadow: var(--box-shadow-base);
+  padding: var(--spacing-xl);
+  transition: var(--transition-base);
+}
+
+.card:hover {
+  box-shadow: var(--box-shadow-light);
+}
+
+/* 按钮基础样式 */
+.btn-base {
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border-radius: var(--border-radius-base);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-primary);
+  transition: var(--transition-base);
+  border: none;
+  cursor: pointer;
+}
+
+/* 响应式断点 */
+@media (max-width: 768px) {
+  :root {
+    --font-size-extra-large: 18px;
+    --font-size-large: 16px;
+    --font-size-medium: 14px;
+    --spacing-xl: 16px;
+    --spacing-xxl: 20px;
+  }
+}
+

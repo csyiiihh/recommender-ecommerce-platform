@@ -1,0 +1,310 @@
+/**
+ * 中国风图案和装饰元素
+ * Chinese Traditional Patterns & Decorations
+ */
+
+/* ========== 祥云图案 ========== */
+.cloud-pattern {
+  background-image: url("data:image/svg+xml,%3Csvg width='100' height='60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M20,30 Q25,20 35,25 Q45,30 50,25 Q60,20 70,30 Q75,35 70,40 Q60,45 50,40 Q45,35 35,40 Q25,45 20,35 Z' fill='%233498DB' opacity='0.05'/%3E%3C/svg%3E");
+  background-repeat: repeat-x;
+  background-size: 200px 60px;
+}
+
+/* ========== 青花瓷纹理 ========== */
+.porcelain-texture {
+  position: relative;
+  background: linear-gradient(135deg, #FFFFFF 0%, #F5F8FA 100%);
+}
+
+.porcelain-texture::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    radial-gradient(circle at 20% 30%, rgba(52, 152, 219, 0.03) 0%, transparent 50%),
+    radial-gradient(circle at 80% 70%, rgba(52, 152, 219, 0.04) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+/* ========== 水墨渐变边框 ========== */
+.ink-border {
+  position: relative;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.ink-border::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(135deg, 
+    rgba(52, 152, 219, 0.3) 0%, 
+    rgba(39, 174, 96, 0.2) 50%, 
+    rgba(52, 152, 219, 0.3) 100%);
+  border-radius: inherit;
+  z-index: -1;
+}
+
+/* ========== 山水意境背景 ========== */
+.landscape-bg {
+  position: relative;
+  overflow: hidden;
+}
+
+.landscape-bg::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
+  background: linear-gradient(
+    to bottom,
+    rgba(39, 174, 96, 0.03) 0%,
+    rgba(52, 152, 219, 0.02) 30%,
+    transparent 60%
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ========== 祥云装饰条 ========== */
+.cloud-decoration {
+  position: relative;
+  padding: 40px 0;
+}
+
+.cloud-decoration::before,
+.cloud-decoration::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 30px;
+  background-image: url("data:image/svg+xml,%3Csvg width='120' height='30' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M10,15 Q20,8 30,12 Q40,16 50,12 Q60,8 70,15 Q80,20 90,15 Q100,10 110,15' stroke='%233498DB' stroke-width='1.5' fill='none' opacity='0.2'/%3E%3Cpath d='M15,20 Q25,15 35,18 Q45,21 55,18 Q65,15 75,20' stroke='%2327AE60' stroke-width='1' fill='none' opacity='0.15'/%3E%3C/svg%3E");
+  background-repeat: repeat-x;
+  background-size: 120px 30px;
+  opacity: 0.6;
+}
+
+.cloud-decoration::before {
+  top: 0;
+}
+
+.cloud-decoration::after {
+  bottom: 0;
+  transform: scaleX(-1);
+}
+
+/* ========== 圆角四角装饰 ========== */
+.corner-decoration {
+  position: relative;
+}
+
+.corner-decoration::before,
+.corner-decoration::after {
+  content: '';
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0,10 Q0,0 10,0 L30,0 Q35,0 37,3' stroke='%233498DB' stroke-width='1.5' fill='none' opacity='0.4'/%3E%3Cpath d='M5,15 Q8,8 15,5' stroke='%23F39C12' stroke-width='1' fill='none' opacity='0.3'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  pointer-events: none;
+}
+
+.corner-decoration::before {
+  top: 0;
+  left: 0;
+}
+
+.corner-decoration::after {
+  top: 0;
+  right: 0;
+  transform: scaleX(-1);
+}
+
+/* ========== 水波纹效果 ========== */
+.water-ripple {
+  position: relative;
+  overflow: hidden;
+}
+
+.water-ripple::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background-image: url("data:image/svg+xml,%3Csvg width='200' height='60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0,30 Q50,20 100,30 T200,30 L200,60 L0,60 Z' fill='%233498DB' opacity='0.05'/%3E%3Cpath d='M0,40 Q50,35 100,40 T200,40' stroke='%233498DB' stroke-width='1' fill='none' opacity='0.1'/%3E%3C/svg%3E");
+  background-repeat: repeat-x;
+  background-size: 200px 60px;
+  animation: waterFlow 20s linear infinite;
+}
+
+@keyframes waterFlow {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: 200px 0;
+  }
+}
+
+/* ========== 印章样式 ========== */
+.seal-stamp {
+  display: inline-block;
+  padding: 4px 12px;
+  border: 2px solid var(--accent-color);
+  color: var(--accent-color);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  position: relative;
+  background: rgba(230, 126, 34, 0.05);
+}
+
+.seal-stamp::before,
+.seal-stamp::after {
+  content: '';
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border: 1px solid var(--accent-color);
+  background: var(--accent-color);
+}
+
+.seal-stamp::before {
+  top: -1px;
+  left: -1px;
+}
+
+.seal-stamp::after {
+  bottom: -1px;
+  right: -1px;
+}
+
+/* ========== 竹简样式卡片 ========== */
+.bamboo-card {
+  background: linear-gradient(to bottom, 
+    #FEF9E7 0%, 
+    #FCF3CF 50%, 
+    #FEF9E7 100%);
+  border-left: 3px solid var(--gold);
+  border-right: 3px solid var(--gold);
+  box-shadow: 
+    inset 2px 0 4px rgba(243, 156, 18, 0.1),
+    inset -2px 0 4px rgba(243, 156, 18, 0.1),
+    0 4px 12px rgba(0, 0, 0, 0.08);
+  position: relative;
+}
+
+.bamboo-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: repeating-linear-gradient(
+    90deg,
+    transparent,
+    transparent 20px,
+    rgba(243, 156, 18, 0.03) 20px,
+    rgba(243, 156, 18, 0.03) 21px
+  );
+  pointer-events: none;
+}
+
+/* ========== 毛笔字效果 ========== */
+.brush-text {
+  font-family: 'KaiTi', '楷体', 'STKaiti', serif;
+  font-weight: 500;
+  letter-spacing: 2px;
+  position: relative;
+  display: inline-block;
+}
+
+.brush-text::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, 
+    transparent 0%, 
+    var(--primary-color) 10%, 
+    var(--primary-color) 90%, 
+    transparent 100%);
+  opacity: 0.3;
+}
+
+/* ========== 扇形装饰 ========== */
+.fan-decoration {
+  position: relative;
+  padding-top: 20px;
+}
+
+.fan-decoration::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80px;
+  height: 20px;
+  background-image: url("data:image/svg+xml,%3Csvg width='80' height='20' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M10,20 Q20,5 40,0 Q60,5 70,20' fill='none' stroke='%233498DB' stroke-width='1.5' opacity='0.3'/%3E%3Cline x1='20' y1='15' x2='40' y2='2' stroke='%233498DB' stroke-width='0.5' opacity='0.2'/%3E%3Cline x1='30' y1='18' x2='40' y2='2' stroke='%233498DB' stroke-width='0.5' opacity='0.2'/%3E%3Cline x1='50' y1='18' x2='40' y2='2' stroke='%233498DB' stroke-width='0.5' opacity='0.2'/%3E%3Cline x1='60' y1='15' x2='40' y2='2' stroke='%233498DB' stroke-width='0.5' opacity='0.2'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+/* ========== 窗棂图案 ========== */
+.lattice-pattern {
+  position: relative;
+}
+
+.lattice-pattern::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    linear-gradient(90deg, rgba(52, 152, 219, 0.05) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(52, 152, 219, 0.05) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+/* ========== 梅花点缀 ========== */
+.plum-blossom {
+  position: relative;
+}
+
+.plum-blossom::before {
+  content: '❀';
+  position: absolute;
+  font-size: 16px;
+  color: var(--accent-color);
+  opacity: 0.3;
+  animation: plumFloat 4s ease-in-out infinite;
+}
+
+@keyframes plumFloat {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-10px) rotate(10deg);
+  }
+}
+

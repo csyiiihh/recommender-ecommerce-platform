@@ -1,0 +1,64 @@
+// Vue 3 事件总线
+// Vue 3 移除了 $on, $off, $once，使用 mitt 库实现事件总线
+
+import mitt from 'mitt'
+
+const eventBus = mitt()
+
+export default eventBus
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
