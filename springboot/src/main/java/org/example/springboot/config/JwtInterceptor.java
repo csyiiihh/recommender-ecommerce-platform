@@ -20,7 +20,7 @@ public class JwtInterceptor implements HandlerInterceptor {
         if ("SendEmailController".equals(controller)) return true;
         if ("AlipayController".equals(controller)) return true; // Dedicated payment service checks ownership; callbacks verify signatures.
         if ("GET".equals(request.getMethod()) && Set.of("ProductController", "CategoryController", "ArticleController", "CarouselItemController", "NoticeController").contains(controller)) return true;
-        if ("ReviewController".equals(controller) && "getReviewsByProductId".equals(action)) return true;
+        if ("GET".equals(request.getMethod()) && "ReviewController".equals(controller) && Set.of("getReviewsByProductId", "getPublicReviewPage").contains(action)) return true;
         if ("GroupBuyController".equals(controller) && Set.of("getActiveActivities", "getActivityDetail", "getActiveTeams").contains(action)) return true;
         access.current();
         if (Set.of("UserController", "OrderController", "AddressController", "CartController", "FavoriteController", "ReviewController", "ProductController", "LogisticsController", "GroupBuyController", "RecommendController", "CustomerServiceController", "FileController").contains(controller)) return true;

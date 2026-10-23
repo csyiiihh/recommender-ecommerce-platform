@@ -145,18 +145,40 @@
             <div v-else class="detail-content rich-text-content" v-html="sanitizedDescription"></div>
           </el-tab-pane>
           <el-tab-pane label="商品评价" name="reviews">
+            <div class="review-tools">
+              <span>共 {{ reviewsTotal }} 条已审核评价</span>
+              <el-select v-model="reviewSort" aria-label="评价排序" style="width: 160px" :disabled="reviewsLoading" @change="changeReviewSort">
+                <el-option label="最新评价" value="latest" />
+                <el-option label="评分从高到低" value="rating_desc" />
+                <el-option label="评分从低到高" value="rating_asc" />
+              </el-select>
+            </div>
             <div v-if="reviewsLoading" class="loading-reviews">
               <el-skeleton :rows="5" animated />
             </div>
+            <div v-else-if="reviewsError" class="review-error" role="alert">
+              <p>评价加载失败，请稍后重试</p>
+              <el-button @click="getProductReviews(reviewPage)">重新加载评价</el-button>
+            </div>
             <div v-else class="reviews-list">
+              <div v-if="reviewsSummary.total" class="rating-summary">
+                <div class="rating-average"><strong>{{ Number(reviewsSummary.average).toFixed(1) }}</strong><span>全部已审核评价平均分</span></div>
+                <div class="rating-distribution">
+                  <div v-for="stars in [5, 4, 3, 2, 1]" :key="stars" class="rating-row" :aria-label="`${stars}星 ${reviewsSummary.distribution[stars] || 0}条`">
+                    <span>{{ stars }} 星</span>
+                    <el-progress :percentage="Math.round((reviewsSummary.distribution[stars] || 0) * 100 / reviewsSummary.total)" :show-text="false" />
+                    <span>{{ reviewsSummary.distribution[stars] || 0 }}</span>
+                  </div>
+                </div>
+              </div>
               <div v-if="reviews.length" class="review-items">
                 <div v-for="review in reviews" :key="review.id" class="review-item">
                   <div class="review-header">
                     <div class="reviewer-info">
-                      <el-avatar :size="40" :src="review.user.avatar">
-                        {{ review.user.username.charAt(0).toUpperCase() }}
+                      <el-avatar :size="40" :src="review.user?.avatar">
+                        {{ (review.user?.username || '书友').charAt(0).toUpperCase() }}
                       </el-avatar>
-                      <span class="reviewer-name">{{ review.user.username }}</span>
+                      <span class="reviewer-name">{{ review.user?.username || '书友' }}</span>
                     </div>
                     <el-rate
                       v-model="review.rating"
@@ -169,7 +191,8 @@
                   <div class="review-time">{{ formatTime(review.createdAt) }}</div>
                 </div>
               </div>
-              <el-empty v-else description="暂无评价"></el-empty>
+              <el-empty v-else :description="reviewsTotal ? '本页暂无评价' : '暂无评价'" />
+              <el-pagination v-if="reviewsTotal > reviewPageSize" v-model:current-page="reviewPage" :page-size="reviewPageSize" :total="reviewsTotal" :disabled="reviewsLoading" layout="prev, pager, next" :pager-count="5" aria-label="评价分页" @current-change="getProductReviews" />
             </div>
           </el-tab-pane>
         </el-tabs>
@@ -247,6 +270,7 @@
 <script>
 import Request from '@/utils/request'
 import logger from '@/utils/logger'
+import { readFrontUser } from '@/utils/favoriteState'
 import { formatTime } from '@/utils/time'
 import FrontHeader from '@/components/front/FrontHeader.vue'
 import FrontFooter from '@/components/front/FrontFooter.vue'
@@ -266,10 +290,18 @@ export default {
   },
   data() {
     return {
-      userInfo: JSON.parse(localStorage.getItem('frontUser') || '{}'),
+      userInfo: (readFrontUser() || {}),
       product: {},
       quantity: 1,
       reviews: [],
+      reviewsTotal: 0,
+      reviewPage: 1,
+      reviewPageSize: 10,
+      reviewSort: 'latest',
+      reviewsSummary: { total: 0, average: 0, distribution: {} },
+      reviewsError: false,
+      reviewsRequestVersion: 0,
+      detailRequestVersion: 0,
       orderDialogVisible: false,
       selectedAddressId: null,
       addresses: [],
@@ -284,39 +316,62 @@ export default {
     this.getProductReviews()
   },
   mounted() {
-    this.userInfo = JSON.parse(localStorage.getItem('frontUser') || '{}')
+    this.userInfo = (readFrontUser() || {})
   },
+  watch: {
+    '$route.params.id'() {
+      this.quantity = 1
+      this.reviewPage = 1
+      this.reviews = []
+      this.reviewsTotal = 0
+      this.reviewsSummary = { total: 0, average: 0, distribution: {} }
+      this.getProductDetail()
+      this.getProductReviews(1)
+    }
+  },
+  beforeUnmount() { ++this.reviewsRequestVersion; ++this.detailRequestVersion },
   methods: {
     formatTime,
     async getProductDetail() {
+      const version = ++this.detailRequestVersion
+      this.product = {}
       try {
         this.loading = true
         const res = await Request.get(`/product/${this.$route.params.id}`)
-        if (res.code === '0') {
+        if (version === this.detailRequestVersion && res.code === '0') {
           this.product = res.data
         }
       } catch (error) {
         logger.error('获取商品详情失败:', error)
         this.$message.error('获取商品详情失败')
       } finally {
-        this.loading = false
+        if (version === this.detailRequestVersion) this.loading = false
       }
     },
-    async getProductReviews() {
+    changeReviewSort() {
+      this.reviewPage = 1
+      this.getProductReviews(1)
+    },
+    async getProductReviews(page = this.reviewPage) {
+      const version = ++this.reviewsRequestVersion
+      this.reviewPage = page
+      this.reviewsLoading = true
+      this.reviewsError = false
       try {
-        this.reviewsLoading = true
-        const res = await Request.get(`/review/product/${this.$route.params.id}`, {
-          params: {
-            status: 1  // 只获取已通过的评价
-          }
+        const res = await Request.get(`/review/product/${this.$route.params.id}/page`, {
+          params: { currentPage: page, size: this.reviewPageSize, sort: this.reviewSort }
         })
-        if (res.code === '0') {
-          this.reviews = res.data
-        }
+        if (res.code !== '0' || !Array.isArray(res.data?.records) || !res.data.summary || !Number.isFinite(Number(res.data.total))) throw new Error('评价响应异常')
+        if (version !== this.reviewsRequestVersion) return
+        this.reviews = res.data.records
+        this.reviewsTotal = Number(res.data.total)
+        this.reviewPage = Number(res.data.current) || page
+        this.reviewsSummary = { ...res.data.summary, distribution: res.data.summary.distribution || {} }
       } catch (error) {
+        if (version === this.reviewsRequestVersion) { this.reviews = []; this.reviewsError = true }
         logger.error('获取商品评价失败:', error)
       } finally {
-        this.reviewsLoading = false
+        if (version === this.reviewsRequestVersion) this.reviewsLoading = false
       }
     },
     isLogin() {
@@ -992,4 +1047,14 @@ export default {
 .loading-addresses {
   padding: 20px;
 }
+.review-tools { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:20px; flex-wrap:wrap; }
+.review-error { padding:32px 12px; text-align:center; }
+.review-error p { margin-bottom:16px; }
+.rating-summary { display:grid; grid-template-columns:180px minmax(0,1fr); gap:24px; padding:20px; background:#f8f7f3; border-radius:8px; margin-bottom:24px; }
+.rating-average { display:flex; flex-direction:column; justify-content:center; gap:8px; }
+.rating-average strong { font-size:36px; color:#315749; }
+.rating-average span { font-size:12px; color:#69776e; }
+.rating-row { display:grid; grid-template-columns:36px minmax(0,1fr) 48px; gap:12px; align-items:center; font-size:13px; margin:8px 0; }
+.reviews-list > .el-pagination { justify-content:center; margin-top:24px; }
+@media (max-width:480px) { .rating-summary { grid-template-columns:1fr; gap:12px; padding:16px; } }
 </style> 

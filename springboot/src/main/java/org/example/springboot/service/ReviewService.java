@@ -153,15 +153,42 @@ public class ReviewService {
         if (product == null || !Integer.valueOf(1).equals(product.getStatus())) return ResultUtils.dataNotFound("图书不存在或已下架");
         List<Review> reviews = reviewMapper.selectList(new LambdaQueryWrapper<Review>().eq(Review::getProductId, productId)
             .eq(Review::getStatus, 1).orderByDesc(Review::getCreatedAt));
+        return ResultUtils.success(toPublicReviews(reviews));
+    }
+
+    private List<org.example.springboot.dto.PublicReview> toPublicReviews(List<Review> reviews) {
         var ids = reviews.stream().map(Review::getUserId).filter(java.util.Objects::nonNull).collect(java.util.stream.Collectors.toSet());
         var users = ids.isEmpty() ? java.util.Map.<Long, User>of() : userMapper.selectBatchIds(ids).stream().collect(java.util.stream.Collectors.toMap(User::getId, u -> u));
-        var response = reviews.stream().map(review -> {
+        return reviews.stream().map(review -> {
             User user = users.get(review.getUserId());
             String nickname = user == null || user.getName() == null || user.getName().isBlank() ? "书友" : user.getName();
             String avatar = user != null && "USER".equals(user.getRole()) && user.getBusinessLicense() != null && user.getBusinessLicense().startsWith("/img/") ? "/api" + user.getBusinessLicense() : null;
             return new org.example.springboot.dto.PublicReview(review.getId(), review.getProductId(), review.getRating(), review.getContent(), review.getCreatedAt(), new org.example.springboot.dto.PublicReview.Reviewer(nickname, avatar));
         }).toList();
-        return ResultUtils.success(response);
+    }
+
+    @org.springframework.transaction.annotation.Transactional(readOnly = true, isolation = org.springframework.transaction.annotation.Isolation.REPEATABLE_READ)
+    public Result<?> getPublicReviewPage(Long productId, int currentPage, int size, String sort) {
+        if (productId == null || productId < 1 || currentPage < 1 || size < 1 || size > 50) return ResultUtils.paramError("评价分页参数无效，每页须为1至50条");
+        if (sort == null || !java.util.Set.of("latest", "rating_desc", "rating_asc").contains(sort)) return ResultUtils.paramError("无效评价排序方式");
+        Product product = productMapper.selectById(productId);
+        if (product == null || !Integer.valueOf(1).equals(product.getStatus())) return ResultUtils.dataNotFound("图书不存在或已下架");
+        var query = new LambdaQueryWrapper<Review>().eq(Review::getProductId, productId).eq(Review::getStatus, 1).between(Review::getRating, 1, 5);
+        if ("rating_desc".equals(sort)) query.orderByDesc(Review::getRating);
+        if ("rating_asc".equals(sort)) query.orderByAsc(Review::getRating);
+        query.orderByDesc(Review::getCreatedAt).orderByDesc(Review::getId);
+        Page<Review> page = reviewMapper.selectPage(new Page<>(currentPage, size), query);
+        var distribution = new java.util.LinkedHashMap<Integer, Long>();
+        for (int rating = 1; rating <= 5; rating++) distribution.put(rating, 0L);
+        long total = 0, weighted = 0;
+        for (var row : reviewMapper.countPublicRatings(productId)) {
+            if (row.getRating() != null && row.getRating() >= 1 && row.getRating() <= 5 && row.getCount() != null && row.getCount() > 0) {
+                distribution.put(row.getRating(), row.getCount()); total += row.getCount(); weighted += row.getRating() * row.getCount();
+            }
+        }
+        var average = total == 0 ? java.math.BigDecimal.ZERO : java.math.BigDecimal.valueOf(weighted).divide(java.math.BigDecimal.valueOf(total), 1, java.math.RoundingMode.HALF_UP);
+        var summary = new org.example.springboot.dto.PublicReviewPage.Summary(total, average, java.util.Collections.unmodifiableMap(distribution));
+        return ResultUtils.success(new org.example.springboot.dto.PublicReviewPage(toPublicReviews(page.getRecords()), page.getTotal(), page.getCurrent(), page.getSize(), page.getPages(), summary));
     }
 
     public Result<?> getReviewsByPage(Long productId, String productName, Integer userId, String username, 

@@ -39,6 +39,7 @@ class SecurityRegressionTest {
         @Bean UserMapper users() { return mock(UserMapper.class); }
         @Bean JwtTokenUtils jwt() { return new JwtTokenUtils(SECRET); }
         @Bean Endpoints endpoints() { return new Endpoints(); }
+        @Bean ReviewController publicReviews() { return new ReviewController(); }
         @Bean ProductController catalog() { return new ProductController(); }
         @Bean org.springframework.web.servlet.config.annotation.WebMvcConfigurer authorization() {
             return new org.springframework.web.servlet.config.annotation.WebMvcConfigurer() {
@@ -53,6 +54,9 @@ class SecurityRegressionTest {
     }
     @RestController static class ProductController {
         @GetMapping("/api/product/page") String publicCatalog() { return "ok"; }
+    }
+    @RestController static class ReviewController {
+        @GetMapping("/api/review/product/{id}/page") String getPublicReviewPage() { return "ok"; }
     }
     @Autowired WebApplicationContext context;
     @Autowired UserMapper users;
@@ -94,5 +98,8 @@ class SecurityRegressionTest {
         ObjectMapper mapper = new ObjectMapper();
         assertFalse(mapper.writeValueAsString(user).contains("stored-hash"));
         assertEquals("input", mapper.readValue("{\"password\":\"input\"}", User.class).getPassword());
+    }
+    @Test void publicReviewPageIsAccessibleWithoutLoginThroughFilterAndInterceptor() throws Exception {
+        mvc.perform(get("/api/review/product/1/page")).andExpect(status().isOk());
     }
 }

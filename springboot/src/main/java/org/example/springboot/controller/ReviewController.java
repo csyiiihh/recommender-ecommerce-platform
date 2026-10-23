@@ -50,6 +50,14 @@ public class ReviewController {
             @RequestParam(required = false) Integer status) {
         return reviewService.getReviewsByProductId(productId, status);
     }
+    @GetMapping("/product/{productId}/page")
+    public Result<?> getPublicReviewPage(
+            @PathVariable @Min(1) Long productId,
+            @RequestParam(defaultValue = "1") @Min(1) int currentPage,
+            @RequestParam(defaultValue = "10") @Min(1) @jakarta.validation.constraints.Max(50) int size,
+            @RequestParam(defaultValue = "latest") String sort) {
+        return reviewService.getPublicReviewPage(productId, currentPage, size, sort);
+    }
     @GetMapping("/page")
     public Result<?> getReviewsByPage(
             @RequestParam(required = false) Long productId,
