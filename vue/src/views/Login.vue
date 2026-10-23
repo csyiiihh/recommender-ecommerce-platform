@@ -104,7 +104,7 @@ import { setRoutes } from "@/router";
 import { User, Lock, Key as KeyIcon } from '@element-plus/icons-vue';
 
 export default {
-  name: 'Login',
+  name: 'LoginView',
   components: {
     ValidCode,
     User,

@@ -31,7 +31,7 @@ public class DictItemController {
 
 
     /**
-     * 新增/修改字典�?
+     * 新增/修改字典�?
      * @param dictItem
      * @return
      */
@@ -73,7 +73,7 @@ public class DictItemController {
         return success(itemList);
     }
     /**
-     * 根据ID删除字典�?
+     * 根据ID删除字典�?
      * @param id
      * @return
      */
@@ -85,7 +85,7 @@ public class DictItemController {
 
 
     /**
-     * 批量删除字典�?
+     * 批量删除字典�?
      * @param idList
      * @return
      */
@@ -107,7 +107,7 @@ public class DictItemController {
     }
 
     /**
-     * 分页查询字典�?
+     * 分页查询字典�?
      * @param currentPage
      * @param size
      * @param itemKey

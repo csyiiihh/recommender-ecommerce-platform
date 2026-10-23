@@ -46,7 +46,7 @@ public class SendEmailController {
             String code = verificationCodeService.generateCode();
             
             // 存储验证码（有效期10分钟）
-            verificationCodeService.storeCode(email, code, 10);
+            verificationCodeService.storeCode("register", email, code, 10);
             
             // 发送邮件
             emailService.sendRegisterCode(email, code);
@@ -54,7 +54,7 @@ public class SendEmailController {
             LOGGER.info("注册验证码已发送至：{}", email);
             // 注意：实际生产环境不应该返回验证码，这里为了兼容前端暂时返回
             // 建议前端通过单独的验证接口验证码验证
-    return Result.success(code);
+    return Result.success();
         } catch (Exception e) {
             LOGGER.error("注册验证码发送失败：{}", e.getMessage(), e);
             return Result.error("-1", "验证码发送失败，请联系管理员");
@@ -79,14 +79,14 @@ public class SendEmailController {
             String code = verificationCodeService.generateCode();
 
             // 存储验证码（有效期10分钟）
-            verificationCodeService.storeCode(email, code, 10);
+            verificationCodeService.storeCode("reset", email, code, 10);
             
             // 发送邮件
             emailService.sendResetPasswordCode(email, code);
             
             LOGGER.info("找回密码验证码已发送至：{}", email);
             // 注意：实际生产环境不应该返回验证码，这里为了兼容前端暂时返回
-            return Result.success(code);
+            return Result.success();
         } catch (Exception e) {
             LOGGER.error("找回密码验证码发送失败：{}", e.getMessage(), e);
             return Result.error("-1", "邮件发送失败，请联系管理员");

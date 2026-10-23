@@ -22,5 +22,6 @@ public interface AlipayService {
      * @param payPrice 退款金额
      */
     void refund(String orderId, String payPrice) throws AlipayApiException;
+    void refund(String orderId, String payPrice, String requestNo) throws AlipayApiException;
 }
 

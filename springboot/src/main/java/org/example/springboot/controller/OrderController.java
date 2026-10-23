@@ -22,6 +22,7 @@ import java.util.Map;
 @RequestMapping("/order")
 @Validated
 public class OrderController {
+    @Autowired private org.example.springboot.service.AccessService access;
     private static final Logger LOGGER = LoggerFactory.getLogger(OrderController.class);
 
     @Autowired
@@ -31,28 +32,34 @@ public class OrderController {
     private UserMapper userMapper;
     @PostMapping
     public Result<?> createOrder(@Valid @RequestBody Order order) {
+        access.owner(order.getUserId());
         return orderService.createOrder(order);
     }
     @PutMapping("/{id}/status")
     public Result<?> updateOrderStatus(
             @PathVariable @NotNull(message = "订单ID不能为空") @Min(value = 1, message = "订单ID必须大于0") Long id, 
             @RequestParam @NotNull(message = "状态不能为空") Integer status) {
+        access.order(id, true);
         return orderService.updateOrderStatus(id, status);
     }
     @PutMapping("/{id}/pay")
     public Result<?> pay(@PathVariable @NotNull(message = "订单ID不能为空") @Min(value = 1, message = "订单ID必须大于0") Long id) {
+        access.order(id, false);
         return orderService.payOrder(id);
     }
     @DeleteMapping("/{id}")
     public Result<?> deleteOrder(@PathVariable @NotNull(message = "订单ID不能为空") @Min(value = 1, message = "订单ID必须大于0") Long id) {
+        access.order(id, false);
         return orderService.deleteOrder(id);
     }
     @GetMapping("/{id}")
     public Result<?> getOrderById(@PathVariable @NotNull(message = "订单ID不能为空") @Min(value = 1, message = "订单ID必须大于0") Long id) {
+        access.order(id, true);
         return orderService.getOrderById(id);
     }
     @GetMapping("/user/{userId}")
     public Result<?> getOrdersByUserId(@PathVariable @NotNull(message = "用户ID不能为空") @Min(value = 1, message = "用户ID必须大于0") Long userId) {
+        access.owner(userId);
         return orderService.getOrdersByUserId(userId);
     }
     @GetMapping("/page")
@@ -63,6 +70,7 @@ public class OrderController {
             @RequestParam(required = false) Long merchantId,
             @RequestParam(defaultValue = "1") @Min(value = 1, message = "当前页必须大于0") Integer currentPage,
             @RequestParam(defaultValue = "10") @Min(value = 1, message = "每页大小必须大于0") Integer size) {
+        if(!access.isAdmin()) { if(access.isMerchant()) { merchantId=access.current().getId(); } else { userId=access.current().getId().toString(); merchantId=null; } }
         
         // 验证 userId 是否为有效数字
         Long userIdLong = null;
@@ -88,10 +96,12 @@ public class OrderController {
     public Result<?> refundOrder(
             @PathVariable @NotNull(message = "订单ID不能为空") @Min(value = 1, message = "订单ID必须大于0") Long id, 
             @RequestParam @NotBlank(message = "退款原因不能为空") String reason) {
+        access.order(id, false);
         return orderService.refundOrder(id, reason);
     }
     @DeleteMapping("/batch")
     public Result<?> deleteBatch(@RequestParam @NotNull(message = "订单ID列表不能为空") List<Long> ids) {
+        ids.forEach(id -> access.order(id, false));
         return orderService.deleteBatch(ids);
     }
     @PutMapping("/{id}/address")
@@ -100,6 +110,7 @@ public class OrderController {
             @RequestParam @NotBlank(message = "收货人姓名不能为空") String name,
             @RequestParam @NotBlank(message = "收货地址不能为空") String address,
             @RequestParam @NotBlank(message = "联系电话不能为空") String phone) {
+        access.order(id, false);
         return orderService.updateOrderAddress(name,id, address, phone);
     }
     // 更新订单信息
@@ -107,10 +118,12 @@ public class OrderController {
     public Result<?> updateOrder(
             @PathVariable @NotNull(message = "订单ID不能为空") @Min(value = 1, message = "订单ID必须大于0") Long id,
             @Valid @RequestBody Order order) {
+        access.admin();
         return orderService.updateOrder(id, order);
     }
     @GetMapping("/{id}/logistics")
     public Result<?> getOrderLogistics(@PathVariable @NotNull(message = "订单ID不能为空") @Min(value = 1, message = "订单ID必须大于0") Long id) {
+        access.order(id, true);
         return orderService.getOrderLogistics(id);
     }
     @PutMapping("/{id}/handle-refund")
@@ -118,6 +131,7 @@ public class OrderController {
             @PathVariable @NotNull(message = "订单ID不能为空") @Min(value = 1, message = "订单ID必须大于0") Long id,
             @RequestParam @NotNull(message = "状态不能为空") Integer status,
             @RequestParam @NotBlank(message = "备注不能为空") String remark) {
+        access.sellerOrder(id);
         return orderService.handleRefund(id, status, remark);
     }
 
@@ -126,6 +140,7 @@ public class OrderController {
      */
     @GetMapping("/{id}/status")
     public Result<Integer> getOrderStatus(@PathVariable @NotNull(message = "订单ID不能为空") @Min(value = 1, message = "订单ID必须大于0") Long id) {
+        access.order(id, true);
         return orderService.getOrderStatus(id);
     }
     
@@ -134,6 +149,7 @@ public class OrderController {
      */
     @PostMapping("/cart/create")
     public Result<?> createOrdersFromCart(@RequestBody Map<String, Object> params) {
+        access.owner(Long.valueOf(params.get("userId").toString()));
         return orderService.createOrdersFromCart(params);
     }
     
@@ -142,6 +158,7 @@ public class OrderController {
      */
     @PostMapping("/{id}/prepare-pay")
     public Result<?> prepareOrderPay(@PathVariable @NotNull(message = "订单ID不能为空") @Min(value = 1, message = "订单ID必须大于0") Long id) {
+        access.order(id, false);
         return orderService.prepareOrderPay(id);
     }
     
@@ -150,6 +167,7 @@ public class OrderController {
      */
     @PostMapping("/{id}/pay-balance")
     public Result<?> payByBalance(@PathVariable @NotNull(message = "订单ID不能为空") @Min(value = 1, message = "订单ID必须大于0") Long id) {
+        access.order(id, false);
         return orderService.payByBalance(id);
     }
     
@@ -158,6 +176,7 @@ public class OrderController {
      */
     @PostMapping("/cart/pay-balance")
     public Result<?> payCartByBalance(@RequestBody Map<String, Object> params) {
+        access.current();
         return orderService.payCartByBalance(params);
     }
 } 

@@ -17,26 +17,31 @@ import java.util.List;
 @RequestMapping("/review")
 @Validated
 public class ReviewController {
+    @Autowired private org.example.springboot.service.AccessService access;
     private static final Logger LOGGER = LoggerFactory.getLogger(ReviewController.class);
 
     @Autowired
     private ReviewService reviewService;
     @PostMapping
     public Result<?> createReview(@Valid @RequestBody Review review) {
+        access.owner(review.getUserId()); review.setId(null);
         return reviewService.createReview(review);
     }
     @PutMapping("/{id}/status")
     public Result<?> updateReviewStatus(
             @PathVariable @NotNull(message = "评论ID不能为空") @Min(value = 1, message = "评论ID必须大于0") Long id, 
             @RequestParam @NotNull(message = "状态不能为空") Integer status) {
+        access.admin();
         return reviewService.updateReviewStatus(id, status);
     }
     @DeleteMapping("/{id}")
     public Result<?> deleteReview(@PathVariable @NotNull(message = "评论ID不能为空") @Min(value = 1, message = "评论ID必须大于0") Long id) {
+        access.review(id);
         return reviewService.deleteReview(id);
     }
     @GetMapping("/{id}")
     public Result<?> getReviewById(@PathVariable @NotNull(message = "评论ID不能为空") @Min(value = 1, message = "评论ID必须大于0") Long id) {
+        access.review(id);
         return reviewService.getReviewById(id);
     }
     @GetMapping("/product/{productId}")
@@ -55,6 +60,7 @@ public class ReviewController {
             @RequestParam(required = false) Integer status,
             @RequestParam(defaultValue = "1") @Min(value = 1, message = "当前页必须大于0") Integer currentPage,
             @RequestParam(defaultValue = "10") @Min(value = 1, message = "每页大小必须大于0") Integer size) {
+        if(!access.isAdmin()) { if(access.isMerchant()) merchantId=access.current().getId(); else { userId=access.current().getId().intValue(); username=null; merchantId=null; } }
         return reviewService.getReviewsByPage(productId, productName,userId,username,merchantId, status, currentPage, size);
     }
 }

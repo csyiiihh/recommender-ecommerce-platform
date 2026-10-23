@@ -1,16 +1,17 @@
 <template>
   <div class="carousel-container">
-    <el-carousel 
-      :interval="5000" 
-      arrow="hover" 
+    <div v-if="!carouselItems.length" class="carousel-empty"><span>阅读，不止于此</span><p>每一次翻页，都是新的出发。</p><router-link to="/products">发现更多好书 →</router-link></div>
+    <el-carousel v-else
+      :interval="5000"
+      arrow="hover"
       :height="carouselHeight + 'px'"
-      :autoplay="true"
+      :autoplay="false"
     >
       <el-carousel-item v-for="item in carouselItems" :key="item.id">
         <div class="carousel-item">
           <div class="carousel-image-wrapper">
-            <el-image 
-              :src="buildImageUrl(item.imageUrl)" 
+            <el-image
+              :src="buildImageUrl(item.imageUrl)"
               fit="cover"
               class="carousel-image"
             >
@@ -29,7 +30,7 @@
               </div>
               <h2 class="title">{{ item.title }}</h2>
               <p class="description">{{ item.description }}</p>
-              <div class="price-section" v-if="item.product && item.product.isDiscount">
+              <div class="price-section" v-if="item.product && Number(item.product.isDiscount) === 1">
                 <div class="current-price">
                   <span class="currency">¥</span>
                   <span class="price">{{ item.product.discountPrice }}</span>
@@ -38,15 +39,15 @@
                   ¥{{ item.product.price }}
                 </span>
               </div>
-              <div v-if="item.product" class="price-section">
+              <div v-else-if="item.product" class="price-section">
                 <div class="current-price">
                   <span class="currency">¥</span>
                   <span class="price">{{ item.product.price }}</span>
                 </div>
               </div>
-              <el-button v-if="item.product" 
-                type="primary" 
-                round 
+              <el-button v-if="item.product"
+                type="primary"
+                round
                 class="action-button"
                 @click="handleView(item)"
               >
@@ -71,7 +72,7 @@ export default {
   data() {
     return {
       carouselItems: [],
-      carouselHeight: 600 // 设置默认高度，避免初始为0
+      carouselHeight: 360 // 设置默认高度，避免初始为0
     }
   },
   mounted() {
@@ -92,23 +93,23 @@ export default {
       if (!imageUrl) {
         return '';
       }
-      
+
       // 如果已经是完整的HTTP/HTTPS URL，直接返回
       if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
         return imageUrl;
       }
-      
+
       // 如果以 / 开头，说明是相对路径（如 /img/xxx.png）
       if (imageUrl.startsWith('/')) {
         return `/api${imageUrl}`;
       }
-      
+
       // 如果只是文件名（如 1767148875583.png），添加 /img/ 前缀
       return `/api/img/${imageUrl}`;
     },
     calculateHeight() {
       // 固定高度400px，与公告一致
-      this.carouselHeight = 400
+      this.carouselHeight = window.innerWidth <= 600 ? 220 : 360
     },
     async getCarouselItems() {
       try {
@@ -130,237 +131,24 @@ export default {
 </script>
 
 <style scoped>
-.carousel-container {
-  margin: 0;
-  max-width: 1400px;
-  border-radius: 16px;
-  overflow: hidden;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-  width: 100%;
-  margin: 0 auto;
-  padding: 0;
-  position: relative;
-  height: 400px; /* 固定高度，与公告一致 */
-}
+.carousel-container { width:100%;min-width:0;border-radius:10px;overflow:hidden;box-shadow:none;background:#e9eee2; }
+.carousel-item { position:relative;height:100%;display:flex;align-items:center;background:#e9eee2;overflow:hidden; }
+.carousel-image-wrapper { position:absolute;left:56%;right:0;top:0;bottom:0;width:auto;height:auto;display:flex;align-items:center;padding:30px 24px 30px 0;box-sizing:border-box; }
+.carousel-image { width:100%;height:100%;opacity:1; }
+.carousel-image :deep(img) { object-fit:contain!important;filter:drop-shadow(6px 12px 8px #34482f26); }
+.carousel-content { position:relative;inset:auto;width:58%;height:auto;padding:26px;box-sizing:border-box;background:transparent;display:block;color:#273e31; }
+.content-wrapper { max-width:none;text-align:left;padding:0;width:100%;color:#273e31; }
+.tag-wrapper { margin-bottom:12px; }
+.tag { color:#596f55;background:#dbe4d0;border-radius:3px;font-size:10px;padding:4px 8px;letter-spacing:.1em; }
+.title { font-family:'SimSun',serif;font-size:28px;line-height:1.5;margin:0 0 12px;text-shadow:none;font-weight:600;color:#273e31;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden; }
+.description { font-size:12px;line-height:1.6;color:#65725d;margin:0 0 16px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden; }
+.price-section { display:flex;gap:8px;align-items:baseline;justify-content:flex-start;margin:0 0 14px; }
+.current-price { color:#9e5936;background:transparent;box-shadow:none;padding:0;font-weight:600; }
+.currency { font-size:12px; }.price{font-size:24px;}.original-price{color:#839078;font-size:12px;}
+.action-button { padding:10px 15px!important;height:36px;background:#315749!important;border:0!important;border-radius:5px!important;color:white;box-shadow:none!important;font-size:12px!important; }
+.action-button i { display:none; }
+.carousel-empty { padding:46px 28px;min-height:180px;box-sizing:border-box; }.carousel-empty span{font-family:'SimSun',serif;font-size:26px;}.carousel-empty p,.carousel-empty a{color:#5a705b;font-size:13px;}
+@media(max-width:600px){.carousel-content{width:62%;padding:18px;} .carousel-image-wrapper{left:59%;padding:22px 12px 22px 0;}.title{font-size:20px;line-height:1.4;margin-bottom:8px;-webkit-line-clamp:2;}.description{font-size:10px;margin-bottom:8px;-webkit-line-clamp:1;}.tag-wrapper{margin-bottom:9px;}.tag{font-size:9px;}.price-section{margin-bottom:8px;}.price{font-size:20px;}.action-button{height:30px;padding:8px 12px!important;font-size:11px!important;}}
 
-:deep(.el-carousel__container) {
-  height: 400px !important;
-}
 
-.carousel-item {
-  height: 100%;
-  display: flex;
-  position: relative;
-  overflow: hidden;
-}
-
-.carousel-image-wrapper {
-  width: 100%;
-  height: 100%;
-  position: relative;
-  overflow: hidden;
-}
-
-.carousel-image {
-  width: 100%;
-  height: 100%;
-  transition: transform 0.6s ease;
-}
-
-.el-carousel__item:hover .carousel-image {
-  transform: scale(1.05);
-}
-
-.carousel-content {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  background: linear-gradient(90deg, 
-    rgba(0,0,0,0.75) 0%, 
-    rgba(0,0,0,0.5) 40%, 
-    rgba(0,0,0,0.2) 70%,
-    rgba(0,0,0,0) 100%
-  );
-}
-
-.content-wrapper {
-  padding: 0 80px;
-  max-width: 600px;
-  color: white;
-}
-
-.tag-wrapper {
-  margin-bottom: 20px;
-  position: relative;
-  display: inline-block;
-}
-
-.tag {
-  display: inline-block;
-  padding: 6px 16px;
-  background: rgba(58, 91, 160, 0.9);
-  color: white;
-  border-radius: 20px;
-  font-size: 14px;
-  font-weight: 500;
-  backdrop-filter: blur(4px);
-  box-shadow: 0 2px 8px rgba(58, 91, 160, 0.3);
-}
-
-.title {
-  font-size: 42px;
-  font-weight: 600;
-  margin: 0 0 20px;
-  line-height: 1.2;
-  text-shadow: 0 2px 4px rgba(0,0,0,0.2);
-}
-
-.description {
-  font-size: 18px;
-  line-height: 1.6;
-  margin: 0 0 30px;
-  opacity: 0.9;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.1);
-}
-
-.price-section {
-  margin-bottom: 30px;
-  display: flex;
-  align-items: baseline;
-  gap: 12px;
-}
-
-.current-price {
-  display: flex;
-  align-items: baseline;
-  background: rgba(58, 91, 160, 0.2);
-  padding: 4px 12px;
-  border-radius: 20px;
-  backdrop-filter: blur(4px);
-}
-
-.currency {
-  font-size: 20px;
-  font-weight: 500;
-  vertical-align: baseline;
-  color: var(--primary-color);
-}
-
-.price {
-  font-size: 36px;
-  font-weight: 600;
-  color: var(--primary-color);
-  margin-left: 4px;
-  text-shadow: 0 2px 4px rgba(58, 91, 160, 0.2);
-}
-
-.original-price {
-  font-size: 16px;
-  color: rgba(255, 255, 255, 0.6);
-  text-decoration: line-through;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.1);
-}
-
-.action-button {
-  width: 200px;
-    height: 42px;
-    font-size: 16px;
-    font-weight: 500;
-    letter-spacing: 1px;
-    margin-top: 20px;
-    border-radius: 8px;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0;
-}
-
-.action-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(58, 91, 160, 0.4);
-}
-
-.action-button i {
-  font-size: 16px;
-  transition: transform 0.3s ease;
-}
-
-.action-button:hover i.fa-arrow-right {
-  transform: translateX(4px);
-}
-
-/* 修改轮播图指示器样式 */
-:deep(.el-carousel__indicators) {
-  bottom: 30px;
-}
-
-:deep(.el-carousel__indicator) {
-  padding: 12px 4px;
-}
-
-:deep(.el-carousel__button) {
-  width: 30px;
-  height: 3px;
-  background-color: rgba(255, 255, 255, 0.3);
-  border-radius: 3px;
-  transition: all 0.3s ease;
-}
-
-:deep(.el-carousel__indicator.is-active .el-carousel__button) {
-  background-color: #fff;
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
-}
-
-/* 修改箭头样式 */
-:deep(.el-carousel__arrow) {
-  background-color: rgba(255, 255, 255, 0.15);
-  border-radius: 50%;
-  width: 44px;
-  height: 44px;
-  transition: all 0.3s ease;
-  backdrop-filter: blur(4px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-:deep(.el-carousel__arrow:hover) {
-  background-color: rgba(255, 255, 255, 0.25);
-  transform: scale(1.1);
-}
-
-:deep(.el-carousel__arrow i) {
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 20px;
-}
-
-/* 移除 indicator-position="outside" 相关样式 */
-.el-carousel {
-  margin-bottom: 0;
-}
-
-:deep(.el-carousel__container) {
-  margin-bottom: 0;
-}
-
-.image-slot {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  width: 100%;
-  height: 100%;
-  color: #909399;
-  font-size: 24px;
-  background: #f5f7fa;
-  gap: 8px;
-}
-
-.image-slot .error-text {
-  font-size: 12px;
-  color: #c0c4cc;
-}
-</style> 
+</style>

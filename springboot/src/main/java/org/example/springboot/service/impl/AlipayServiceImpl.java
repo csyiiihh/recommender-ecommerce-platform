@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class AlipayServiceImpl implements AlipayService {
     
+    @org.springframework.beans.factory.annotation.Autowired private AlipayConfig config;
     private static final Logger log = LoggerFactory.getLogger(AlipayServiceImpl.class);
     private static final String PRODUCTCODE = "FAST_INSTANT_TRADE_PAY";
     
@@ -27,12 +28,12 @@ public class AlipayServiceImpl implements AlipayService {
         try {
             // 创建支付宝客户端
             AlipayClient client = new DefaultAlipayClient(
-                AlipayConfig.URL,
-                AlipayConfig.APPID,
-                AlipayConfig.RSA_PRIVATE_KEY,
+                config.getGateway(),
+                config.getAppId(),
+                config.getPrivateKey(),
                 AlipayConfig.FORMAT,
                 AlipayConfig.CHARSET,
-                AlipayConfig.ALIPAY_PUBLIC_KEY,
+                config.getPublicKey(),
                 AlipayConfig.SIGNTYPE
             );
             
@@ -48,14 +49,14 @@ public class AlipayServiceImpl implements AlipayService {
             
             // 设置请求参数
             payRequest.setBizModel(model);
-            payRequest.setReturnUrl(AlipayConfig.RETURN_URL);  // 同步回调
-            payRequest.setNotifyUrl(AlipayConfig.NOTIFY_URL);  // 异步回调
+            payRequest.setReturnUrl(config.getReturnUrl());  // 同步回调
+            payRequest.setNotifyUrl(config.getNotifyUrl());  // 异步回调
             
             // 执行请求，返回支付页面HTML
             return client.pageExecute(payRequest).getBody();
         } catch (AlipayApiException e) {
             log.error("[支付宝] 支付失败", e);
-            return null;
+            throw new org.example.springboot.exception.BusinessException("支付请求失败，请稍后重试");
         }
     }
     
@@ -63,14 +64,19 @@ public class AlipayServiceImpl implements AlipayService {
     public void refund(String orderId, String payPrice) throws AlipayApiException {
         log.info("[支付宝退款] 开始处理，订单号: {}，退款金额: {}", orderId, payPrice);
         
+        refund(orderId, payPrice, "REFUND_" + orderId);
+    }
+
+    @Override
+    public void refund(String orderId, String payPrice, String requestNo) throws AlipayApiException {
         // 创建退款客户端
         AlipayClient client = new DefaultAlipayClient(
-            AlipayConfig.URL,
-            AlipayConfig.APPID,
-            AlipayConfig.RSA_PRIVATE_KEY,
+            config.getGateway(),
+            config.getAppId(),
+            config.getPrivateKey(),
             AlipayConfig.FORMAT,
             AlipayConfig.CHARSET,
-            AlipayConfig.ALIPAY_PUBLIC_KEY,
+            config.getPublicKey(),
             AlipayConfig.SIGNTYPE
         );
         
@@ -81,12 +87,14 @@ public class AlipayServiceImpl implements AlipayService {
         // 设置退款参数
         model.setOutTradeNo(orderId);        // 原订单号
         model.setRefundAmount(payPrice);     // 退款金额
-        model.setRefundReason("用户申请退款");  // 退款原因
+        model.setRefundReason("用户申请退款");
+        model.setOutRequestNo(requestNo);  // 退款原因
         
         payRequest.setBizModel(model);
         
         // 执行退款请求
-        String response = client.execute(payRequest).getBody();
+        var response = client.execute(payRequest);
+        if (!response.isSuccess()) throw new AlipayApiException("退款未成功: " + response.getSubMsg());
         log.info("[支付宝退款] 接口调用成功，订单号: {}，响应: {}", orderId, response);
         
         // 注意：沙箱环境的退款是模拟的，不会真实到账，但接口会返回成功

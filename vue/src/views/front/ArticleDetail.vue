@@ -45,7 +45,7 @@
         </div>
 
         <!-- 文章内容 -->
-        <div class="article-content" v-html="article.content"></div>
+        <div class="article-content" v-html="sanitizedContent"></div>
       </div>
 
       <!-- 空状态 -->
@@ -58,6 +58,7 @@
 </template>
 
 <script>
+import DOMPurify from 'dompurify'
 import FrontHeader from '@/components/front/FrontHeader.vue'
 import FrontFooter from '@/components/front/FrontFooter.vue'
 import Request from '@/utils/request'
@@ -81,6 +82,7 @@ export default {
   created() {
     this.getArticleDetail()
   },
+  computed: { sanitizedContent() { return DOMPurify.sanitize(this.article?.content || '') } },
   methods: {
     formatTime,
     async getArticleDetail() {

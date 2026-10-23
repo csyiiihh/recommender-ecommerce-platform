@@ -130,17 +130,12 @@
 <script>
 import excel from '../utils/excel.js'
 import logger from '@/utils/logger'
-import Pagination from '../components/Pagination/index.vue'
-import Upload from '../components/Upload/index.vue'
-import Hints from '../components/Hints/index.vue'
 import Request from '../utils/request.js'
 import { Download, Plus, Edit, Delete } from '@element-plus/icons-vue'
 export default {
-    name: 'Menu',
+    name: 'MenuView',
     components: { 
-      Pagination, 
-      Upload, 
-      Hints,
+
       Download,
       Plus,
       Edit,

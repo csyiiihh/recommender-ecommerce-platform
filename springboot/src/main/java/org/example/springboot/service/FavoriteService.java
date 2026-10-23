@@ -37,6 +37,11 @@ public class FavoriteService {
     private ProductMapper productMapper;
 
 
+    public Result<?> getActiveProductIds(Long userId) {
+        var records = favoriteMapper.selectList(new LambdaQueryWrapper<Favorite>().select(Favorite::getProductId).eq(Favorite::getUserId, userId).eq(Favorite::getStatus, 1));
+        return ResultUtils.success(records.stream().map(Favorite::getProductId).filter(java.util.Objects::nonNull).collect(Collectors.toSet()));
+    }
+
     public Result<?> createFavorite(Favorite favorite) {
         try {
             // 检查用户是否存在

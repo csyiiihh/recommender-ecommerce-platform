@@ -13,7 +13,11 @@ public class User {
     @TableId(type = IdType.AUTO)
     private Long id;
     private String username;
+    @com.fasterxml.jackson.annotation.JsonProperty(access = com.fasterxml.jackson.annotation.JsonProperty.Access.WRITE_ONLY)
+    @lombok.ToString.Exclude
     private String password;
+    @TableField(exist = false)
+    private String code;
     private String name;
     private String role;
     private String email;
@@ -24,5 +28,6 @@ public class User {
     @TableField(exist = false)
     private List<Menu> menuList;
     @TableField(exist = false)
+    @lombok.ToString.Exclude
     private String token;
 }

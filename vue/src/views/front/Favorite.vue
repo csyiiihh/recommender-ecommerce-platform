@@ -67,7 +67,7 @@ import eventBus from '@/utils/eventBus'
 import logger from '@/utils/logger'
 
 export default {
-  name: 'Favorite',
+  name: 'FavoriteView',
   components: {
     FrontHeader,
     FrontFooter,
@@ -75,6 +75,7 @@ export default {
   },
   data() {
     return {
+      cancelingFavorite: false,
       userInfo: JSON.parse(localStorage.getItem('frontUser') || '{}'),
       loading: false,
       favorites: [],
@@ -159,123 +160,19 @@ export default {
     },
     // 取消收藏
     async handleCancelFavorite(item) {
+      if (this.cancelingFavorite) return
+      const productId = item.productId ?? item.product?.id ?? item.id
+      if (productId == null) { this.$message.error('图书信息缺失，请刷新重试'); return }
+      this.cancelingFavorite = true
       try {
-        await this.$confirm('确定要取消收藏该商品吗？', '提示', {
-          type: 'warning'
-        })
-        
-        logger.debug('收藏页面取消收藏操作开始 - 详细数据结构检查:', {
-          '完整item对象': item,
-          'item.id': item.id,
-          'item.productId': item.productId,
-          'item.product': item.product,
-          'item.product?.id': item.product?.id,
-          'item.status': item.status,
-          '对象keys': Object.keys(item),
-          '对象所有属性值': JSON.stringify(item, null, 2)
-        })
-        
-        // 额外检查当前favorites数组的数据结构
-        logger.debug('当前favorites数组第一个元素结构:', {
-          'favorites[0]': this.favorites[0],
-          'favorites长度': this.favorites.length,
-          'favorites完整数组': this.favorites
-        })
-        
-        const userId = this.userInfo.id
-        
-        // 🔧 根据实际数据结构修复productId访问方式
-        // 尝试所有可能的productId访问方式
-        let productId;
-        logger.debug('尝试获取productId:', {
-          'item.product?.id': item.product?.id,
-          'item.productId': item.productId,
-          'item.id': item.id,
-          'typeof item.product': typeof item.product,
-          'item.product存在': !!item.product
-        });
-        
-        if (item.product && typeof item.product === 'object' && item.product.id) {
-          productId = item.product.id;
-          logger.debug('使用 item.product.id:', productId);
-        } else if (item.productId !== undefined && item.productId !== null) {
-          productId = item.productId;
-          logger.debug('使用 item.productId:', productId);
-        } else if (item.id !== undefined && item.id !== null) {
-          // 作为最后的尝试，看看是否item.id就是productId
-          productId = item.id;
-          logger.warn('尝试使用 item.id 作为 productId:', productId);
-        } else {
-          logger.error('无法从任何属性获取productId');
-          logger.error('完整数据结构:', item);
-          this.$message.error('数据错误，无法取消收藏');
-          return;
-        }
-        
-        // 🔧 根据原始源码的逻辑修复状态处理
-        // 原始源码使用: status: item.status，让我们恢复这个逻辑
-        const data = {
-          userId: userId,
-          productId: productId,
-          status: item.status  // 恢复原始源码逻辑
-        }
-        
-        logger.debug('收藏页面发送取消收藏请求:', {
-          '请求数据': data,
-          'productId来源': productId === item.product?.id ? 'item.product.id' : 'item.productId',
-          '使用的productId': productId
-        })
-        
-        const res = await Request.post('/favorite', data)
-        
-        logger.debug('收藏页面取消收藏响应:', {
-          code: res.code,
-          data: res.data,
-          status: res.data?.status,
-          msg: res.msg
-        })
-        
-        if (res.code === '0') {
-          this.$message({
-            type: 'success',
-            message: '已取消收藏'
-          })
-          
-          logger.debug('收藏页面取消收藏成功，触发全局事件')
-          
-          // 触发全局收藏状态更新事件，同步其他页面
-          eventBus.emit('favoriteStatusChanged', {
-            productId: productId,  // 使用确定的productId
-            status: false
-          })
-          
-          // 立即从本地列表中移除，提供即时反馈
-          this.favorites = this.favorites.filter(favItem => favItem.id !== item.id)
-          this.total = Math.max(0, this.total - 1)
-          
-          logger.debug('本地收藏列表已更新，剩余商品数量:', this.favorites.length)
-          
-          // 如果当前页没有商品了，切换到上一页
-          if (this.favorites.length === 0 && this.currentPage > 1) {
-            this.currentPage--
-            this.getFavorites()
-          }
-        } else {
-          logger.error('取消收藏失败:', res.msg)
-          this.$message({
-            type: 'error',
-            message: res.msg || '取消收藏失败'
-          })
-        }
+        await this.$confirm('确定要取消收藏该图书吗？', '提示', { type: 'warning', confirmButtonText: '确定', cancelButtonText: '取消' })
+        const result = await Request.put(`/favorite/${this.userInfo.id}/${productId}/status`, null, { params: { status: 0 } })
+        if (result.code !== '0') { this.$message.error(result.msg || '取消收藏失败'); return }
+        // One global event updates the list, its count, and all book cards.
+        eventBus.emit('favoriteStatusChanged', { userId: this.userInfo.id, productId, status: false })
       } catch (error) {
-        if (error !== 'cancel') {
-          logger.error('取消收藏异常:', error)
-          this.$message({
-            type: 'error',
-            message: '取消收藏失败'
-          })
-        }
-      }
+        if (error !== 'cancel' && error !== 'close') this.$message.error('取消收藏失败，请重试')
+      } finally { this.cancelingFavorite = false }
     },
     isLogin() {
       const userStr = localStorage.getItem('frontUser')
@@ -301,19 +198,20 @@ export default {
 
     // 处理全局收藏状态变化
     handleGlobalFavoriteChange(data) {
+      if (data.userId != null && String(data.userId) !== String(this.userInfo.id)) return
       logger.debug('Favorite页收到全局收藏状态变化:', data)
       
       // 如果商品被取消收藏，从收藏列表中移除
       if (!data.status) {
         const beforeCount = this.favorites.length
-        this.favorites = this.favorites.filter(item => item.product.id !== data.productId)
+        this.favorites = this.favorites.filter(item => String(item.product.id) !== String(data.productId))
         const afterCount = this.favorites.length
         
         if (beforeCount !== afterCount) {
           logger.debug(`从收藏列表移除商品 ID: ${data.productId}，数量从 ${beforeCount} 变为 ${afterCount}`)
           
           // 更新总数
-          this.total = Math.max(0, this.total - 1)
+          this.total = Math.max(0, this.total - (beforeCount - afterCount))
           
           // 显示提示信息
           this.$message.success('商品已从收藏中移除')

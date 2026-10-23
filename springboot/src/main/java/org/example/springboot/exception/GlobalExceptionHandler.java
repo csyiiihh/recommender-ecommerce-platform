@@ -44,6 +44,15 @@ public class GlobalExceptionHandler {
     /**
      * 处理业务异常
      */
+    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public Result<?> handleAccessDenied(Exception e) { return Result.error("403", "无权访问该资源"); }
+
+    @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
+    public org.springframework.http.ResponseEntity<Result<?>> handleStatus(org.springframework.web.server.ResponseStatusException e) {
+        return org.springframework.http.ResponseEntity.status(e.getStatusCode()).body(Result.error(String.valueOf(e.getStatusCode().value()), e.getReason()));
+    }
+
     @ExceptionHandler(BusinessException.class)
     public Result<?> handleBusinessException(BusinessException e) {
         log.error("业务异常: {}", e.getMessage());

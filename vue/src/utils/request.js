@@ -8,6 +8,17 @@ const request = axios.create({
     timeout: 25000
 })
 
+
+// Shared by Axios and Element Plus uploads so both carry the same authenticated identity.
+export function getAuthHeaders(explicitScope) {
+    const routePath = router.currentRoute.value.path;
+    const frontPage = /^\/(?:$|products(?:\/|$)|product\/|category\/|cart$|favorite$|order$|user-center$|articles$|article\/|search$|recommend-center$|group-buy(?:\/|$)|my-group-buy$|group-buy-team\/)/.test(routePath);
+    try {
+        const user = JSON.parse(localStorage.getItem(explicitScope || (frontPage ? 'frontUser' : 'backUser')) || '{}');
+        return user.token ? { token: user.token } : {};
+    } catch { return {}; }
+}
+
 // 添加错误状态标记和计时器存储
 // 使用动态对象，支持所有HTTP状态码
 let errorFlags = {
@@ -52,7 +63,7 @@ const resetErrorFlags = (specificError = null) => {
 // 设置错误标记的函数
 const setErrorFlag = (status) => {
     // 如果状态码不存在，先添加到错误标记中
-    if (!errorFlags.hasOwnProperty(status)) {
+    if (!Object.prototype.hasOwnProperty.call(errorFlags, status)) {
         errorFlags[status] = false;
     }
     
@@ -70,7 +81,7 @@ const setErrorFlag = (status) => {
     }, 10000);
 };
 
-window.onerror = function(message, url, lineNumber) {
+window.onerror = function(message, _url, _lineNumber) {
     logger.error("发生未捕获的错误:", message);
 };
   
@@ -81,14 +92,7 @@ request.interceptors.request.use(
             startTime: Date.now()
         };
         
-        const user = localStorage.getItem('backUser');
-        if (user) {
-            try {
-                config.headers['token'] = JSON.parse(user).token;
-            } catch (e) {
-                logger.error('Token parsing error:', e);
-            }
-        }
+        Object.assign(config.headers, getAuthHeaders(config.authScope));
         return config;
     },
     error => {
@@ -125,7 +129,7 @@ request.interceptors.response.use(
             }
         }
         
-        if (response.config.responseType === 'blob') {
+        if (response.config.responseType === 'blob' || response.config.responseType === 'text') {
             return response;
         }
 
@@ -193,7 +197,7 @@ request.interceptors.response.use(
             }
             
             // 检查是否未被标记过（新状态码会自动添加到errorFlags）
-            if (!errorFlags.hasOwnProperty(status)) {
+            if (!Object.prototype.hasOwnProperty.call(errorFlags, status)) {
                 errorFlags[status] = false;
             }
             

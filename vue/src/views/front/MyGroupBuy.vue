@@ -190,6 +190,7 @@
 
 <script>
 import Request from '@/utils/request'
+import { DocumentCopy } from '@element-plus/icons-vue'
 import logger from '@/utils/logger'
 import CountDown from '@/components/CountDown.vue'
 

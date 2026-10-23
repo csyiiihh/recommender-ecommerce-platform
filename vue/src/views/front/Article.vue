@@ -253,7 +253,7 @@ import logger from '@/utils/logger'
 import { formatTime } from '@/utils/time'
 
 export default {
-  name: 'Article',
+  name: 'ArticleView',
   components: {
     FrontHeader,
     FrontFooter

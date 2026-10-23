@@ -24,6 +24,7 @@ import org.example.springboot.mapper.UserMapper;
 @RequestMapping("/cart")
 @Validated
 public class CartController {
+    @Autowired private org.example.springboot.service.AccessService access;
     private static final Logger LOGGER = LoggerFactory.getLogger(CartController.class);
 
     @Autowired
@@ -33,24 +34,29 @@ public class CartController {
     private UserMapper userMapper;
     @PostMapping
     public Result<?> addToCart(@Valid @RequestBody Cart cart) {
+        access.owner(cart.getUserId()); cart.setId(null); if(cart.getQuantity() == null || cart.getQuantity() < 1) throw new IllegalArgumentException("数量必须大于0");
         return cartService.addToCart(cart);
     }
     @PutMapping("/{id}")
     public Result<?> updateCartItem(
             @PathVariable @NotNull(message = "购物车ID不能为空") @Min(value = 1, message = "购物车ID必须大于0") Long id, 
             @RequestParam @NotNull(message = "数量不能为空") @Min(value = 1, message = "数量必须大于0") Integer quantity) {
+        access.cart(id);
         return cartService.updateCartItem(id, quantity);
     }
     @DeleteMapping("/{id}")
     public Result<?> deleteCartItem(@PathVariable @NotNull(message = "购物车ID不能为空") @Min(value = 1, message = "购物车ID必须大于0") Long id) {
+        access.cart(id);
         return cartService.deleteCartItem(id);
     }
     @GetMapping("/user/{userId}")
     public Result<?> getCartByUserId(@PathVariable @NotNull(message = "用户ID不能为空") @Min(value = 1, message = "用户ID必须大于0") Long userId) {
+        access.owner(userId);
         return cartService.getCartByUserId(userId);
     }
     @DeleteMapping("/clear/{userId}")
     public Result<?> clearCart(@PathVariable @NotNull(message = "用户ID不能为空") @Min(value = 1, message = "用户ID必须大于0") Long userId) {
+        access.owner(userId);
         return cartService.clearCart(userId);
     }
     @GetMapping("/page")
@@ -59,6 +65,7 @@ public class CartController {
             @RequestParam(required = false) String productName,
             @RequestParam(defaultValue = "1") @Min(value = 1, message = "当前页必须大于0") Integer currentPage,
             @RequestParam(defaultValue = "10") @Min(value = 1, message = "每页大小必须大于0") Integer size) {
+        if(!access.isAdmin()) userId = access.current().getId().toString();
         
         // 验证 userId 是否为有效数字
         Long userIdLong = null;
@@ -82,6 +89,7 @@ public class CartController {
     }
     @DeleteMapping("/batch")
     public Result<?> deleteBatch(@RequestParam @NotNull(message = "购物车ID列表不能为空") List<Long> ids) {
+        ids.forEach(access::cart);
         return cartService.deleteBatch(ids);
     }
 } 

@@ -51,7 +51,7 @@
                       :show-file-list="false"
                       :on-success="handleAvatarSuccess"
                       :before-upload="beforeAvatarUpload"
-                      :headers="uploadHeaders"
+                      :headers="authenticatedHeaders"
                     >
                       <el-button size="small" type="primary">
                         <el-icon><Upload /></el-icon>
@@ -184,6 +184,7 @@
 </template>
 
 <script>
+import { getAuthHeaders } from '@/utils/request'
 import FrontHeader from '@/components/front/FrontHeader.vue'
 import FrontFooter from '@/components/front/FrontFooter.vue'
 import Request from '@/utils/request'
@@ -191,6 +192,7 @@ import logger from '@/utils/logger'
 import { User, Location, Lock, Upload, Plus, Edit, Delete } from '@element-plus/icons-vue'
 
 export default {
+    computed: { authenticatedHeaders() { return getAuthHeaders(); } },
   name: 'UserCenter',
   components: {
     FrontHeader,
@@ -285,7 +287,7 @@ export default {
 
   methods: {
     // 头像上传成功回调
-    handleAvatarSuccess(res, file) {
+    handleAvatarSuccess(res, _file) {
       if (res.code === '0') {
         this.userInfo.businessLicense = res.data
         this.$message.success('头像上传成功')

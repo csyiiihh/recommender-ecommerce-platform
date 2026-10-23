@@ -50,6 +50,7 @@ public class Order {
     private Product product;
 
     @TableField(exist = false)
+    @com.fasterxml.jackson.databind.annotation.JsonSerialize(using = org.example.springboot.config.PublicMerchantSerializer.class)
     private User merchant;
 
 } 

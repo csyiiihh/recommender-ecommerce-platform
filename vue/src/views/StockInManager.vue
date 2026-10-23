@@ -209,6 +209,7 @@
 </template>
 
 <script>
+import { getProductOptions } from '@/utils/productOptions'
 import Request from '@/utils/request'
 import logger from '@/utils/logger'
 import Pagination from '@/components/Pagination/index.vue'
@@ -282,7 +283,7 @@ export default {
     async getProducts() {
       try {
         const merchantId = this.userInfo.role === 'MERCHANT' ? this.userInfo.id : undefined
-        const res = await Request.get('/product/all', { params: { merchantId } })
+        const res = await getProductOptions({ merchantId })
         if (res.code === '0') {
           this.products = res.data
         }

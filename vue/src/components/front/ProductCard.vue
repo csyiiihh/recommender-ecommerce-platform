@@ -10,14 +10,14 @@
         <div class="skeleton-line skeleton-actions"></div>
       </div>
     </div>
-    
+
     <!-- 实际内容 -->
     <template v-else>
       <div class="image-container">
-        <el-image 
-          :src="buildImageUrl(product.imageUrl)" 
+        <el-image
+          :src="buildImageUrl(product.imageUrl)"
           class="product-image"
-          fit="cover"
+          fit="contain"
           lazy
           @load="imageLoaded"
           @error="imageError"
@@ -39,10 +39,11 @@
           </div>
         </div>
       </div>
-      
+
       <div class="product-content">
         <h3 class="product-name">{{ product.name }}</h3>
-        
+        <p v-if="product.author" class="book-author">{{ product.author }}</p>
+
         <!-- 推荐解释（可折叠） -->
         <div class="recommendation-reason" v-if="showAlgorithmInfo && product.recommendationExplanation">
           <el-collapse>
@@ -63,7 +64,7 @@
             </el-collapse-item>
           </el-collapse>
         </div>
-        
+
         <div class="product-info">
           <div class="price-section">
             <div class="current-price">
@@ -83,15 +84,15 @@
             <span>{{ product.placeOfOrigin }}</span>
           </div>
         </div>
-        
+
         <div class="product-footer">
           <div class="action-group">
-            <div class="favorite-btn" 
-              :class="{ 'is-favorite': isFavoritePage || product.isFavorite }"
+            <div class="favorite-btn" role="button" tabindex="0" :aria-label="favoriteState === undefined ? '确认收藏状态' : (favoriteState ? '取消收藏' : '收藏图书')" :aria-pressed="favoriteState === true" :aria-busy="favoriteBusy" @keydown.enter.stop="handleFavorite"
+              :class="{ 'is-favorite': isFavoritePage || favoriteState }"
               @click.stop="handleFavorite">
-              <i :class="[isFavoritePage ? 'fas fa-trash-alt' : (product.isFavorite ? 'fas fa-heart' : 'far fa-heart')]"></i>
+              <i :class="[isFavoritePage ? 'fas fa-trash-alt' : (favoriteBusy ? 'fas fa-spinner fa-spin' : (favoriteState === undefined ? 'fas fa-circle-question' : (favoriteState ? 'fas fa-heart' : 'far fa-heart')))]"></i>
             </div>
-            <div class="add-to-cart" @click.stop="handleAddToCart">
+            <div class="add-to-cart" role="button" tabindex="0" :aria-label="'将' + product.name + '加入购物车'" @keydown.enter.stop="handleAddToCart" @click.stop="handleAddToCart">
               <i class="fas fa-shopping-cart"></i>
               <span>加入购物车</span>
             </div>
@@ -104,7 +105,7 @@
 
 <script>
 import Request from '@/utils/request'
-import eventBus from '@/utils/eventBus'
+import { favoriteStatus, loadFavoriteStates, toggleFavorite, readFrontUser } from '@/utils/favoriteState'
 import logger from '@/utils/logger'
 
 export default {
@@ -129,12 +130,13 @@ export default {
   },
   data() {
     return {
-      userInfo: JSON.parse(localStorage.getItem('frontUser') || '{}'),
+      userInfo: readFrontUser(),
       loading: true,
       imageLoadComplete: false,
-      favoriteStatusTimer: null // 收藏状态请求的定时器，用于延迟加载和清理
+      favoriteBusy: false
     }
   },
+  computed: { favoriteState() { return this.isFavoritePage ? true : favoriteStatus(this.userInfo.id, this.product.id) } },
   methods: {
     // 图片加载完成
     imageLoaded() {
@@ -142,13 +144,13 @@ export default {
       this.imageLoadComplete = true;
       this.loading = false;
     },
-    
+
     // 图片加载失败
     imageError() {
       this.imageLoadComplete = false;
       this.loading = false;
     },
-    
+
     isLogin() {
       // 检查是否登录
       const userStr = localStorage.getItem('frontUser')
@@ -164,7 +166,7 @@ export default {
     },
     async handleAddToCart() {
       try {
-   
+
          if(!this.isLogin()){
           return
          }
@@ -198,222 +200,37 @@ export default {
     },
 
     async handleFavorite() {
+      if (this.isFavoritePage) { this.$emit('toggle-favorite', this.product); return }
+      if (!this.isLogin() || this.favoriteBusy) return
+      if (this.favoriteState === undefined) { await this.getFavoriteStatus(); return }
+      this.favoriteBusy = true
       try {
-        // 如果是在收藏页面，只触发事件
-        if (this.isFavoritePage) {
-          this.$emit('toggle-favorite', this.product)
-          return
-        }
-
-        if(!this.isLogin()){
-          return
-        }
-
-        // 记录操作前的状态
-        const beforeStatus = this.product.isFavorite
-        
-        logger.debug('ProductCard收藏操作开始:', {
-          productId: this.product.id,
-          productName: this.product.name,
-          beforeStatus: beforeStatus,
-          beforeStatusType: typeof beforeStatus,
-          expectOperation: beforeStatus ? '取消收藏' : '收藏',
-          商品当前收藏状态: beforeStatus ? '已收藏' : '未收藏'
-        })
-        
-        // 🔄 恢复原始源码的正确收藏逻辑
-        // 原始源码逻辑: status: this.product.isFavorite ? 1 : 0
-        // 这个逻辑是正确的，我之前理解错了
-        const targetStatus = beforeStatus ? 1 : 0
-        
-        logger.debug('恢复原始源码收藏逻辑:', {
-          '原始源码逻辑': 'status: isFavorite ? 1 : 0',
-          '当前商品状态': beforeStatus ? '已收藏' : '未收藏',
-          '用户操作意图': beforeStatus ? '取消收藏' : '添加收藏',
-          '发送给服务器的状态': targetStatus,
-          '说明': '已恢复原始源码的正确逻辑'
-        })
-        
-        const data = {
-          userId: this.userInfo.id,
-          productId: this.product.id,
-          status: targetStatus
-        }
-        
-        logger.debug('ProductCard发送收藏请求详情:', {
-          '请求数据': data,
-          '用户ID': data.userId,
-          '商品ID': data.productId, 
-          '发送的状态值': data.status,
-          '状态值类型': typeof data.status,
-          '逻辑状态': '✅ 已恢复原始源码的正确逻辑'
-        })
-        
-        const res = await Request.post('/favorite', data)
-        
-        logger.debug('ProductCard收藏接口响应:', {
-          code: res.code,
-          data: res.data,
-          status: res.data?.status,
-          msg: res.msg,
-          fullResponse: res
-        })
-        
-        if (res.code === '0') {
-          // 检查服务器是否真正处理了收藏操作
-          const serverConfirmedStatus = res.data?.status
-          
-          logger.debug('服务器收藏响应详情:', {
-            发送的状态: targetStatus,
-            服务器返回状态: serverConfirmedStatus,
-            服务器返回状态类型: typeof serverConfirmedStatus,
-            操作意图: targetStatus === 1 ? '收藏' : '取消收藏',
-            完整响应: res,
-            响应数据: res.data
-          })
-          
-          if (serverConfirmedStatus !== undefined && serverConfirmedStatus !== null) {
-            // 服务器确认状态处理 - 兼容不同的返回格式
-            const isNowFavorite = serverConfirmedStatus === 1 || serverConfirmedStatus === '1' || serverConfirmedStatus === true
-            
-            logger.debug('收藏状态处理:', {
-              原始服务器状态: serverConfirmedStatus,
-              处理后收藏状态: isNowFavorite,
-              操作类型: isNowFavorite ? '收藏成功' : '取消收藏成功'
-            })
-            
-            // 更新UI状态 - 基于服务器确认状态
-            this.product.isFavorite = isNowFavorite
-            
-            // 显示正确的操作反馈
-            this.$message({
-              type: 'success',
-              message: isNowFavorite ? '收藏成功' : '已取消收藏'
-            })
-            
-            logger.debug('ProductCard收藏操作完成:', {
-              productId: this.product.id,
-              productName: this.product.name,
-              finalStatus: isNowFavorite,
-              serverConfirmed: true,
-              operationType: isNowFavorite ? '执行收藏' : '执行取消收藏'
-            })
-            
-            // 触发事件并传递最新状态
-            this.$emit('toggle-favorite', {
-              product: this.product,
-              status: isNowFavorite ? 1 : 0
-            })
-            
-            // 触发全局收藏状态更新事件，同步其他页面
-            eventBus.emit('favoriteStatusChanged', {
-              productId: this.product.id,
-              status: isNowFavorite
-            })
-          } else {
-            logger.error('服务器响应缺少status字段:', res)
-            this.$message({
-              type: 'error',
-              message: '收藏状态异常，请刷新页面重试'
-            })
-          }
-        } else {
-          this.$message({
-            type: 'error',
-            message: res.msg || '操作失败'
-          })
-        }
-      } catch (error) {
-        logger.error('收藏操作失败:', error)
-        this.$message({
-          type: 'error',
-          message: '操作失败'
-        })
-      }
+        const status = await toggleFavorite(this.userInfo.id, this.product.id)
+        if (status == null) return
+        this.$emit('toggle-favorite', { product: this.product, status })
+        this.$message.success(status === 1 ? '已收藏' : '已取消收藏')
+      } catch (error) { this.$message.error(error.message || '收藏操作失败，请重试') }
+      finally { this.favoriteBusy = false }
     },
 
     // 验证收藏状态的方法
     async verifyFavoriteStatus() {
-      try {
-        logger.debug(`验证商品 ${this.product.id} 的收藏状态...`)
-        
-        const userId = this.userInfo.id
-        const res = await Request.get(`/favorite/check?userId=${userId}&productId=${this.product.id}`)
-        
-        logger.debug('收藏状态验证结果:', {
-          productId: this.product.id,
-          response: res,
-          currentFrontendStatus: this.product.isFavorite
-        })
-        
-        if (res.code === '0') {
-          const serverStatus = res.data?.isFavorite || false
-          
-          if (serverStatus !== this.product.isFavorite) {
-            logger.warn('发现前端与服务器状态不一致:', {
-              productId: this.product.id,
-              frontendStatus: this.product.isFavorite,
-              serverStatus: serverStatus
-            })
-            
-            // 同步服务器状态
-            this.product.isFavorite = serverStatus
-            
-            // 触发全局状态更新
-            eventBus.emit('favoriteStatusChanged', {
-              productId: this.product.id,
-              status: serverStatus
-            })
-            
-            this.$message({
-              type: 'info',
-              message: '收藏状态已同步'
-            })
-          } else {
-            logger.debug('前端与服务器状态一致')
-          }
-        }
-      } catch (error) {
-        logger.error('验证收藏状态失败:', error)
-      }
+      return this.getFavoriteStatus()
     },
 
     // 获取收藏状态的方法（延迟加载，避免大量并发请求）
     async getFavoriteStatus() {
-      if (this.userInfo?.id) {
-        try {
-          // 直接使用获取所有收藏列表的方式（check接口返回500，暂时不使用）
-          // 注意：这个请求可能会很慢，因为需要获取用户的所有收藏记录
-          const res = await Request.get(`/favorite/user/${this.userInfo.id}`, {
-            timeout: 15000 // 15秒超时
-          })
-          
-          if (res.code === '0') {
-            const favorites = res.data || []
-            const favoriteItem = favorites.find(item => item.productId === this.product.id)
-            const isFavorite = favoriteItem && favoriteItem.status === 1
-            
-            this.product.isFavorite = isFavorite
-          }
-        } catch (error) {
-          // 静默处理所有错误，不影响用户体验
-          // 超时或服务器错误时保持当前状态，不更新
-          if (error.code !== 'ECONNABORTED' && error.response?.status !== 500) {
-            // 只记录非超时和非500的错误，但不显示给用户
-            logger.debug('获取收藏状态失败（静默处理）:', {
-              productId: this.product.id,
-              error: error.message,
-              code: error.code
-            })
-          }
-        }
-      }
+      if (!this.userInfo?.id) return
+      this.favoriteBusy = true
+      try { await loadFavoriteStates(this.userInfo.id) }
+      catch (error) { logger.debug('收藏状态暂不可用，点击时会重试', error.message) }
+      finally { this.favoriteBusy = false }
     },
 
     handleClick() {
       this.$router.push(`/product/${this.product.id}`)
     },
-    
+
     // 获取算法图标
     getAlgorithmIcon(type) {
       const icons = {
@@ -425,7 +242,7 @@ export default {
       };
       return icons[type] || '🤖';
     },
-    
+
     // 获取算法名称
     getAlgorithmName(type) {
       const names = {
@@ -437,7 +254,7 @@ export default {
       };
       return names[type] || '智能推荐';
     },
-    
+
     // 设置一个延迟结束加载状态的方法
     startLoading() {
       this.loading = true;
@@ -452,21 +269,21 @@ export default {
       if (!imageUrl) {
         return '';
       }
-      
+
       // 如果已经是完整的HTTP/HTTPS URL，直接返回
       if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
         return imageUrl;
       }
-      
+
       // 如果以 / 开头，说明是相对路径（如 /img/xxx.png）
       if (imageUrl.startsWith('/')) {
         return `/api${imageUrl}`;
       }
-      
+
       // 如果只是文件名（如 1767148875583.png），添加 /img/ 前缀
       return `/api/img/${imageUrl}`;
     },
-    
+
     // 在created钩子之前添加图片预加载方法
     preloadImage(src) {
       return new Promise((resolve, reject) => {
@@ -474,7 +291,7 @@ export default {
           reject(new Error('Image source is empty'));
           return;
         }
-        
+
         const img = new Image();
         img.onload = () => resolve(src);
         img.onerror = (err) => {
@@ -492,7 +309,7 @@ export default {
     // 使用缓存的方式处理图片URL
     if (this.product.imageUrl) {
       const imgSrc = this.buildImageUrl(this.product.imageUrl);
-      
+
       // 预加载图片
       this.preloadImage(imgSrc)
         .then(() => {
@@ -500,10 +317,10 @@ export default {
           this.loading = false; // 预加载成功后直接关闭加载状态
         })
         .catch((error) => {
-          logger.warn('图片预加载失败，将使用默认占位图:', { 
-            imageUrl: this.product.imageUrl, 
+          logger.warn('图片预加载失败，将使用默认占位图:', {
+            imageUrl: this.product.imageUrl,
             constructedUrl: imgSrc,
-            error 
+            error
           });
           // 即使预加载失败，也通过startLoading中的超时机制最终关闭loading
           this.loading = false;
@@ -512,36 +329,13 @@ export default {
       // 没有图片URL时，直接关闭loading
       this.loading = false;
     }
-    
-    // 延迟加载收藏状态（仅在未从父组件获取到收藏状态时）
-    // 如果父组件已经传递了 isFavorite 属性，则不需要再请求
-    // 这样可以避免重复请求，减少后端压力
-    if (this.product.isFavorite === undefined || this.product.isFavorite === null) {
-      // 只有在收藏状态未定义时才请求
-      // 使用随机延迟（1000-3000ms）分散请求，减少并发压力
-      const randomDelay = Math.floor(Math.random() * 2000) + 1000; // 1000-3000ms随机延迟
-      this.favoriteStatusTimer = setTimeout(() => {
-        // 检查组件是否仍然挂载（简单检查，避免已销毁的组件发起请求）
-        if (this.$el && this.$el.parentNode && (this.product.isFavorite === undefined || this.product.isFavorite === null)) {
-          // 再次检查，避免在延迟期间父组件已经设置了收藏状态
-          this.getFavoriteStatus();
-        }
-      }, randomDelay);
-    } else {
-      // 父组件已经提供了收藏状态，不需要请求
-      logger.debug('收藏状态已从父组件获取，跳过独立请求:', {
-        productId: this.product.id,
-        isFavorite: this.product.isFavorite
-      });
-    }
+
+    if (this.userInfo?.id) this.getFavoriteStatus()
+
   },
-  
+
   beforeUnmount() {
-    // 组件销毁前清理定时器，避免内存泄漏和无效请求
-    if (this.favoriteStatusTimer) {
-      clearTimeout(this.favoriteStatusTimer);
-      this.favoriteStatusTimer = null;
-    }
+
   }
 }
 </script>
@@ -551,7 +345,7 @@ export default {
   background: #fff;
   border-radius: 16px;
   overflow: hidden;
-  box-shadow: 
+  box-shadow:
     0 4px 20px rgba(0, 0, 0, 0.06),
     0 2px 4px rgba(0, 0, 0, 0.04);
   transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
@@ -577,7 +371,7 @@ export default {
 
 .product-card:hover {
   transform: translateY(-8px) scale(1.01);
-  box-shadow: 
+  box-shadow:
     0 16px 40px rgba(52, 152, 219, 0.15),
     0 8px 16px rgba(0, 0, 0, 0.08),
     0 0 0 1px rgba(52, 152, 219, 0.1);
@@ -922,7 +716,7 @@ export default {
   font-size: 14px;
   font-weight: 600;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 
+  box-shadow:
     0 4px 12px rgba(52, 152, 219, 0.25),
     0 2px 4px rgba(0, 0, 0, 0.1);
   position: relative;
@@ -945,7 +739,7 @@ export default {
 .add-to-cart:hover {
   background: linear-gradient(135deg, var(--primary-dark), var(--primary-light));
   transform: translateY(-3px) scale(1.02);
-  box-shadow: 
+  box-shadow:
     0 8px 20px rgba(52, 152, 219, 0.35),
     0 4px 8px rgba(0, 0, 0, 0.12);
 }
@@ -975,4 +769,21 @@ export default {
   font-size: 12px;
   color: #c0c4cc;
 }
-</style> 
+
+.product-card { border:1px solid #e7e9e1;border-radius:7px;box-shadow:none;background:#fff;overflow:hidden;transition:border-color .2s; }
+.product-card:hover { transform:none;box-shadow:0 5px 18px #34482f0d;border-color:#b7c5b0; }
+.image-container { height:auto!important;aspect-ratio:4/4.4;background:#f0f1e9;padding:18px 24px;box-sizing:border-box; }
+.product-image { width:100%;height:100%;mix-blend-mode:multiply; }
+.product-content { padding:14px; }
+.product-name { color:#2e4637;font-size:14px;line-height:1.5;margin:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:21px; }
+.book-author { color:#7d877c;font-size:11px;line-height:1.6;margin:5px 0 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+.badge { box-shadow:none!important;border-radius:3px!important;padding:3px 5px!important;font-size:9px!important; }.badge.new{background:#546d52!important;}.badge.discount{background:#ac7648!important;}
+.price .amount,.current-price,.amount { color:#a25d3d; }
+.stock-info { display:none; }
+.add-to-cart { color:#315749;background:#edf2e8;border:1px solid #dce5d4;box-shadow:none;border-radius:4px;min-height:32px;font-size:11px; }
+.add-to-cart:hover { background:#315749;color:white;transform:none;box-shadow:none; }
+.favorite-btn { background:transparent;box-shadow:none;color:#7d8c78; }
+.add-to-cart:focus-visible,.favorite-btn:focus-visible { outline:2px solid #315749;outline-offset:2px; }
+@media(max-width:600px){.image-container{padding:14px 16px;aspect-ratio:4/4.5;}.product-content{padding:10px;}.product-name{font-size:12px;}.book-author{font-size:10px;margin:4px 0 7px;}.add-to-cart{font-size:10px;min-height:30px;}.add-to-cart i{display:none;}.product-badges{top:7px;left:7px;gap:4px;}.badge{font-size:8px!important;}}
+
+</style>

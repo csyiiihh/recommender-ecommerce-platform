@@ -18,6 +18,7 @@ import java.util.List;
 @RequestMapping("/address")
 @Validated
 public class AddressController {
+    @Autowired private org.example.springboot.service.AccessService access;
     private static final Logger LOGGER = LoggerFactory.getLogger(AddressController.class);
 
     @Autowired
@@ -25,6 +26,7 @@ public class AddressController {
 
     @PostMapping
     public Result<?> createAddress(@Valid @RequestBody Address address) {
+        access.owner(address.getUserId()); address.setId(null);
         return addressService.createAddress(address);
     }
 
@@ -32,21 +34,25 @@ public class AddressController {
     public Result<?> updateAddress(
             @PathVariable @NotNull(message = "地址ID不能为空") @Min(value = 1, message = "地址ID必须大于0") Long id, 
             @Valid @RequestBody Address address) {
+        address.setUserId(access.addressOwner(id));
         return addressService.updateAddress(id, address);
     }
 
     @DeleteMapping("/{id}")
     public Result<?> deleteAddress(@PathVariable @NotNull(message = "地址ID不能为空") @Min(value = 1, message = "地址ID必须大于0") Long id) {
+        access.address(id);
         return addressService.deleteAddress(id);
     }
 
     @GetMapping("/{id}")
     public Result<?> getAddressById(@PathVariable @NotNull(message = "地址ID不能为空") @Min(value = 1, message = "地址ID必须大于0") Long id) {
+        access.address(id);
         return addressService.getAddressById(id);
     }
 
     @GetMapping("/user/{userId}")
     public Result<?> getAddressesByUserId(@PathVariable @NotNull(message = "用户ID不能为空") @Min(value = 1, message = "用户ID必须大于0") Long userId) {
+        access.owner(userId);
         return addressService.getAddressesByUserId(userId);
     }
 
@@ -55,11 +61,13 @@ public class AddressController {
             @RequestParam(required = false) Long userId,
             @RequestParam(defaultValue = "1") @Min(value = 1, message = "当前页必须大于0") Integer currentPage,
             @RequestParam(defaultValue = "10") @Min(value = 1, message = "每页大小必须大于0") Integer size) {
+        userId = access.scope(userId);
         return addressService.getAddressesByPage(userId, currentPage, size);
     }
 
     @DeleteMapping("/batch")
     public Result<?> deleteBatch(@RequestParam @NotNull(message = "地址ID列表不能为空") List<Long> ids) {
+        ids.forEach(access::address);
         return addressService.deleteBatch(ids);
     }
 } 

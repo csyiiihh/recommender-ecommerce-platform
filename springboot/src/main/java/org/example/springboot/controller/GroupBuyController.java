@@ -24,6 +24,7 @@ import java.util.Map;
 @RequestMapping("/group-buy")
 @Validated
 public class GroupBuyController {
+    @Autowired private org.example.springboot.service.AccessService access;
     
     private static final Logger log = LoggerFactory.getLogger(GroupBuyController.class);
     
@@ -41,6 +42,7 @@ public class GroupBuyController {
             @RequestParam(defaultValue = "1") @Min(value = 1, message = "当前页必须大于0") Integer currentPage,
             @RequestParam(defaultValue = "10") @Min(value = 1, message = "每页大小必须大于0") Integer size,
             @RequestParam(required = false) Integer status) {
+        access.admin();
         try {
             Page<GroupBuyActivity> page = groupBuyService.getActivityList(currentPage, size, status);
             return Result.success(page);
@@ -86,6 +88,7 @@ public class GroupBuyController {
      */
     @PostMapping("/activity")
     public Result<GroupBuyActivity> createActivity(@Valid @RequestBody GroupBuyActivity activity) {
+        access.staff(); access.owner(activity.getMerchantId()); access.product(activity.getProductId()); activity.setId(null);
         try {
             log.info("收到创建拼团活动请求");
             log.info("活动数据: {}", activity);
@@ -112,6 +115,7 @@ public class GroupBuyController {
      */
     @PutMapping("/activity")
     public Result<?> updateActivity(@Valid @RequestBody GroupBuyActivity activity) {
+        access.activity(activity.getId()); access.owner(activity.getMerchantId()); access.product(activity.getProductId());
         try {
             boolean success = groupBuyService.updateActivity(activity);
             return success ? Result.success() : Result.error("-1", "更新失败");
@@ -128,6 +132,7 @@ public class GroupBuyController {
     public Result<?> updateActivityStatus(
             @PathVariable @NotNull(message = "活动ID不能为空") @Min(value = 1, message = "活动ID必须大于0") Long id,
             @RequestParam @NotNull(message = "状态不能为空") Integer status) {
+        access.activity(id);
         try {
             boolean success = groupBuyService.updateActivityStatus(id, status);
             return success ? Result.success("更新状态成功") : Result.error("-1", "更新失败");
@@ -142,6 +147,7 @@ public class GroupBuyController {
      */
     @DeleteMapping("/activity/{id}")
     public Result<?> deleteActivity(@PathVariable @NotNull(message = "活动ID不能为空") @Min(value = 1, message = "活动ID必须大于0") Long id) {
+        access.activity(id);
         try {
             groupBuyService.deleteActivity(id);
             return Result.success("删除成功");
@@ -158,6 +164,7 @@ public class GroupBuyController {
      */
     @PostMapping("/start")
     public Result<Map<String, Object>> startTeam(@RequestBody Map<String, Object> params) {
+        access.owner(Long.valueOf(params.get("userId").toString())); access.address(Long.valueOf(params.get("addressId").toString())); if(Integer.parseInt(params.getOrDefault("quantity", 1).toString()) < 1) throw new IllegalArgumentException("数量必须大于0");
         try {
             Long activityId = Long.parseLong(params.get("activityId").toString());
             Long userId = Long.parseLong(params.get("userId").toString());
@@ -177,6 +184,7 @@ public class GroupBuyController {
      */
     @PostMapping("/join")
     public Result<Map<String, Object>> joinTeam(@RequestBody Map<String, Object> params) {
+        access.owner(Long.valueOf(params.get("userId").toString())); access.address(Long.valueOf(params.get("addressId").toString())); if(Integer.parseInt(params.getOrDefault("quantity", 1).toString()) < 1) throw new IllegalArgumentException("数量必须大于0");
         try {
             Long teamId = Long.parseLong(params.get("teamId").toString());
             Long userId = Long.parseLong(params.get("userId").toString());
@@ -210,6 +218,7 @@ public class GroupBuyController {
      */
     @GetMapping("/team/{teamId}")
     public Result<GroupBuyTeam> getTeamDetail(@PathVariable @NotNull(message = "团ID不能为空") @Min(value = 1, message = "团ID必须大于0") Long teamId) {
+        access.current();
         try {
             GroupBuyTeam team = groupBuyService.getTeamDetail(teamId);
             return Result.success(team);
@@ -226,6 +235,7 @@ public class GroupBuyController {
     public Result<List<GroupBuyTeam>> getUserTeams(
             @RequestParam @NotNull(message = "用户ID不能为空") @Min(value = 1, message = "用户ID必须大于0") Long userId,
             @RequestParam(required = false) Integer status) {
+        access.owner(userId);
         try {
             List<GroupBuyTeam> teams = groupBuyService.getUserTeams(userId, status);
             return Result.success(teams);

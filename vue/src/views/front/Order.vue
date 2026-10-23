@@ -95,6 +95,11 @@
               </div>
             </div>
 
+              <div v-if="order.status === 5" class="refund-progress-note" role="status">
+                <strong>退款处理中</strong>
+                <span>{{ order.refundReason || '退款申请已提交，等待处理' }}</span>
+                <small v-if="order.refundStatus === 5 && (order.refundReason?.startsWith('拼团失败自动退款') || order.refundReason === '支付后无法履约自动退款')">系统将自动处理，失败后会继续重试，无需重复提交。退款到账时间以支付渠道为准。</small>
+              </div>
               <!-- 订单图书和收货信息 -->
               <div class="order-body">
                 <div class="product-section">
@@ -122,7 +127,7 @@
                     <div class="product-price-info">
                       <div class="price-container">
                         <span class="current-price" :class="{ 'discount': order.product.isDiscount }">
-                      ¥{{ (order.product.isDiscount ? order.product.discountPrice : order.price).toFixed(2) }}
+                      ¥{{ Number(order.price || 0).toFixed(2) }}
                     </span>
                     <span class="original-price" v-if="order.product.isDiscount">
                       ¥{{ order.product.price.toFixed(2) }}
@@ -473,12 +478,11 @@ import FrontHeader from '@/components/front/FrontHeader.vue'
 import FrontFooter from '@/components/front/FrontFooter.vue'
 import Request from '@/utils/request'
 import logger from '@/utils/logger'
-import axios from 'axios'
 import { formatTime } from '@/utils/time'
 import { Plus, Edit, Delete, ArrowLeft, User, Phone, Location } from '@element-plus/icons-vue'
 
 export default {
-  name: 'Order',
+  name: 'OrderView',
   components: {
     FrontHeader,
     FrontFooter,
@@ -953,11 +957,11 @@ export default {
 
           const res = await Request.post('/review', reviewData)
           if (res.code === '0') {
-            this.$message.success('评价成功')
+            this.$message.success('评价已提交，审核通过后展示')
             this.reviewDialogVisible = false
-            // 更新订单状态为已评价
-            await Request.put(`/order/${this.currentOrder.id}/status?status=3`)
             this.getOrders()
+          } else {
+            this.$message.error(res.msg || '评价提交失败')
           }
         } catch (error) {
           if (error !== 'cancel') {
@@ -1097,9 +1101,11 @@ export default {
         loading.text = '正在跳转支付页面...'
         
         // 调用支付宝支付接口
-        const response = await axios({
+        const response = await Request({
           method: 'post',
-          url: 'http://localhost:1234/alipay/create',
+          baseURL: '',
+                url: '/alipay/create',
+                authScope: 'frontUser',
           params: {
             orderNo: outTradeNo,
             orderName: orderName,
@@ -1117,7 +1123,7 @@ export default {
         const div = document.createElement('div')
         div.innerHTML = response.data
         document.body.appendChild(div)
-        document.querySelector('form').submit()
+        div.querySelector('form').submit()
         document.body.removeChild(div)
         
       } catch (error) {
@@ -2792,4 +2798,6 @@ export default {
 .title-icon {
   will-change: transform;
 }
+
+.refund-progress-note{margin:12px 20px;padding:12px 16px;background:#f5f2e8;border:1px solid #e6debe;border-radius:6px;display:flex;flex-direction:column;gap:5px;color:#695e3e;font-size:12px;}.refund-progress-note strong{font-size:13px;}.refund-progress-note small{line-height:1.6;color:#7a735f;}
 </style> 

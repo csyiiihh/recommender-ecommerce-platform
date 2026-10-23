@@ -183,8 +183,9 @@
             <el-input-number v-model="form.price" :precision="2" :step="0.1" :min="0" style="width: 100%;"></el-input-number>
           </el-form-item>
           <el-form-item label="商品库存" prop="stock">
-            <el-input-number v-model="form.stock" :min="0" :step="1" style="width: 100%;"></el-input-number>
+            <el-input-number v-model="form.stock" :disabled="Boolean(form.id)" :min="0" :step="1" style="width: 100%;"></el-input-number>
           </el-form-item>
+          <p v-if="form.id" style="font-size:12px;color:#7b8376">库存请通过出入库管理调整，保留变更记录。</p>
           <el-form-item label="商品图片" prop="imageUrl">
             <el-upload class="avatar-uploader" action="#" :show-file-list="false" :auto-upload="false" :on-change="handleUpload">
               <img v-if="form.imageUrl" :src="'api/'+form.imageUrl" class="avatar">
@@ -427,7 +428,7 @@ export default {
           categoryId: this.searchForm.categoryId,
           status: this.searchForm.status
         }
-        const res = await Request.get('/product/page', { params })
+        const res = await Request.get('/product/manage/page', { params })
         if (res.code === '0') {
           this.products = res.data.records || []
           this.total = res.data.total

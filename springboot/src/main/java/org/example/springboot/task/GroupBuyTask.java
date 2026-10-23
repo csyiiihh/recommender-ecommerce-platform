@@ -48,6 +48,10 @@ public class GroupBuyTask {
                    .lt("expire_time", new Date()); // 已过期
             
             List<GroupBuyTeam> expiredTeams = teamMapper.selectList(wrapper);
+            var failedWithPaidOrders = teamMapper.selectList(new QueryWrapper<GroupBuyTeam>().eq("status", 2)
+                .inSql("id", "SELECT group_buy_team_id FROM `order` WHERE (status = 1 OR (status = 5 AND refund_status = 1 AND refund_reason LIKE '拼团失败自动退款%')) AND order_type = 1")
+                .last("LIMIT 100"));
+            for (GroupBuyTeam failed : failedWithPaidOrders) groupBuyService.failTeam(failed.getId(), failed.getFailReason());
             
             if (!expiredTeams.isEmpty()) {
                 log.info("发现 {} 个过期的拼团，开始处理...", expiredTeams.size());

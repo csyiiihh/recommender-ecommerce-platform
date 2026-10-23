@@ -61,7 +61,7 @@ import { debounce } from 'lodash'
 import { Search } from '@element-plus/icons-vue'
 
 export default {
-  name: 'Category',
+  name: 'CategoryView',
   components: {
     FrontHeader,
     FrontFooter,

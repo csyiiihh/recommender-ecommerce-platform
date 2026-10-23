@@ -28,16 +28,19 @@ public class ReviewService {
     @Autowired
     private ReviewMapper reviewMapper;
 
+    @Autowired private org.example.springboot.mapper.OrderMapper orderMapper;
+
     @Autowired
     private UserMapper userMapper;
 
     @Autowired
     private ProductMapper productMapper;
 
+    @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
     public Result<?> createReview(Review review) {
         try {
             // 检查用户是否存在
-            User user = userMapper.selectById(review.getUserId());
+            User user = userMapper.selectForUpdate(review.getUserId());
             if (user == null) {
                 LOGGER.warn("创建评价失败，用户ID：{} 不存在", review.getUserId());
                 return ResultUtils.error(ResultCode.USER_NOT_FOUND, "用户不存在");
@@ -56,6 +59,17 @@ public class ReviewService {
                 return ResultUtils.paramError("评分必须在1-5之间");
             }
 
+            if (review.getContent() == null || review.getContent().isBlank() || review.getContent().length() > 2000) return ResultUtils.paramError("评价内容须为1至2000字");
+            Long purchases = orderMapper.selectCount(new LambdaQueryWrapper<org.example.springboot.entity.Order>()
+                .eq(org.example.springboot.entity.Order::getUserId, review.getUserId()).eq(org.example.springboot.entity.Order::getProductId, review.getProductId()).eq(org.example.springboot.entity.Order::getStatus, 3));
+            if (purchases == null || purchases == 0) return ResultUtils.businessError("完成购买并签收后才能评价");
+            Long existing = reviewMapper.selectCount(new LambdaQueryWrapper<Review>().eq(Review::getUserId, review.getUserId()).eq(Review::getProductId, review.getProductId()).in(Review::getStatus, 0, 1));
+            if (existing != null && existing > 0) return ResultUtils.businessError("已提交评价，请勿重复发布");
+            review.setId(null);
+            review.setStatus(0);
+            review.setCreatedAt(new java.sql.Timestamp(System.currentTimeMillis()));
+            review.setContent(review.getContent().strip());
+            review.setUser(null); review.setProduct(null);
             int result = reviewMapper.insert(review);
             if (result > 0) {
                 LOGGER.info("创建评价成功，评价ID：{}，用户ID：{}，商品ID：{}，评分：{}", 
@@ -73,6 +87,7 @@ public class ReviewService {
     }
 
     public Result<?> updateReviewStatus(Long id, Integer status) {
+        if (status == null || status < 0 || status > 2) return ResultUtils.paramError("无效审核状态");
         Review review = reviewMapper.selectById(id);
         if (review == null) {
             LOGGER.warn("更新评价状态失败，评价ID：{} 不存在", id);
@@ -134,29 +149,19 @@ public class ReviewService {
     }
 
     public Result<?> getReviewsByProductId(Long productId, Integer status) {
-        try {
-            LambdaQueryWrapper<Review> queryWrapper = new LambdaQueryWrapper<>();
-            queryWrapper.eq(Review::getProductId, productId);
-            if (status != null) {
-                queryWrapper.eq(Review::getStatus, status);
-            }
-            List<Review> reviews = reviewMapper.selectList(queryWrapper);
-            
-            if (reviews != null && !reviews.isEmpty()) {
-                // 填充关联信息
-                reviews.forEach(review -> {
-                    review.setUser(userMapper.selectById(review.getUserId()));
-                    review.setProduct(productMapper.selectById(review.getProductId()));
-                });
-                LOGGER.debug("查询商品评价，商品ID：{}，评价数：{}", productId, reviews.size());
-                return ResultUtils.success(reviews);
-            }
-            LOGGER.info("查询商品评价，商品ID：{}，结果为空", productId);
-            return ResultUtils.success(reviews); // 返回空列表而不是错误
-        } catch (Exception e) {
-            LOGGER.error("查询商品评价异常，商品ID：{}，错误：{}", productId, e.getMessage(), e);
-            throw new BusinessException(ResultCode.OPERATION_FAILED.getCode(), "查询评价列表失败");
-        }
+        Product product = productMapper.selectById(productId);
+        if (product == null || !Integer.valueOf(1).equals(product.getStatus())) return ResultUtils.dataNotFound("图书不存在或已下架");
+        List<Review> reviews = reviewMapper.selectList(new LambdaQueryWrapper<Review>().eq(Review::getProductId, productId)
+            .eq(Review::getStatus, 1).orderByDesc(Review::getCreatedAt));
+        var ids = reviews.stream().map(Review::getUserId).filter(java.util.Objects::nonNull).collect(java.util.stream.Collectors.toSet());
+        var users = ids.isEmpty() ? java.util.Map.<Long, User>of() : userMapper.selectBatchIds(ids).stream().collect(java.util.stream.Collectors.toMap(User::getId, u -> u));
+        var response = reviews.stream().map(review -> {
+            User user = users.get(review.getUserId());
+            String nickname = user == null || user.getName() == null || user.getName().isBlank() ? "书友" : user.getName();
+            String avatar = user != null && "USER".equals(user.getRole()) && user.getBusinessLicense() != null && user.getBusinessLicense().startsWith("/img/") ? "/api" + user.getBusinessLicense() : null;
+            return new org.example.springboot.dto.PublicReview(review.getId(), review.getProductId(), review.getRating(), review.getContent(), review.getCreatedAt(), new org.example.springboot.dto.PublicReview.Reviewer(nickname, avatar));
+        }).toList();
+        return ResultUtils.success(response);
     }
 
     public Result<?> getReviewsByPage(Long productId, String productName, Integer userId, String username, 

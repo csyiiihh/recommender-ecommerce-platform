@@ -242,10 +242,6 @@
                   </div>
                 </div>
               </div>
-              <el-button type="success" size="large" :disabled="selectedCount === 0 || !selectedAddressId" @click="handleBalanceCheckout" class="checkout-btn balance-btn">
-                <i class="fas fa-wallet"></i>
-                <span>余额支付</span>
-              </el-button>
               <el-button type="primary" size="large" :disabled="selectedCount === 0 || !selectedAddressId" @click="handleCheckout" class="checkout-btn">
                 <i class="fab fa-alipay"></i>
                 <span>支付宝支付</span>
@@ -263,13 +259,12 @@
 import FrontHeader from '@/components/front/FrontHeader.vue'
 import FrontFooter from '@/components/front/FrontFooter.vue'
 import Request from '@/utils/request'
-import axios from 'axios'
 import eventBus from '@/utils/eventBus'
 import logger from '@/utils/logger'
 import { Minus, Plus } from '@element-plus/icons-vue'
 
 export default {
-  name: 'Cart',
+  name: 'CartView',
   components: {
     FrontHeader,
     FrontFooter,
@@ -616,9 +611,11 @@ export default {
           setTimeout(async () => {
             try {
               // 使用axios直接调用支付接口，设置响应类型为text以接收HTML
-              const response = await axios({
+              const response = await Request({
                 method: 'post',
-                url: 'http://localhost:1234/alipay/create',
+                baseURL: '',
+                url: '/alipay/create',
+                authScope: 'frontUser',
                 params: {
                   orderNo: outTradeNo,
                   orderName: orderName,
@@ -636,7 +633,7 @@ export default {
               const div = document.createElement('div')
               div.innerHTML = response.data
               document.body.appendChild(div)
-              document.querySelector('form').submit()
+              div.querySelector('form').submit()
               document.body.removeChild(div)
             } catch (error) {
               payLoading.close()

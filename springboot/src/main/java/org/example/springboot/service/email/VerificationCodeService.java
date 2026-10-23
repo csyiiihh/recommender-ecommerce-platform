@@ -1,85 +1,34 @@
 package org.example.springboot.service.email;
 
 import org.springframework.stereotype.Service;
-
+import java.security.SecureRandom;
 import java.util.Map;
-import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import org.springframework.scheduling.annotation.Scheduled;
 
 @Service
 public class VerificationCodeService {
-    // 存储验证码：key=邮箱, value=验证码
-    private final Map<String, CodeInfo> codeStore = new ConcurrentHashMap<>();
-
-    // 定时清理过期验证码的线程池
-    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
-
-    private final Random random = new Random();
-
-    public VerificationCodeService() {
-        // 每小时清理一次过期验证码
-        scheduler.scheduleAtFixedRate(this::cleanExpiredCodes, 1, 1, TimeUnit.HOURS);
-    }
-
-    /**
-     * 生成验证码
-     */
-    public String generateCode() {
-        // 生成6位随机数字
-        return String.format("%06d", random.nextInt(1000000));
-    }
-
-    /**
-     * 存储验证码
-     */
-    public void storeCode(String email, String code, int expireMinutes) {
-        codeStore.put(email, new CodeInfo(code, System.currentTimeMillis() + expireMinutes * 60 * 1000));
-    }
-
-    /**
-     * 验证验证码
-     */
-    public boolean verifyCode(String email, String inputCode) {
-        CodeInfo codeInfo = codeStore.get(email);
-        if (codeInfo == null) {
-            return false;
-        }
-
-        // 检查是否过期
-        if (System.currentTimeMillis() > codeInfo.expireTime) {
-            codeStore.remove(email);
-            return false;
-        }
-
-        // 验证验证码
-        boolean isValid = codeInfo.code.equals(inputCode);
-        if (isValid) {
-            codeStore.remove(email); // 验证成功后删除
-        }
-        return isValid;
-    }
-
-    /**
-     * 清理过期验证码
-     */
-    private void cleanExpiredCodes() {
+    private record CodeInfo(String code, long expires, long sent, int attempts) {}
+    private final Map<String, CodeInfo> codes = new ConcurrentHashMap<>();
+    private final SecureRandom random = new SecureRandom();
+    public String generateCode() { return String.format("%06d", random.nextInt(1000000)); }
+    public synchronized void storeCode(String purpose, String email, String code, int minutes) {
+        String key = purpose + ":" + email;
         long now = System.currentTimeMillis();
-        codeStore.entrySet().removeIf(entry -> now > entry.getValue().expireTime);
+        CodeInfo old = codes.get(key);
+        if(old != null && now - old.sent() < 60000) throw new IllegalArgumentException("请60秒后重试");
+        if (codes.size() >= 10000 && old == null) { cleanExpiredCodes(); if(codes.size() >= 10000) throw new IllegalArgumentException("请求过多，请稍后重试"); }
+        codes.put(key, new CodeInfo(code, now + minutes * 60000L, now, 0));
     }
-
-    /**
-     * 验证码信息内部类
-     */
-    private static class CodeInfo {
-        String code;
-        long expireTime;
-
-        CodeInfo(String code, long expireTime) {
-            this.code = code;
-            this.expireTime = expireTime;
-        }
+    public synchronized boolean verifyCode(String purpose, String email, String input) {
+        String key = purpose + ":" + email;
+        CodeInfo info = codes.get(key);
+        if(info == null) return false;
+        if(info.expires() < System.currentTimeMillis() || info.attempts() >= 5) { codes.remove(key); return false; }
+        if(info.code().equals(input)) { codes.remove(key); return true; }
+        codes.put(key, new CodeInfo(info.code(), info.expires(), info.sent(), info.attempts()+1));
+        return false;
     }
+    @Scheduled(fixedDelay = 60000)
+    public synchronized void cleanExpiredCodes() { long now = System.currentTimeMillis(); codes.entrySet().removeIf(e -> e.getValue().expires() < now); }
 }

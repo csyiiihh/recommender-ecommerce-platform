@@ -384,7 +384,7 @@ import logger from '@/utils/logger'
 import { User, OfficeBuilding, Document, Search } from '@element-plus/icons-vue'
 
 export default {
-  name: 'Products',
+  name: 'ProductsView',
   components: {
     FrontHeader,
     FrontFooter,
@@ -468,6 +468,8 @@ export default {
           if (max) params.maxPrice = max
         }
 
+        // 新书入口使用更新时间排序。
+        if (this.$route.query.type === 'new' && this.sortBy === 'default') { params.sortField = 'updatedAt'; params.sortOrder = 'desc'; }
         // 添加排序
         if (this.sortBy !== 'default') {
           const [field, order] = this.sortBy.split(',')
@@ -600,7 +602,7 @@ export default {
       return icons[value] || 'fas fa-sort'
     },
     
-    handleAddToCart(product) {
+    handleAddToCart(_product) {
       this.$message({
         type: 'success',
         message: '已添加到购物车'

@@ -44,7 +44,7 @@ import logger from '@/utils/logger'
 import {setRoutes} from "@/router";
 import Request from '../utils/request.js'
 export default {
-    name: 'Aside',
+    name: 'AsideView',
     components: {},
     // 用户信息
     userInfo: {},

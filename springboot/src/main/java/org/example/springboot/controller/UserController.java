@@ -22,10 +22,12 @@ import java.util.List;
 @Validated
 public class UserController {
     private static final Logger LOGGER = LoggerFactory.getLogger(UserController.class);
+    @Autowired private org.example.springboot.service.AccessService access;
     @Autowired
     private UserService userService;
     @GetMapping("/{id}")
     public Result<?> getUserById(@PathVariable @NotNull(message = "用户ID不能为空") @Min(value = 1, message = "用户ID必须大于0") int id) {
+        access.owner(Long.valueOf(id));
         User user = userService.getUserById(id);
         if (user != null) {
             return Result.success(user);
@@ -35,6 +37,7 @@ public class UserController {
     }
     @GetMapping("/username/{username}")
     public Result<?> getUserByUsername(@PathVariable @NotBlank(message = "用户名不能为空") String username) {
+        access.admin();
         User user = userService.getByUsername(username);
         if (user != null) {
             return Result.success(user);
@@ -50,6 +53,7 @@ public class UserController {
     public Result<?> updatePassword(
             @PathVariable @NotNull(message = "用户ID不能为空") @Min(value = 1, message = "用户ID必须大于0") int id, 
             @Valid @RequestBody UserPasswordUpdate userPasswordUpdate) {
+        access.owner(Long.valueOf(id));
         boolean success = userService.updatePassword(id, userPasswordUpdate);
         if (success) {
             return Result.success();
@@ -57,17 +61,13 @@ public class UserController {
             return Result.error("-1", "密码修改失败");
         }
     }
-    @GetMapping("/forget")
-    public Result<?> forgetPassword(
-            @RequestParam @NotBlank(message = "邮箱不能为空") @Email(message = "邮箱格式不正确") String email, 
-            @RequestParam @NotBlank(message = "新密码不能为空") String newPassword) {
-        boolean success = userService.forgetPassword(email, newPassword);
-        if (success) {
-            return Result.success();
-        } else {
-            return Result.error("-1", "忘记密码操作失败");
-        }
+    public record ResetRequest(@NotBlank @Email String email, @NotBlank @jakarta.validation.constraints.Size(min=6,max=72) String newPassword, @NotBlank String code) {}
+    @PostMapping("/forget")
+    public Result<?> forgetPassword(@Valid @RequestBody ResetRequest input) {
+        return userService.resetPassword(input.email(), input.newPassword(), input.code()) ? Result.success() : Result.error("400", "验证码错误、过期或邮箱不存在");
     }
+    @PostMapping("/register")
+    public Result<?> register(@RequestBody User user) { return userService.register(user); }
     @GetMapping("/page")
     public Result<?> getUsersByPage(
             @RequestParam(defaultValue = "") String username,
@@ -76,11 +76,13 @@ public class UserController {
             @RequestParam(defaultValue = "") String status,
             @RequestParam(defaultValue = "1") @Min(value = 1, message = "当前页必须大于0") Integer currentPage,
             @RequestParam(defaultValue = "10") @Min(value = 1, message = "每页大小必须大于0") Integer size) {
+        access.admin();
         Page<User> page = userService.getUsersByPage(username, name, role, status, currentPage, size);
         return Result.success(page);
     }
     @GetMapping("/role/{role}")
     public Result<?> getUserByRole(@PathVariable @NotBlank(message = "角色不能为空") String role) {
+        access.admin();
         List<User> users = userService.getUserByRole(role);
         if (users != null && !users.isEmpty()) {
             return Result.success(users);
@@ -90,6 +92,7 @@ public class UserController {
     }
     @DeleteMapping("/deleteBatch")
     public Result<?> deleteBatch(@RequestParam @NotNull(message = "用户ID列表不能为空") List<Integer> ids) {
+        access.admin();
         Integer res = userService.deleteBatch(ids);
         if (res>0) {
             return Result.success();
@@ -101,6 +104,7 @@ public class UserController {
     }
     @GetMapping
     public Result<?> getAllUsers() {
+        access.admin();
         List<User> users = userService.getAllUsers();
         if (users != null && !users.isEmpty()) {
             return Result.success(users);
@@ -110,6 +114,7 @@ public class UserController {
     }
     @PostMapping("/add")
     public Result<?> createUser(@Valid @RequestBody User user) {
+        access.admin();
         int res = userService.createUser(user);
         if (res == -1) return Result.error("-1", "用户名已存在");
         if (res == -2) return Result.error("-1", "邮箱已存在！");
@@ -123,6 +128,7 @@ public class UserController {
     public Result<?> updateUser(
             @PathVariable @NotNull(message = "用户ID不能为空") @Min(value = 1, message = "用户ID必须大于0") Long id, 
             @Valid @RequestBody User user) {
+        access.owner(Long.valueOf(id));
         boolean success = userService.updateUser(id, user);
         if (success) {
             return Result.success(user);
@@ -132,6 +138,7 @@ public class UserController {
     }
     @DeleteMapping("/delete/{id}")
     public Result<?> deleteUserById(@PathVariable @NotNull(message = "用户ID不能为空") @Min(value = 1, message = "用户ID必须大于0") int id) {
+        access.admin();
         Integer res = userService.deleteUserById(id);
         if (res>0) {
             return Result.success();

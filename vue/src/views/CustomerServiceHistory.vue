@@ -166,7 +166,7 @@
               size="small"
               @click="viewMessages(row)"
             >
-              <el-icon><View /></el-icon>
+              <el-icon><ViewIcon /></el-icon>
               查看消息
             </el-button>
             <el-button
@@ -266,12 +266,12 @@
 <script>
 import request from '@/utils/request';
 import logger from '@/utils/logger'
-import { View, Delete } from '@element-plus/icons-vue'
+import { View as ViewIcon, Delete } from '@element-plus/icons-vue'
 
 export default {
   name: 'CustomerServiceHistory',
   components: {
-    View,
+    ViewIcon,
     Delete
   },
   data() {

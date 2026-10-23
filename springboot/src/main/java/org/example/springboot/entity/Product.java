@@ -53,5 +53,6 @@ public class Product {
     private Category category;
 
     @TableField(exist = false)
+    @com.fasterxml.jackson.databind.annotation.JsonSerialize(using = org.example.springboot.config.PublicMerchantSerializer.class)
     private User merchant;
 } 

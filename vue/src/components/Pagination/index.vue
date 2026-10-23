@@ -15,7 +15,7 @@
   
   <script>
   export default {
-    name: 'Pagination',
+    name: 'PaginationView',
     props: {
       page: {
         type: Number,

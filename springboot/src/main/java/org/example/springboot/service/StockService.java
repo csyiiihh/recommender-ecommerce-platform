@@ -37,11 +37,13 @@ public class StockService {
     @Autowired
     private UserMapper userMapper;
 
+    @Autowired private AccessService access;
+
     @Transactional
     public Result<?> createStockIn(StockIn stockIn) {
         try {
             // 检查商品是否存在
-            Product product = productMapper.selectById(stockIn.getProductId());
+            Product product = productMapper.selectForUpdate(stockIn.getProductId());
             if (product == null) {
                 LOGGER.warn("创建入库记录失败，商品ID：{} 不存在", stockIn.getProductId());
                 return ResultUtils.dataNotFound("商品不存在");
@@ -67,6 +69,9 @@ public class StockService {
             productMapper.updateById(product);
 
             // 保存入库记录
+            stockIn.setId(null);
+            stockIn.setStatus(1);
+            stockIn.setOperatorId(access.current().getId());
             int result = stockInMapper.insert(stockIn);
             if (result > 0) {
                 LOGGER.info("创建入库记录成功，入库ID：{}，商品ID：{}，数量：{}，单价：{}", 
@@ -87,7 +92,7 @@ public class StockService {
     public Result<?> createStockOut(StockOut stockOut) {
         try {
             // 检查商品是否存在
-            Product product = productMapper.selectById(stockOut.getProductId());
+            Product product = productMapper.selectForUpdate(stockOut.getProductId());
             if (product == null) {
                 LOGGER.warn("创建出库记录失败，商品ID：{} 不存在", stockOut.getProductId());
                 return ResultUtils.dataNotFound("商品不存在");
@@ -120,6 +125,9 @@ public class StockService {
             productMapper.updateById(product);
 
             // 保存出库记录
+            stockOut.setId(null);
+            stockOut.setStatus(1);
+            stockOut.setOperatorId(access.current().getId());
             int result = stockOutMapper.insert(stockOut);
             if (result > 0) {
                 LOGGER.info("创建出库记录成功，出库ID：{}，商品ID：{}，数量：{}，单价：{}", 
@@ -156,14 +164,20 @@ public class StockService {
 
         queryWrapper.orderByDesc(StockIn::getId);
 
-        Page<StockIn> page = new Page<>(currentPage, size);
+        Page<StockIn> page = new Page<>(Math.max(1, currentPage), Math.min(100, Math.max(1, size)));
         Page<StockIn> result = stockInMapper.selectPage(page, queryWrapper);
 
         // 填充关联信息
-        result.getRecords().forEach(stockIn -> {
-            stockIn.setProduct(productMapper.selectById(stockIn.getProductId()));
-            stockIn.setOperator(userMapper.selectById(stockIn.getOperatorId()));
-        });
+        if (!result.getRecords().isEmpty()) {
+            var productIds = result.getRecords().stream().map(StockIn::getProductId).filter(java.util.Objects::nonNull).collect(java.util.stream.Collectors.toSet());
+            var operatorIds = result.getRecords().stream().map(StockIn::getOperatorId).filter(java.util.Objects::nonNull).collect(java.util.stream.Collectors.toSet());
+            var productMap = productIds.isEmpty() ? java.util.Map.<Long, Product>of() : productMapper.selectBatchIds(productIds).stream().collect(java.util.stream.Collectors.toMap(Product::getId, x -> x));
+            var operators = operatorIds.isEmpty() ? java.util.Map.<Long, org.example.springboot.entity.User>of() : userMapper.selectBatchIds(operatorIds).stream().collect(java.util.stream.Collectors.toMap(org.example.springboot.entity.User::getId, x -> x));
+            result.getRecords().forEach(stockIn -> {
+                stockIn.setProduct(productMap.get(stockIn.getProductId()));
+                stockIn.setOperator(operators.get(stockIn.getOperatorId()));
+            });
+        }
 
         return result;
     }
@@ -195,14 +209,20 @@ public class StockService {
 
         queryWrapper.orderByDesc(StockOut::getId);
 
-        Page<StockOut> page = new Page<>(currentPage, size);
+        Page<StockOut> page = new Page<>(Math.max(1, currentPage), Math.min(100, Math.max(1, size)));
         Page<StockOut> result = stockOutMapper.selectPage(page, queryWrapper);
 
         // 填充关联信息
-        result.getRecords().forEach(stockOut -> {
-            stockOut.setProduct(productMapper.selectById(stockOut.getProductId()));
-            stockOut.setOperator(userMapper.selectById(stockOut.getOperatorId()));
-        });
+        if (!result.getRecords().isEmpty()) {
+            var productIds = result.getRecords().stream().map(StockOut::getProductId).filter(java.util.Objects::nonNull).collect(java.util.stream.Collectors.toSet());
+            var operatorIds = result.getRecords().stream().map(StockOut::getOperatorId).filter(java.util.Objects::nonNull).collect(java.util.stream.Collectors.toSet());
+            var productMap = productIds.isEmpty() ? java.util.Map.<Long, Product>of() : productMapper.selectBatchIds(productIds).stream().collect(java.util.stream.Collectors.toMap(Product::getId, x -> x));
+            var operators = operatorIds.isEmpty() ? java.util.Map.<Long, org.example.springboot.entity.User>of() : userMapper.selectBatchIds(operatorIds).stream().collect(java.util.stream.Collectors.toMap(org.example.springboot.entity.User::getId, x -> x));
+            result.getRecords().forEach(stockOut -> {
+                stockOut.setProduct(productMap.get(stockOut.getProductId()));
+                stockOut.setOperator(operators.get(stockOut.getOperatorId()));
+            });
+        }
 
         return result;
     }
@@ -210,7 +230,7 @@ public class StockService {
     // 作废入库记录
     @Transactional
     public Result<?> invalidateStockIn(Long id) {
-        StockIn stockIn = stockInMapper.selectById(id);
+        StockIn stockIn = stockInMapper.selectForUpdate(id);
         if (stockIn == null) {
             LOGGER.warn("作废入库记录失败，入库ID：{} 不存在", id);
             return ResultUtils.dataNotFound("入库记录不存在");
@@ -223,7 +243,7 @@ public class StockService {
         
         try {
             // 更新商品库存
-            Product product = productMapper.selectById(stockIn.getProductId());
+            Product product = productMapper.selectForUpdate(stockIn.getProductId());
             if (product != null) {
                 int newStock = product.getStock() - stockIn.getQuantity();
                 if (newStock < 0) {
@@ -257,7 +277,7 @@ public class StockService {
     // 作废出库记录
     @Transactional
     public Result<?> invalidateStockOut(Long id) {
-        StockOut stockOut = stockOutMapper.selectById(id);
+        StockOut stockOut = stockOutMapper.selectForUpdate(id);
         if (stockOut == null) {
             LOGGER.warn("作废出库记录失败，出库ID：{} 不存在", id);
             return ResultUtils.dataNotFound("出库记录不存在");
@@ -270,7 +290,7 @@ public class StockService {
         
         try {
             // 更新商品库存
-            Product product = productMapper.selectById(stockOut.getProductId());
+            Product product = productMapper.selectForUpdate(stockOut.getProductId());
             if (product != null) {
                 product.setStock(product.getStock() + stockOut.getQuantity());
                 productMapper.updateById(product);
@@ -298,7 +318,7 @@ public class StockService {
     // 删除入库记录
     @Transactional
     public Result<?> deleteStockIn(Long id) {
-        StockIn stockIn = stockInMapper.selectById(id);
+        StockIn stockIn = stockInMapper.selectForUpdate(id);
         if (stockIn == null) {
             LOGGER.warn("删除入库记录失败，入库ID：{} 不存在", id);
             return ResultUtils.dataNotFound("入库记录不存在");
@@ -332,7 +352,7 @@ public class StockService {
     // 删除出库记录
     @Transactional
     public Result<?> deleteStockOut(Long id) {
-        StockOut stockOut = stockOutMapper.selectById(id);
+        StockOut stockOut = stockOutMapper.selectForUpdate(id);
         if (stockOut == null) {
             LOGGER.warn("删除出库记录失败，出库ID：{} 不存在", id);
             return ResultUtils.dataNotFound("出库记录不存在");

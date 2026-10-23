@@ -93,31 +93,6 @@
         </div>
 
         <div class="form-row">
-          <el-form-item prop="role">
-            <el-select
-                v-model="registerForm.role"
-                placeholder="请选择用户角色"
-                class="role-select">
-              <el-option value="USER">
-                <div class="role-option">
-                  <i class="fas fa-user-circle role-icon"></i>
-                  <span>阅读爱好者</span> <!-- 修改为阅读相关 -->
-                </div>
-              </el-option>
-              <el-option value="MERCHANT">
-                <div class="role-option">
-                  <i class="fas fa-store role-icon"></i>
-                  <span>书商伙伴</span> <!-- 修改为图书相关 -->
-                </div>
-              </el-option>
-              <el-option value="ADMIN">
-                <div class="role-option">
-                  <i class="fas fa-user-shield role-icon"></i>
-                  <span>平台管理员</span>
-                </div>
-              </el-option>
-            </el-select>
-          </el-form-item>
         </div>
 
         <div class="button-group">
@@ -147,18 +122,18 @@
 
 <script>
 import request from "@/utils/request";
-import logger from '@/utils/logger'
+
 import { User, Lock, UserFilled, Message, ChatLineRound } from '@element-plus/icons-vue'
 
 export default {
-    name: 'Register',
+  components: { User, Lock, UserFilled, Message, ChatLineRound },
+    name: 'RegisterView',
     data() {
 
         return {
             countdown: 0,
             disabled: false,
             timer: null,
-            emailCode: '',
             buttonContent: '发送验证码',
             registerForm: {
                 username: '',
@@ -212,8 +187,7 @@ export default {
                         type: 'success',
                         message: "验证码已发送到您的邮箱,请查收"
                     });
-                    logger.debug(res.data);
-                    this.emailCode = res.data;
+
                     this.startCountdown();
                 } else {
                     this.$message({
@@ -244,18 +218,9 @@ export default {
         onRegister() {
             this.$refs.registerForm.validate((valid) => {
                 if (valid) {
-                    // 将验证码转换为字符串后再比较
-                    if (String(this.registerForm.code) !== String(this.emailCode)) {
-                        logger.debug('Input code:', this.registerForm.code, 'Expected code:', this.emailCode);
-                        this.$message({
-                            type: 'error',
-                            message: '验证码不正确'
-                        });
-                        return;
-                    }
 
 
-                    request.post("/user/add", this.registerForm).then(res => {
+                    request.post("/user/register", this.registerForm).then(res => {
                         if (res.code === '0') {
                             this.$message({
                                 type: 'success',

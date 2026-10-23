@@ -25,7 +25,7 @@ public class PageKeyGenerator implements KeyGenerator {
             Parameter param = parameters[i];
             // 检查参数名是否可用且为需要缓存的参数
             if (param.isNamePresent() && isKeyParameter(param.getName())) {
-                Object value = params[i]; // 获取实际参数�?
+                Object value = params[i]; // 获取实际参数�?
                 sj.add(param.getName() + "=" + (value != null ? value : "null"));
             }
         }

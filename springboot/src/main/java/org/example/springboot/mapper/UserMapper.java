@@ -14,4 +14,6 @@ public interface UserMapper extends BaseMapper<User> {
      */
     @Select("SELECT id FROM user WHERE username = #{username} LIMIT 1")
     Long selectIdByUsername(@Param("username") String username);
+    @Select("SELECT * FROM `user` WHERE id = #{id} FOR UPDATE")
+    User selectForUpdate(@Param("id") Long id);
 }

@@ -144,8 +144,6 @@
 import excel from '../utils/excel.js'
 import logger from '@/utils/logger'
 import Pagination from '../components/Pagination/index.vue'
-import Upload from '../components/Upload/index.vue'
-import Hints from '../components/Hints/index.vue'
 import Request from '../utils/request.js'
 import { Search, Refresh, Delete, Download, Plus, Edit } from '@element-plus/icons-vue'
 import '@/assets/iconfont.css'
@@ -153,8 +151,7 @@ export default {
     name: 'IconDict',
     components: { 
       Pagination, 
-      Upload, 
-      Hints,
+
       Search,
       Refresh,
       Delete,

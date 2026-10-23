@@ -24,6 +24,7 @@ import java.util.Map;
 @RequestMapping("/customerService")
 @Validated
 public class CustomerServiceController {
+    @Autowired private org.example.springboot.service.AccessService access;
     
     private static final Logger LOGGER = LoggerFactory.getLogger(CustomerServiceController.class);
     
@@ -37,6 +38,7 @@ public class CustomerServiceController {
      */
     @PostMapping("/session/create")
     public Result<?> createSession(@RequestParam @NotNull(message = "用户ID不能为空") @Min(value = 1, message = "用户ID必须大于0") Long userId) {
+        access.owner(userId);
         try {
             CustomerServiceSession session = customerServiceService.getOrCreateSession(userId);
             return Result.success(session);
@@ -56,6 +58,7 @@ public class CustomerServiceController {
     public Result<?> acceptSession(
             @RequestParam @NotNull(message = "会话ID不能为空") @Min(value = 1, message = "会话ID必须大于0") Long sessionId, 
             @RequestParam @NotNull(message = "客服ID不能为空") @Min(value = 1, message = "客服ID必须大于0") Long serviceId) {
+        access.staff(); access.owner(serviceId);
         try {
             boolean success = customerServiceService.acceptSession(sessionId, serviceId);
             if (success) {
@@ -76,6 +79,7 @@ public class CustomerServiceController {
      */
     @PostMapping("/session/end")
     public Result<?> endSession(@RequestParam @NotNull(message = "会话ID不能为空") @Min(value = 1, message = "会话ID必须大于0") Long sessionId) {
+        access.session(sessionId);
         try {
             boolean success = customerServiceService.endSession(sessionId);
             if (success) {
@@ -96,6 +100,7 @@ public class CustomerServiceController {
      */
     @PostMapping("/message/send")
     public Result<?> sendMessage(@RequestBody Map<String, Object> params) {
+        access.session(Long.valueOf(params.get("sessionId").toString())); access.owner(Long.valueOf(params.get("senderId").toString())); if("SERVICE".equals(params.get("senderType"))) access.staff(); else if(!"USER".equals(params.get("senderType"))) throw new IllegalArgumentException("无效发送类型");
         try {
             Long sessionId = Long.valueOf(params.get("sessionId").toString());
             Long senderId = Long.valueOf(params.get("senderId").toString());
@@ -124,6 +129,7 @@ public class CustomerServiceController {
             @RequestParam @NotNull(message = "会话ID不能为空") @Min(value = 1, message = "会话ID必须大于0") Long sessionId,
             @RequestParam @NotNull(message = "用户ID不能为空") @Min(value = 1, message = "用户ID必须大于0") Long currentUserId,
             @RequestParam @NotBlank(message = "用户类型不能为空") String userType) {
+        access.session(sessionId); access.owner(currentUserId); if("SERVICE".equals(userType)) access.staff();
         try {
             List<CustomerServiceMessage> messages = customerServiceService.getMessages(
                     sessionId, currentUserId, userType);
@@ -141,6 +147,7 @@ public class CustomerServiceController {
      */
     @GetMapping("/session/user")
     public Result<?> getUserSessions(@RequestParam @NotNull(message = "用户ID不能为空") @Min(value = 1, message = "用户ID必须大于0") Long userId) {
+        access.owner(userId);
         try {
             List<CustomerServiceSession> sessions = customerServiceService.getUserSessions(userId);
             return Result.success(sessions);
@@ -157,6 +164,7 @@ public class CustomerServiceController {
      */
     @GetMapping("/session/service")
     public Result<?> getServiceSessions(@RequestParam @NotNull(message = "客服ID不能为空") @Min(value = 1, message = "客服ID必须大于0") Long serviceId) {
+        access.staff(); access.owner(serviceId);
         try {
             List<CustomerServiceSession> sessions = customerServiceService.getServiceSessions(serviceId);
             return Result.success(sessions);
@@ -172,6 +180,7 @@ public class CustomerServiceController {
      */
     @GetMapping("/session/all")
     public Result<?> getAllSessions() {
+        access.admin();
         try {
             List<CustomerServiceSession> sessions = customerServiceService.getAllSessions();
             return Result.success(sessions);
@@ -195,6 +204,7 @@ public class CustomerServiceController {
             @RequestParam(required = false) Long userId,
             @RequestParam(defaultValue = "1") @Min(value = 1, message = "当前页必须大于0") Integer currentPage,
             @RequestParam(defaultValue = "10") @Min(value = 1, message = "每页大小必须大于0") Integer pageSize) {
+        if(!access.isAdmin()) userId=access.current().getId();
         try {
             Page<CustomerServiceSession> page = customerServiceService.getSessionHistory(
                     status, userId, currentPage, pageSize);
@@ -215,6 +225,7 @@ public class CustomerServiceController {
     public Result<?> getUnreadCount(
             @RequestParam @NotNull(message = "用户ID不能为空") @Min(value = 1, message = "用户ID必须大于0") Long userId,
             @RequestParam @NotBlank(message = "用户类型不能为空") String userType) {
+        access.owner(userId); if("SERVICE".equals(userType)) access.staff();
         try {
             Integer count = customerServiceService.getUnreadCount(userId, userType);
             return Result.success(count);
@@ -231,6 +242,7 @@ public class CustomerServiceController {
      */
     @DeleteMapping("/session/{sessionId}")
     public Result<?> deleteSession(@PathVariable @NotNull(message = "会话ID不能为空") @Min(value = 1, message = "会话ID必须大于0") Long sessionId) {
+        access.admin();
         try {
             boolean success = customerServiceService.deleteSession(sessionId);
             if (success) {

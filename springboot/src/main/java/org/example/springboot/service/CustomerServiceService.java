@@ -109,10 +109,17 @@ public class CustomerServiceService {
             throw new BusinessException(ResultCode.DATA_NOT_FOUND, "会话不存在");
         }
 
-        session.setServiceId(serviceId);
-        session.setStatus(1); // 进行中
-
-        boolean updated = sessionMapper.updateById(session) > 0;
+        if (Integer.valueOf(2).equals(session.getStatus()) ||
+            (session.getServiceId() != null && !session.getServiceId().equals(serviceId))) {
+            throw new BusinessException("会话已结束或已被其他客服接入");
+        }
+        var claim = new com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<CustomerServiceSession>()
+            .eq(CustomerServiceSession::getId, sessionId)
+            .ne(CustomerServiceSession::getStatus, 2)
+            .and(w -> w.isNull(CustomerServiceSession::getServiceId).or().eq(CustomerServiceSession::getServiceId, serviceId))
+            .set(CustomerServiceSession::getServiceId, serviceId)
+            .set(CustomerServiceSession::getStatus, 1);
+        boolean updated = sessionMapper.update(null, claim) == 1;
         if (!updated) {
             LOGGER.error("接入会话失败，更新数据库失败，sessionId={}", sessionId);
             throw new BusinessException(ResultCode.OPERATION_FAILED, "接入会话失败");

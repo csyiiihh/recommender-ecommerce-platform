@@ -4,3 +4,16 @@ target/
 .idea/
 .vscode/
 *.log
+application-local.properties
+.env
+
+# Local credentials, data backups and uploaded user files
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+/online_sales.sql
+/online_sales_data_struct.sql
+/springboot/files/

@@ -27,7 +27,7 @@ import HeaderBar from '../components/Header.vue'
 import SideMenu from '../components/Aside.vue'
 
 export default {
-  name: 'Layout',
+  name: 'LayoutView',
   data() {
     return {
       userInfo: JSON.parse(localStorage.getItem("backUser") || {}),

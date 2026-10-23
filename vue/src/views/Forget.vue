@@ -88,13 +88,13 @@ import logger from '@/utils/logger'
 import { Message, ChatLineRound, Lock } from '@element-plus/icons-vue'
 
 export default {
+  components: { Message, ChatLineRound, Lock },
     name: 'ResetPassword',
     data() {
         return {
             countdown: 0,
             disabled: false,
             timer: null,
-            emailCode: '',
             buttonContent: '发送验证码',
             loading: false, // 添加重置密码loading状态
             sendingCode: false, // 添加发送验证码loading状态
@@ -142,7 +142,7 @@ export default {
                         type: 'success',
                         message: "验证码已发送到您的邮箱,请查收"
                     })
-                    this.emailCode = res.data;
+                    this.startCountdown();
                 } else {
                     this.$message({
                         type: 'error',
@@ -156,24 +156,18 @@ export default {
                 this.sendingCode = false;
             });
 
-            // 只有在成功发送后才开始倒计时
-            if (this.sendingCode) {
-                    this.disabled = true; // 禁用按钮
-                this.buttonContent = `${this.countdown}秒后可重发`; // 更新按钮文本为倒计时
-
-                this.timer = setInterval(() => {
-                    if (this.countdown > 0) {
-                        this.countdown--; // 每秒减少1秒
-                        this.buttonContent = `${this.countdown}秒后可重发`; // 更新按钮文本
-                    } else {
-                        clearInterval(this.timer); // 清除定时器
-                        this.countdown = 0; // 重置倒计时
-                        this.disabled = false; // 启用按钮
-                        this.buttonContent = '发送验证码'; // 重置按钮文本
-                        this.sendingCode = false;
-                    }
-                }, 1000);
-            }
+    },
+    startCountdown() {
+        this.countdown = 60;
+        this.disabled = true;
+        this.sendingCode = false;
+        this.buttonContent = '60秒后可重发';
+        clearInterval(this.timer);
+        this.timer = setInterval(() => {
+            this.countdown--;
+            this.buttonContent = this.countdown > 0 ? this.countdown + '秒后可重发' : '发送验证码';
+            if(this.countdown <= 0) { clearInterval(this.timer); this.disabled = false; }
+        }, 1000);
     },
     onResetPassword() {
         this.$refs.resetForm.validate((valid) => {
@@ -181,23 +175,9 @@ export default {
                 // 防止重复提交
                 if (this.loading) return;
                 
-                if (String(this.resetForm.code) !== String(this.emailCode)) {
-                    this.$message({
-                        type: 'error',
-                        message: '验证码不正确'
-                    });
-                    return;
-                }
-                
                 this.loading = true;
                 // 发送重置密码请求到后端
-                request.get("/user/forget", {
-                    params: {
-                        email: this.resetForm.email,
-                        newPassword: this.resetForm.newPassword,
-
-                    },
-                }).then(res => {
+                request.post("/user/forget", { email: this.resetForm.email, newPassword: this.resetForm.newPassword, code: this.resetForm.code }).then(res => {
                     if (res.code == '0') {
                         this.$message({
                             type: 'success',

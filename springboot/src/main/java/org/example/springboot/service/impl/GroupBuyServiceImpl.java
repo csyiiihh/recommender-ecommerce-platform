@@ -24,6 +24,8 @@ import java.util.Map;
  */
 @Service
 public class GroupBuyServiceImpl implements GroupBuyService {
+    @Autowired private org.example.springboot.service.AutomaticRefundService automaticRefunds;
+
     
     private static final Logger log = LoggerFactory.getLogger(GroupBuyServiceImpl.class);
     
@@ -640,14 +642,14 @@ public class GroupBuyServiceImpl implements GroupBuyService {
         log.info("开始处理拼团逻辑，订单ID: {}", orderId);
         
         // ⭐ 获取拼团活动
-        GroupBuyActivity activity = activityMapper.selectById(order.getActivityId());
+        GroupBuyActivity activity = activityMapper.selectForUpdate(order.getActivityId());
         if (activity == null) {
             log.error("拼团活动不存在，activityId: {}", order.getActivityId());
             throw new BusinessException("拼团活动不存在");
         }
         
         // ✅ 同步商品库存（系统设计：活动库存和商品库存同步）
-        Product productForSync = productMapper.selectById(activity.getProductId());
+        Product productForSync = productMapper.selectForUpdate(activity.getProductId());
         if (productForSync != null) {
             activity.setStock(productForSync.getStock());
             log.info("同步商品库存到活动，活动ID: {}, 商品库存: {}", activity.getId(), productForSync.getStock());
@@ -668,7 +670,7 @@ public class GroupBuyServiceImpl implements GroupBuyService {
             activity.getId(), order.getQuantity(), activity.getStock());
         
         // ⭐ 同步扣减商品库存（也不增加销量）
-        Product product = productMapper.selectById(activity.getProductId());
+        Product product = productMapper.selectForUpdate(activity.getProductId());
         if (product != null) {
             if (product.getStock() >= order.getQuantity()) {
                 product.setStock(product.getStock() - order.getQuantity());
@@ -745,7 +747,7 @@ public class GroupBuyServiceImpl implements GroupBuyService {
     @Override
     @Transactional
     public void completeTeam(Long teamId) {
-        GroupBuyTeam team = teamMapper.selectById(teamId);
+        GroupBuyTeam team = teamMapper.selectForUpdate(teamId);
         if (team == null || team.getStatus() != 0) {
             return;
         }
@@ -769,21 +771,22 @@ public class GroupBuyServiceImpl implements GroupBuyService {
             }
         }
         
+        int soldQuantity = members.stream().filter(m -> Integer.valueOf(1).equals(m.getStatus())).map(m -> orderMapper.selectById(m.getOrderId())).filter(java.util.Objects::nonNull).mapToInt(Order::getQuantity).sum();
         // ⭐ 拼团成功时增加销量（库存已在支付时扣减，这里不重复扣减）
-        GroupBuyActivity activity = activityMapper.selectById(team.getActivityId());
+        GroupBuyActivity activity = activityMapper.selectForUpdate(team.getActivityId());
         if (activity != null) {
             // ❌ 不再扣减库存：activity.setStock(activity.getStock() - team.getCurrentPeople());
             // ✅ 只增加销量
-            activity.setSalesCount(activity.getSalesCount() + team.getCurrentPeople());
+            activity.setSalesCount(activity.getSalesCount() + soldQuantity);
             activityMapper.updateById(activity);
             log.info("拼团成功，增加活动销量，活动ID: {}, 销量: +{}", 
                 activity.getId(), team.getCurrentPeople());
         }
         
         // ⭐ 同时增加商品销量
-        Product product = productMapper.selectById(activity.getProductId());
+        Product product = productMapper.selectForUpdate(activity.getProductId());
         if (product != null) {
-            product.setSalesCount(product.getSalesCount() + team.getCurrentPeople());
+            product.setSalesCount(product.getSalesCount() + soldQuantity);
             productMapper.updateById(product);
             log.info("拼团成功，增加商品销量，商品ID: {}, 销量: +{}", 
                 product.getId(), team.getCurrentPeople());
@@ -804,124 +807,18 @@ public class GroupBuyServiceImpl implements GroupBuyService {
      * @param teamId 团队ID
      * @param failReason 失败原因：timeout-超时, cancelled-管理员取消, leader_refund-团长退款, member_refund-成员退款
      */
+    @Transactional(rollbackFor = Exception.class)
     public void failTeam(Long teamId, String failReason) {
-        GroupBuyTeam team = teamMapper.selectById(teamId);
-        if (team == null || team.getStatus() != 0) {
-            log.warn("团不存在或状态不是拼团中，无需处理失败逻辑，团ID: {}", teamId);
-            return;
+        GroupBuyTeam team = teamMapper.selectForUpdate(teamId);
+        if (team == null || team.getStatus() == 1) return;
+        if (team.getStatus() == 0) {
+            team.setStatus(2);
+            team.setFailReason(failReason);
+            team.setUpdatedAt(new Timestamp(System.currentTimeMillis()));
+            teamMapper.updateById(team);
         }
-        
-        log.info("开始处理拼团失败，团ID: {}，当前人数: {}/{}，失败原因: {}",
-                teamId, team.getCurrentPeople(), team.getRequiredPeople(), failReason);
-        
-        // 1. 更新团状态为失败
-        team.setStatus(2);
-        team.setFailReason(failReason);
-        team.setUpdatedAt(new Timestamp(System.currentTimeMillis()));
-        teamMapper.updateById(team);
-        
-        // 2. 获取拼团活动信息
-        GroupBuyActivity activity = activityMapper.selectById(team.getActivityId());
-        if (activity == null) {
-            log.error("拼团活动不存在，activityId: {}", team.getActivityId());
-            return;
-        }
-        
-        // 3. 获取所有已支付的成员订单
-        QueryWrapper<GroupBuyMember> memberWrapper = new QueryWrapper<>();
-        memberWrapper.eq("team_id", teamId)
-                    .eq("status", 1); // 只处理已支付的成员
-        List<GroupBuyMember> members = memberMapper.selectList(memberWrapper);
-        
-        if (members.isEmpty()) {
-            log.info("该团没有已支付的成员，无需退款，团ID: {}", teamId);
-            return;
-        }
-        
-        log.info("团ID: {} 有 {} 个已支付成员需要退款", teamId, members.size());
-        
-        int successCount = 0;
-        int failCount = 0;
-        int totalQuantity = 0;
-        
-        // 4. 对所有已支付订单进行退款和库存恢复
-        for (GroupBuyMember member : members) {
-            Order order = orderMapper.selectById(member.getOrderId());
-            if (order == null) {
-                log.error("订单不存在，订单ID: {}", member.getOrderId());
-                continue;
-            }
-            
-            // 只处理已支付的订单（status=1）
-            if (order.getStatus() != 1) {
-                log.warn("订单状态不是已支付，跳过，订单ID: {}，状态: {}", order.getId(), order.getStatus());
-                continue;
-            }
-            
-            try {
-                // 4.1 调用支付宝退款
-                if (order.getTradeNo() != null && !order.getTradeNo().isEmpty()) {
-                    alipayService.refund(
-                            order.getId().toString(),
-                            order.getTotalPrice().toString()
-                    );
-                    log.info("支付宝退款成功，订单ID: {}，金额: {}", order.getId(), order.getTotalPrice());
-                } else {
-                    log.warn("订单没有支付宝交易号，可能未实际支付，订单ID: {}", order.getId());
-                }
-                
-                // 4.2 更新订单状态为已退款
-                order.setLastStatus(order.getStatus());
-                order.setStatus(6); // 6-已退款
-                order.setRefundStatus(3); // 3-已退款
-                order.setRefundTime(new Timestamp(System.currentTimeMillis()));
-                order.setRefundReason("拼团失败自动退款");
-                orderMapper.updateById(order);
-                
-                // 4.3 累计需要恢复的库存数量
-                totalQuantity += order.getQuantity();
-                
-                successCount++;
-                log.info("订单退款成功，订单ID: {}，数量: {}", order.getId(), order.getQuantity());
-                
-            } catch (Exception e) {
-                failCount++;
-                log.error("订单退款失败，订单ID: " + order.getId(), e);
-                
-                // 即使退款失败，也更新订单状态为退款中
-                order.setLastStatus(order.getStatus());
-                order.setStatus(5); // 5-退款中
-                order.setRefundStatus(1); // 1-申请退款
-                order.setRefundTime(new Timestamp(System.currentTimeMillis()));
-                order.setRefundReason("拼团失败自动退款（失败，需人工处理）");
-                orderMapper.updateById(order);
-            }
-        }
-        
-        // 5. 恢复活动库存（不需要恢复销量，因为从未增加过）
-        if (totalQuantity > 0) {
-            activity.setStock(activity.getStock() + totalQuantity);
-            // ❌ 不需要减少销量：activity.setSalesCount(Math.max(0, activity.getSalesCount() - totalQuantity));
-            // 说明：拼团失败时，销量从未增加，所以不需要恢复
-            activityMapper.updateById(activity);
-            log.info("活动库存恢复成功（不恢复销量），活动ID: {}，恢复数量: {}，当前库存: {}",
-                    activity.getId(), totalQuantity, activity.getStock());
-            
-            // 6. 恢复商品库存（也不需要恢复销量）
-            Product product = productMapper.selectById(activity.getProductId());
-            if (product != null) {
-                product.setStock(product.getStock() + totalQuantity);
-                // ❌ 不需要减少销量：product.setSalesCount(Math.max(0, product.getSalesCount() - totalQuantity));
-                productMapper.updateById(product);
-                log.info("商品库存恢复成功（不恢复销量），商品ID: {}，恢复数量: {}，当前库存: {}",
-                        product.getId(), totalQuantity, product.getStock());
-            }
-        }
-        
-        log.info("拼团失败处理完成，团ID: {}，退款成功: {}，退款失败: {}，恢复库存: {}",
-                teamId, successCount, failCount, totalQuantity);
-        
-        // TODO: 发送拼团失败通知给所有成员
+        // No remote calls in the team transition. Pending orders survive failures and restarts.
+        automaticRefunds.queueTeam(teamId);
     }
     
     @Override

@@ -17,12 +17,14 @@ import java.util.List;
 @RequestMapping("/favorite")
 @Validated
 public class FavoriteController {
+    @Autowired private org.example.springboot.service.AccessService access;
     private static final Logger LOGGER = LoggerFactory.getLogger(FavoriteController.class);
 
     @Autowired
     private FavoriteService favoriteService;
     @PostMapping
     public Result<?> createFavorite(@Valid @RequestBody Favorite favorite) {
+        access.owner(favorite.getUserId()); favorite.setId(null);
         return favoriteService.createFavorite(favorite);
     }
     @PutMapping("/{userId}/{productId}/status")
@@ -30,29 +32,40 @@ public class FavoriteController {
             @PathVariable @NotNull(message = "用户ID不能为空") @Min(value = 1, message = "用户ID必须大于0") Long userId, 
             @PathVariable @NotNull(message = "商品ID不能为空") @Min(value = 1, message = "商品ID必须大于0") Long productId, 
             @RequestParam @NotNull(message = "状态不能为空") Integer status) {
+        access.owner(userId);
         return favoriteService.updateFavoriteStatus(userId, productId, status);
     }
     @DeleteMapping("/{id}")
     public Result<?> deleteFavorite(@PathVariable @NotNull(message = "收藏ID不能为空") @Min(value = 1, message = "收藏ID必须大于0") Long id) {
+        access.favorite(id);
         return favoriteService.deleteFavorite(id);
     }
     @GetMapping("/{id}")
     public Result<?> getFavoriteById(@PathVariable @NotNull(message = "收藏ID不能为空") @Min(value = 1, message = "收藏ID必须大于0") Long id) {
+        access.favorite(id);
         return favoriteService.getFavoriteById(id);
     }
     @GetMapping("/user/{userId}")
     public Result<?> getFavoritesByUserId(@PathVariable @NotNull(message = "用户ID不能为空") @Min(value = 1, message = "用户ID必须大于0") Long userId) {
+        access.owner(userId);
         return favoriteService.getFavoritesByUserId(userId);
+    }
+    @GetMapping("/user/{userId}/statuses")
+    public Result<?> getFavoriteStatuses(@PathVariable @NotNull @Min(1) Long userId) {
+        access.owner(userId);
+        return favoriteService.getActiveProductIds(userId);
     }
     @GetMapping("/page")
     public Result<?> getFavoritesByPage(
             @RequestParam(required = false) Long userId,
             @RequestParam(defaultValue = "1") @Min(value = 1, message = "当前页必须大于0") Integer currentPage,
             @RequestParam(defaultValue = "10") @Min(value = 1, message = "每页大小必须大于0") Integer size) {
+        userId = access.scope(userId);
         return favoriteService.getFavoritesByPage(userId, currentPage, size);
     }
     @DeleteMapping("/batch")
     public Result<?> deleteBatch(@RequestParam @NotNull(message = "收藏ID列表不能为空") List<Long> ids) {
+        ids.forEach(access::favorite);
         return favoriteService.deleteBatch(ids);
     }
 } 

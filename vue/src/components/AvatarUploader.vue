@@ -1,5 +1,5 @@
 <template>
-    <el-upload
+    <el-upload :headers="authenticatedHeaders"
       class="avatar-uploader"
       :action="uploadUrl"
       :show-file-list="false"
@@ -12,7 +12,9 @@
   </template>
   
   <script>
-  export default {
+import { getAuthHeaders } from '@/utils/request'
+export default {
+    computed: { authenticatedHeaders() { return getAuthHeaders(); } },
     name: 'AvatarUploader',
     props: {
       uploadUrl: {
@@ -34,7 +36,7 @@
       }
     },
     methods: {
-      handleSuccess(res,file) {
+      handleSuccess(res,_file) {
         // 把res传给父组件
         this.resData = res.data;
         this.$emit('upload-success', res.data);

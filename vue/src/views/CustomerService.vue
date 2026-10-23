@@ -174,6 +174,7 @@ import logger from '@/utils/logger'
 import { Refresh } from '@element-plus/icons-vue'
 
 export default {
+  components: { Refresh },
   name: 'CustomerService',
   data() {
     return {

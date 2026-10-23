@@ -21,6 +21,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class LogisticsService {
+    @Autowired private FulfillmentPolicy fulfillment;
+
     private static final Logger LOGGER = LoggerFactory.getLogger(LogisticsService.class);
 
     @Autowired
@@ -35,110 +37,51 @@ public class LogisticsService {
     @Autowired
     private ProductMapper productMapper;
 
+    @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
     public Result<?> createLogistics(Logistics logistics) {
-        try {
-            // 检查订单是否存在
-            Order order = orderMapper.selectById(logistics.getOrderId());
-            if (order == null) {
-                LOGGER.warn("创建物流信息失败，订单ID：{} 不存在", logistics.getOrderId());
-                return ResultUtils.dataNotFound("订单不存在");
-            }
-
-            // 检查订单状态是否为已支付
-            if (order.getStatus() == null || order.getStatus() != 1) {
-                LOGGER.warn("创建物流信息失败，订单ID：{}，订单状态：{}，只能为已支付订单创建物流", 
-                    logistics.getOrderId(), order.getStatus());
-                return ResultUtils.businessError("订单状态不正确，只能为已支付订单创建物流");
-            }
-
-            // 检查必填字段
-            if (logistics.getCompanyName() == null || logistics.getCompanyName().trim().isEmpty()) {
-                LOGGER.warn("创建物流信息失败，物流公司名称不能为空");
-                return ResultUtils.paramError("物流公司名称不能为空");
-            }
-            if (logistics.getReceiverName() == null || logistics.getReceiverName().trim().isEmpty()) {
-                LOGGER.warn("创建物流信息失败，收货人姓名不能为空");
-                return ResultUtils.paramError("收货人姓名不能为空");
-            }
-            if (logistics.getReceiverPhone() == null || logistics.getReceiverPhone().trim().isEmpty()) {
-                LOGGER.warn("创建物流信息失败，收货人电话不能为空");
-                return ResultUtils.paramError("收货人电话不能为空");
-            }
-            if (logistics.getReceiverAddress() == null || logistics.getReceiverAddress().trim().isEmpty()) {
-                LOGGER.warn("创建物流信息失败，收货地址不能为空");
-                return ResultUtils.paramError("收货地址不能为空");
-            }
-            logistics.setStatus(1);
-
-            int result = logisticsMapper.insert(logistics);
-            if (result > 0) {
-                // 更新订单状态为已发货
-                order.setStatus(2); // 2表示已发货
-                orderMapper.updateById(order);
-                
-                LOGGER.info("创建物流信息成功，物流ID：{}，订单ID：{}，物流公司：{}", 
-                    logistics.getId(), logistics.getOrderId(), logistics.getCompanyName());
-                return ResultUtils.success(logistics);
-            }
-            LOGGER.warn("创建物流信息失败，数据库插入返回 0");
-            throw new BusinessException(ResultCode.OPERATION_FAILED.getCode(), "创建物流信息失败");
-        } catch (BusinessException e) {
-            throw e;
-        } catch (Exception e) {
-            LOGGER.error("创建物流信息异常：{}", e.getMessage(), e);
-            throw new BusinessException(ResultCode.OPERATION_FAILED.getCode(), "创建物流信息失败：" + e.getMessage());
+        if (logistics.getOrderId() == null) throw new BusinessException("订单不能为空");
+        Order order = orderMapper.selectForUpdate(logistics.getOrderId());
+        fulfillment.requireShipping(order);
+        Long existing = logisticsMapper.selectCount(new LambdaQueryWrapper<Logistics>().eq(Logistics::getOrderId, order.getId()));
+        if (existing != null && existing > 0) throw new BusinessException("订单已有物流信息，请勿重复发货");
+        if (blank(logistics.getCompanyName()) || blank(logistics.getReceiverName()) || blank(logistics.getReceiverPhone()) || blank(logistics.getReceiverAddress())) {
+            throw new BusinessException("物流公司和收货信息不能为空");
         }
+        logistics.setId(null);
+        logistics.setStatus(1);
+        if (logisticsMapper.insert(logistics) != 1) throw new BusinessException("创建物流信息失败");
+        changeOrder(order, 2);
+        return ResultUtils.success(logistics);
     }
 
+    @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
     public Result<?> updateLogisticsStatus(Long id, Integer status) {
-        Logistics logistics = logisticsMapper.selectById(id);
-        if (logistics == null) {
-            LOGGER.warn("更新物流状态失败，物流ID：{} 不存在", id);
-            return ResultUtils.dataNotFound("物流信息不存在");
+        if (status == null || status < 0 || status > 3) throw new BusinessException("无效物流状态");
+        LockedShipment locked = lockShipment(id);
+        Order order = locked.order();
+        Logistics logistics = locked.logistics();
+        int state = fulfillment.fulfillmentStatus(order);
+        if (state != 1 && state != 2 && state != 3) throw new BusinessException("订单已关闭或正在退款，不能修改物流状态");
+        Integer old = logistics.getStatus();
+        if (status.equals(old)) {
+            boolean consistent = (status == 0 && state == 1) || (status == 1 && state == 2) || (status == 2 && state == 3);
+            if (!consistent) throw new BusinessException("订单与物流状态不一致，请人工核对");
+            return ResultUtils.success(logistics);
         }
-        
-        if (status == null) {
-            LOGGER.warn("更新物流状态失败，状态不能为空");
-            return ResultUtils.paramError("状态不能为空");
+        int orderStatus;
+        if (Integer.valueOf(0).equals(old) && status == 1) {
+            fulfillment.requireShipping(order);
+            orderStatus = 2;
+        } else if (Integer.valueOf(1).equals(old) && status == 2) {
+            fulfillment.requireReceipt(order);
+            orderStatus = 3;
+        } else {
+            throw new BusinessException("不允许回退或跳过物流状态，取消交易请使用退款或售后流程");
         }
-        
-        try {
-            logistics.setStatus(status);
-            int result = logisticsMapper.updateById(logistics);
-            if (result > 0) {
-                // 根据物流状态更新订单状态
-                Order order = orderMapper.selectById(logistics.getOrderId());
-                if (order != null) {
-                    switch (status) {
-                        case 0: // 待发货
-                            order.setStatus(1); // 已支付，待发货
-                            break;
-                        case 1: // 已发货
-                            order.setStatus(2); // 已发货
-                            break;
-                        case 2: // 已签收
-                            order.setStatus(3); // 已完成
-                            break;
-                        case 3: // 已取消
-                            order.setStatus(4); // 已取消
-                            break;
-                    }
-                    orderMapper.updateById(order);
-                    LOGGER.debug("同步更新订单状态，订单ID：{}，新状态：{}", order.getId(), order.getStatus());
-                }
-
-                LOGGER.info("更新物流状态成功，物流ID：{}，订单ID：{}，新状态：{}", 
-                    id, logistics.getOrderId(), status);
-                return ResultUtils.success(logistics);
-            }
-            LOGGER.warn("更新物流状态失败，物流ID：{}，数据库更新返回 0", id);
-            throw new BusinessException(ResultCode.OPERATION_FAILED.getCode(), "更新物流状态失败");
-        } catch (BusinessException e) {
-            throw e;
-        } catch (Exception e) {
-            LOGGER.error("更新物流状态异常，物流ID：{}，错误：{}", id, e.getMessage(), e);
-            throw new BusinessException(ResultCode.OPERATION_FAILED.getCode(), "更新物流状态失败：" + e.getMessage());
-        }
+        logistics.setStatus(status);
+        if (logisticsMapper.updateById(logistics) != 1) throw new BusinessException("更新物流状态失败");
+        changeOrder(order, orderStatus);
+        return ResultUtils.success(logistics);
     }
 
     public Result<?> deleteLogistics(Long id) {
@@ -304,43 +247,26 @@ public class LogisticsService {
         }
     }
 
+    @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
     public Result<?> signLogistics(Long id) {
-        Logistics logistics = logisticsMapper.selectById(id);
-        if (logistics == null) {
-            LOGGER.warn("物流签收失败，物流ID：{} 不存在", id);
-            return ResultUtils.dataNotFound("物流信息不存在");
-        }
+        return updateLogisticsStatus(id, 2);
+    }
 
-        // 检查当前状态是否为已发货
-        if (logistics.getStatus() == null || logistics.getStatus() != 1) {
-            LOGGER.warn("物流签收失败，物流ID：{}，当前状态：{}，不允许签收", id, logistics.getStatus());
-            return ResultUtils.businessError("当前物流状态不允许签收，只能签收已发货的物流");
-        }
-        
-        try {
-            // 更新物流状态为已签收
-            logistics.setStatus(2); // 2表示已签收
-            int result = logisticsMapper.updateById(logistics);
-            
-            if (result > 0) {
-                // 更新订单状态为已完成
-                Order order = orderMapper.selectById(logistics.getOrderId());
-                if (order != null) {
-                    order.setStatus(3); // 3表示已完成
-                    orderMapper.updateById(order);
-                    LOGGER.debug("同步更新订单状态为已完成，订单ID：{}", order.getId());
-                }
-
-                LOGGER.info("物流签收成功，物流ID：{}，订单ID：{}", id, logistics.getOrderId());
-                return ResultUtils.success(logistics);
-            }
-            LOGGER.warn("物流签收失败，物流ID：{}，数据库更新返回 0", id);
-            throw new BusinessException(ResultCode.OPERATION_FAILED.getCode(), "物流签收失败");
-        } catch (BusinessException e) {
-            throw e;
-        } catch (Exception e) {
-            LOGGER.error("物流签收异常，物流ID：{}，错误：{}", id, e.getMessage(), e);
-            throw new BusinessException(ResultCode.OPERATION_FAILED.getCode(), "物流签收失败：" + e.getMessage());
-        }
+    private static boolean blank(String value) { return value == null || value.isBlank(); }
+    private record LockedShipment(Order order, Logistics logistics) { }
+    private LockedShipment lockShipment(Long id) {
+        Logistics snapshot = logisticsMapper.selectById(id);
+        if (snapshot == null) throw new BusinessException("物流信息不存在");
+        // All writers lock the order before the logistics row, including refund and receipt.
+        Order order = orderMapper.selectForUpdate(snapshot.getOrderId());
+        if (order == null) throw new BusinessException("订单不存在");
+        Logistics current = logisticsMapper.selectForUpdate(id);
+        if (current == null || !java.util.Objects.equals(current.getOrderId(), order.getId())) throw new BusinessException("物流信息已变化，请刷新重试");
+        return new LockedShipment(order, current);
+    }
+    private void changeOrder(Order order, int status) {
+        order.setLastStatus(order.getStatus());
+        order.setStatus(status);
+        if (orderMapper.updateById(order) != 1) throw new BusinessException("同步订单状态失败");
     }
 } 

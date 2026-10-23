@@ -82,9 +82,10 @@ public class ProductService {
         @CacheEvict(value = "productPages",allEntries = true),
         @CacheEvict(value="products",allEntries = true)
 })
+    @Transactional
     public Result<?> updateProduct(Long id, Product product) {
         // 检查商品是否存在
-        Product oldProduct = productMapper.selectById(id);
+        Product oldProduct = productMapper.selectForUpdate(id);
         if (oldProduct == null) {
             LOGGER.warn("更新商品失败，商品ID：{} 不存在", id);
             return ResultUtils.dataNotFound("商品不存在");
@@ -99,6 +100,8 @@ public class ProductService {
         }
         
         product.setId(id);
+        product.setStock(oldProduct.getStock());
+        product.setSalesCount(oldProduct.getSalesCount());
         try {
             // 检查库存是否合法
             if (product.getStock() != null && product.getStock() < 0) {
@@ -204,10 +207,9 @@ public class ProductService {
         }
     }
 
-    @Cacheable(value = "products", key = "#productId")
     public Result<?> getProductById(Long productId) {
         Product product = productMapper.selectById(productId);
-        if (product == null) {
+        if (product == null || !Integer.valueOf(1).equals(product.getStatus())) {
             LOGGER.warn("查询商品失败，商品ID：{} 不存在", productId);
             return ResultUtils.dataNotFound("商品不存在");
         }
@@ -217,9 +219,6 @@ public class ProductService {
         product.setCategory(categoryMapper.selectById(product.getCategoryId()));
         return ResultUtils.success(product);
     }
-    @Cacheable(value = "productPages",
-            key = "{#currentPage, #size, #sortField, #sortOrder, T(org.example.springboot.util.CacheUtil).generateIdFingerprint(#result)}",
-            condition = "#name == null && #categoryId == null && #merchantId == null && #status == null && #minPrice == null && #maxPrice == null && #author == null && #publisher == null && #isbn == null")
     public Page<Product> getProductsByPage(String name, Long categoryId, Long merchantId, Integer status,
                                            Integer currentPage, Integer size, String sortField, String sortOrder,
                                            Double minPrice, Double maxPrice, String author, String publisher, String isbn) {
@@ -227,7 +226,7 @@ public class ProductService {
 
         // 添加基本查询条件
         if (StringUtils.isNotBlank(name)) {
-            queryWrapper.like(Product::getName, name);
+            queryWrapper.and(q -> q.like(Product::getName, name).or().like(Product::getAuthor, name).or().like(Product::getIsbn, name));
         }
         // 添加图书相关搜索条件
         if (StringUtils.isNotBlank(author)) {
@@ -253,6 +252,7 @@ public class ProductService {
         boolean isAsc = "asc".equalsIgnoreCase(sortOrder);
         if (StringUtils.isNotBlank(sortField)) {
             switch (sortField) {
+                case "salesCount":
                 case "sales":
                     queryWrapper.orderBy(true, isAsc, Product::getSalesCount);
                     break;
@@ -261,6 +261,9 @@ public class ProductService {
                     String orderDirection = isAsc ? "ASC" : "DESC";
                     queryWrapper.apply("1=1")  // 添加一个空条件，防止语法错误
                         .last("ORDER BY CASE WHEN is_discount = 1 THEN discount_price ELSE price END " + orderDirection);
+                    break;
+                case "updatedAt":
+                    queryWrapper.orderBy(true, isAsc, Product::getUpdatedAt);
                     break;
                 default:
                     queryWrapper.orderByDesc(Product::getCreatedAt);
@@ -282,15 +285,23 @@ public class ProductService {
             });
         }
 
+        // Bound page work even for direct service callers.
+        size = Math.min(100, Math.max(1, size));
         // 创建分页对象并执行查询
         Page<Product> page = new Page<>(currentPage, size);
         Page<Product> result = productMapper.selectPage(page, queryWrapper);
 
         // 填充关联信息
-        result.getRecords().forEach(product -> {
-            product.setMerchant(userMapper.selectById(product.getMerchantId()));
-            product.setCategory(categoryMapper.selectById(product.getCategoryId()));
-        });
+        if (!result.getRecords().isEmpty()) {
+            var merchantIds = result.getRecords().stream().map(Product::getMerchantId).filter(java.util.Objects::nonNull).collect(java.util.stream.Collectors.toSet());
+            var categoryIds = result.getRecords().stream().map(Product::getCategoryId).filter(java.util.Objects::nonNull).collect(java.util.stream.Collectors.toSet());
+            var merchants = merchantIds.isEmpty() ? java.util.Map.<Long, User>of() : userMapper.selectBatchIds(merchantIds).stream().collect(java.util.stream.Collectors.toMap(User::getId, x -> x));
+            var categories = categoryIds.isEmpty() ? java.util.Map.<Long, Category>of() : categoryMapper.selectBatchIds(categoryIds).stream().collect(java.util.stream.Collectors.toMap(Category::getId, x -> x));
+            result.getRecords().forEach(product -> {
+                product.setMerchant(merchants.get(product.getMerchantId()));
+                product.setCategory(categories.get(product.getCategoryId()));
+            });
+        }
 
         return result;
     }
@@ -306,7 +317,7 @@ public class ProductService {
         }
         
         product.setStatus(status);
-        int result = productMapper.updateById(product);
+        int result = productMapper.update(null, new com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<Product>().eq(Product::getId, product.getId()).set(Product::getStatus, status));
         if (result > 0) {
             LOGGER.info("更新商品状态成功，商品ID：{}，商品名称：{}，新状态：{}", id, product.getName(), status);
             return ResultUtils.success();
@@ -426,7 +437,7 @@ public class ProductService {
                 Product product = new Product();
                 product.setId(id);
                 product.setStatus(status);
-                if (productMapper.updateById(product) > 0) {
+                if (productMapper.update(null, new com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<Product>().eq(Product::getId, product.getId()).set(Product::getStatus, status)) > 0) {
                     updateCount++;
                 }
             }

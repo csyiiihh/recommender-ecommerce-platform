@@ -76,6 +76,8 @@ import request from '@/utils/request';
 import { Lock, Key, Check, Refresh } from '@element-plus/icons-vue'
 
 export default {
+  name: 'PasswordView',
+  components: { Lock, Key, Check, Refresh },
   inject: ['userInfo'],
   
   data() {

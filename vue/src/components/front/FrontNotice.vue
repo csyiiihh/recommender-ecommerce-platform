@@ -44,7 +44,7 @@
     <!-- 所有公告列表对话框 -->
     <el-dialog
       title="全部公告"
-      :visible.sync="dialogVisible"
+      v-model="dialogVisible"
       width="800px"
       custom-class="notice-list-dialog"
       append-to-body
@@ -72,20 +72,20 @@
           </div>
         </div>
       </div>
-      <div slot="footer" class="dialog-footer">
+      <template #footer><div class="dialog-footer">
         <el-pagination
-          :current-page.sync="currentPage"
+          v-model:current-page="currentPage"
           :page-size="pageSize"
           :total="total"
           layout="prev, pager, next"
           @current-change="handlePageChange"
         />
-      </div>
+      </div></template>
     </el-dialog>
 
     <!-- 公告详情对话框 -->
     <el-dialog
-      :visible.sync="detailVisible"
+      v-model="detailVisible"
       width="700px"
       custom-class="notice-detail-dialog"
       :title="currentNotice.title"
@@ -112,7 +112,6 @@
 <script>
 import Request from '@/utils/request'
 import logger from '@/utils/logger'
-import { formatTime } from '@/utils/time'
 
 export default {
   name: 'FrontNotice',

@@ -130,7 +130,7 @@
         <el-table-column label="操作" width="280" fixed="right">
           <template #default="{ row }">
             <el-button link size="small" @click="handleViewTeams(row)" style="margin-right: 8px;">
-              <el-icon><View /></el-icon>
+              <el-icon><ViewIcon /></el-icon>
               查看拼团
             </el-button>
             <el-button link size="small" @click="handleEdit(row)" style="margin-right: 8px;">
@@ -327,16 +327,17 @@
 </template>
 
 <script>
+import { getProductOptions } from '@/utils/productOptions'
 import Request from '@/utils/request'
 import logger from '@/utils/logger'
-import { Plus, Refresh, View, Edit, Upload, VideoPause, Download, VideoPlay, Delete } from '@element-plus/icons-vue'
+import { Plus, Refresh, View as ViewIcon, Edit, Upload, VideoPause, Download, VideoPlay, Delete } from '@element-plus/icons-vue'
 
 export default {
-  name: 'GroupBuyManager',
+  name: 'GroupBuyManagerView',
   components: {
     Plus,
     Refresh,
-    View,
+    ViewIcon,
     Edit,
     Upload,
     VideoPause,
@@ -458,59 +459,14 @@ export default {
       }
     },
     async getProducts() {
-      logger.debug('>>> getProducts 方法开始执行')
       try {
-        // 根据用户角色获取商品
-        const params = {}
-        // 如果是商家，只获取自己的商品
-        if (this.userInfo.role === 'MERCHANT') {
-          params.merchantId = this.userInfo.id
-          logger.debug('商家用户，只获取商家ID为', this.userInfo.id, '的商品')
-        } else {
-          logger.debug('管理员用户，获取所有商品')
-        }
-        // 只获取上架的商品
-        params.status = 1
-        
-        const requestParams = {
-          ...params,
-          currentPage: 1,
-          size: 1000,
-          status: 1
-        }
-        
-        logger.debug('请求参数:', requestParams)
-        logger.debug('请求URL: /product/page')
-        logger.debug('发送请求前...')
-        
-        const res = await Request.get('/product/page', { 
-          params: requestParams
-        })
-        
-        logger.debug('收到响应:', res)
-        logger.debug('响应码:', res.code)
-        logger.debug('响应数据:', res.data)
-        
-        if (res.code === '200' || res.code === '0') {
-          this.products = res.data?.records || []
-          logger.debug('✓ 成功获取商品列表:', this.products.length, '个')
-          if (this.products.length > 0) {
-            logger.debug('第一个商品:', this.products[0])
-          } else {
-            logger.warn('⚠️ 商品列表为空！')
-          }
-        } else {
-          logger.error('✗ API返回错误，code:', res.code)
-          this.$message.error('获取商品失败: ' + (res.msg || '未知错误'))
-        }
+        const result = await getProductOptions({ status: 1, ...(this.userInfo.role === 'MERCHANT' ? { merchantId: this.userInfo.id } : {}) })
+        if (result.code === '0') this.products = result.data
+        else this.$message.error(result.msg || '获取商品失败')
       } catch (error) {
-        logger.error('✗✗✗ 获取商品列表异常 ✗✗✗')
-        logger.error('错误对象:', error)
-        logger.error('错误消息:', error.message)
-        logger.error('错误堆栈:', error.stack)
-        this.$message.error('获取商品列表失败: ' + error.message)
+        logger.error('获取商品选项失败', error)
+        this.$message.error('获取商品失败，请稍后重试')
       }
-      logger.debug('>>> getProducts 方法执行结束')
     },
     async getTeams(activityId, page = 1) {
       this.teamsLoading = true

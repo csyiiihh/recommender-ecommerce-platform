@@ -17,22 +17,26 @@ import java.util.List;
 @RequestMapping("/product")
 @Validated
 public class ProductController {
+    @Autowired private org.example.springboot.service.AccessService access;
     private static final Logger LOGGER = LoggerFactory.getLogger(ProductController.class);
 
     @Autowired
     private ProductService productService;
     @PostMapping
     public Result<?> createProduct(@Valid @RequestBody Product product) {
+        access.staff(); access.owner(product.getMerchantId()); product.setId(null);
         return productService.createProduct(product);
     }
     @PutMapping("/{id}")
     public Result<?> updateProduct(
             @PathVariable @NotNull(message = "商品ID不能为空") @Min(value = 1, message = "商品ID必须大于0") Long id, 
             @Valid @RequestBody Product product) {
+        access.product(id); access.owner(product.getMerchantId());
         return productService.updateProduct(id, product);
     }
     @DeleteMapping("/{id}")
     public Result<?> deleteProduct(@PathVariable @NotNull(message = "商品ID不能为空") @Min(value = 1, message = "商品ID必须大于0") Long id) {
+        access.product(id);
         return productService.deleteProduct(id);
     }
     @GetMapping("/{id}")
@@ -46,7 +50,7 @@ public class ProductController {
             @RequestParam(required = false) Long merchantId,
             @RequestParam(required = false) Integer status,
             @RequestParam(defaultValue = "1") @Min(value = 1, message = "当前页必须大于0") Integer currentPage,
-            @RequestParam(defaultValue = "10") @Min(value = 1, message = "每页大小必须大于0") Integer size,
+            @RequestParam(defaultValue = "10") @Min(value = 1, message = "每页大小必须大于0") @jakarta.validation.constraints.Max(100) Integer size,
             @RequestParam(required = false) String sortField,
             @RequestParam(required = false) String sortOrder,
             @RequestParam(required = false) Double minPrice,
@@ -54,6 +58,26 @@ public class ProductController {
             @RequestParam(required = false) String author,
             @RequestParam(required = false) String publisher,
             @RequestParam(required = false) String isbn) {
+        return Result.success(productService.getProductsByPage(name, categoryId, merchantId, 1,
+                currentPage, size, sortField, sortOrder, minPrice, maxPrice, author, publisher, isbn));
+    }
+    @GetMapping("/manage/page")
+    public Result<?> getManagedProductsByPage(
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) Long merchantId,
+            @RequestParam(required = false) Integer status,
+            @RequestParam(defaultValue = "1") @Min(value = 1, message = "当前页必须大于0") Integer currentPage,
+            @RequestParam(defaultValue = "10") @Min(value = 1, message = "每页大小必须大于0") @jakarta.validation.constraints.Max(100) Integer size,
+            @RequestParam(required = false) String sortField,
+            @RequestParam(required = false) String sortOrder,
+            @RequestParam(required = false) Double minPrice,
+            @RequestParam(required = false) Double maxPrice,
+            @RequestParam(required = false) String author,
+            @RequestParam(required = false) String publisher,
+            @RequestParam(required = false) String isbn) {
+        access.staff();
+        merchantId = access.scope(merchantId);
         return Result.success(productService.getProductsByPage(name, categoryId, merchantId, status,
                 currentPage, size, sortField, sortOrder, minPrice, maxPrice, author, publisher, isbn));
     }
@@ -61,21 +85,24 @@ public class ProductController {
     public Result<?> updateProductStatus(
             @PathVariable @NotNull(message = "商品ID不能为空") @Min(value = 1, message = "商品ID必须大于0") Long id, 
             @RequestParam @NotNull(message = "状态不能为空") Integer status) {
+        access.product(id);
         return productService.updateProductStatus(id, status);
     }
     @DeleteMapping("/batch")
     public Result<?> deleteBatch(@RequestParam @NotNull(message = "商品ID列表不能为空") List<Long> ids) {
+        ids.forEach(access::product);
         return productService.deleteBatch(ids);
     }
     // 获取全部商品
     @GetMapping("/all")
     public Result<?> getAllProducts(@RequestParam(required = false) Long merchantId) {
-        return Result.success(productService.getProductsByPage(null, null, merchantId, null, 1, Integer.MAX_VALUE, null, null, null, null, null, null, null).getRecords());
+        return Result.success(productService.getProductsByPage(null, null, merchantId, 1, 1, 100, null, null, null, null, null, null, null).getRecords());
     }
     @PutMapping("/batch/status")
     public Result<?> updateBatchStatus(
             @RequestParam @NotNull(message = "商品ID列表不能为空") List<Long> ids,
             @RequestParam @NotNull(message = "状态不能为空") Integer status) {
+        ids.forEach(access::product);
         return productService.updateBatchStatus(ids, status);
     }
 

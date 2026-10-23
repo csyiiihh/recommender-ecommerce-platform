@@ -12,10 +12,12 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/recommend")
 @Validated
 public class RecommendController {
+    @Autowired private org.example.springboot.service.AccessService access;
     @Autowired
     private RecommendService recommendService;
     @GetMapping("/user/{userId}")
     public Result<?> getRecommendations(@PathVariable @NotNull(message = "用户ID不能为空") @Min(value = 1, message = "用户ID必须大于0") Long userId) {
+        access.owner(userId);
         return recommendService.generateRecommendations(userId);
     }
     
@@ -27,6 +29,7 @@ public class RecommendController {
             @PathVariable @NotNull(message = "用户ID不能为空") @Min(value = 1, message = "用户ID必须大于0") Long userId,
             @RequestParam(required = false) String algorithmType,
             @RequestParam(required = false) String weights) {
+        access.owner(userId);
         return recommendService.generateRecommendationsWithExplanation(userId, algorithmType, weights);
     }
     
@@ -39,6 +42,7 @@ public class RecommendController {
             @RequestParam @NotNull(message = "商品ID不能为空") @Min(value = 1, message = "商品ID必须大于0") Long productId,
             @RequestParam @NotBlank(message = "反馈类型不能为空") String feedbackType,
             @RequestParam(required = false) String remark) {
+        access.owner(userId);
         return recommendService.saveFeedback(userId, productId, feedbackType, remark);
     }
 
@@ -47,6 +51,7 @@ public class RecommendController {
      */
     @GetMapping("/feedback/history")
     public Result<?> getFeedbackHistory(@RequestParam @NotNull(message = "用户ID不能为空") @Min(value = 1, message = "用户ID必须大于0") Long userId) {
+        access.owner(userId);
         return recommendService.getFeedbackHistory(userId);
     }
 
@@ -57,6 +62,7 @@ public class RecommendController {
     public Result<?> undoFeedback(
             @PathVariable("id") @NotNull(message = "反馈ID不能为空") @Min(value = 1, message = "反馈ID必须大于0") Long id, 
             @RequestParam @NotNull(message = "用户ID不能为空") @Min(value = 1, message = "用户ID必须大于0") Long userId) {
+        access.owner(userId);
         return recommendService.undoFeedback(userId, id);
     }
 
@@ -65,11 +71,13 @@ public class RecommendController {
      */
     @GetMapping("/category-matches/{userId}")
     public Result<?> getCategoryMatches(@PathVariable @NotNull(message = "用户ID不能为空") @Min(value = 1, message = "用户ID必须大于0") Long userId) {
+        access.owner(userId);
         return recommendService.getCategoryMatches(userId);
     }
 
     @PostMapping("/update")
     public Result<?> updateRecommendations() {
+        access.admin();
         recommendService.updateRecommendations();
         return Result.success();
     }

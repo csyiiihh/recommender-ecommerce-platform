@@ -246,20 +246,6 @@
           <div class="payment-methods">
             <div 
               class="payment-card"
-              :class="{ 'selected': paymentMethod === 'balance' }"
-              @click="paymentMethod = 'balance'">
-              <div class="radio-icon">
-                <i class="fas fa-check-circle" v-if="paymentMethod === 'balance'"></i>
-                <i class="far fa-circle" v-else></i>
-              </div>
-              <div class="payment-info">
-                <i class="fas fa-wallet payment-icon balance-icon"></i>
-                <div class="payment-name">余额支付</div>
-                <div class="payment-desc">快速便捷，一键完成</div>
-              </div>
-            </div>
-            <div 
-              class="payment-card"
               :class="{ 'selected': paymentMethod === 'alipay' }"
               @click="paymentMethod = 'alipay'">
               <div class="radio-icon">
@@ -298,7 +284,6 @@ import Request from '@/utils/request'
 import logger from '@/utils/logger'
 import CountDown from '@/components/CountDown.vue'
 import FrontHeader from '@/components/front/FrontHeader.vue'
-import axios from 'axios'
 
 export default {
   name: 'GroupBuyDetail',
@@ -323,7 +308,7 @@ export default {
       selectedAddressId: null,
       
       // 支付方式
-      paymentMethod: 'balance', // 'balance' 或 'alipay'，默认余额支付
+      paymentMethod: 'alipay', // 'balance' 或 'alipay'，默认余额支付
       
       // 当前操作
       currentAction: '', // 'start' 或 'join'
@@ -646,15 +631,19 @@ export default {
     
     async callAlipay(orderId) {
       try {
+        const prepared = await Request.post(`/order/${orderId}/prepare-pay`);
+        if(prepared.code !== "0") throw new Error(prepared.msg || "准备支付失败");
         const orderName = `拼团-${this.activity.title}`
         const payPrice = this.activity.groupPrice.toFixed(2)
         
         // 调用支付宝接口
-        const response = await axios({
+        const response = await Request({
           method: 'post',
-          url: 'http://localhost:1234/alipay/create',
+          baseURL: '',
+                url: '/alipay/create',
+                authScope: 'frontUser',
           params: {
-            orderNo: orderId,
+            orderNo: prepared.data.outTradeNo,
             orderName: orderName,
             payPrice: payPrice
           },
@@ -663,6 +652,7 @@ export default {
         
         // 在新窗口打开支付宝支付页面
         const newWindow = window.open('', '_blank')
+        if (!newWindow) throw new Error('请允许浏览器打开支付窗口');
         newWindow.document.write(response.data)
         newWindow.document.close()
         

@@ -1,28 +1,16 @@
 <template>
   <div class="front-header porcelain-texture">
-    <!-- 中国风背景装饰 -->
-    <div class="header-bg-decoration landscape-bg">
-      <!-- 祥云图案 -->
-      <div class="cloud-pattern-layer"></div>
-      <!-- 水波纹效果 -->
-      <div class="water-ripple-layer"></div>
-      <!-- 动态粒子 -->
-      <div class="bg-particles">
-        <div v-for="n in 12" :key="n" class="particle" :style="getParticleStyle()"></div>
-      </div>
-    </div>
-
     <div class="header-container">
       <!-- Logo区域 -->
-      <div class="logo-area" @click="$router.push('/')">
+      <div class="logo-area" role="link" tabindex="0" aria-label="知阅书店首页" @keydown.enter="$router.push('/')" @click="$router.push('/')">
         <div class="logo-wrapper">
           <div class="logo-icon">
             <i class="fas fa-book-open"></i>
             <div class="logo-accent"></div>
           </div>
           <div class="logo-text">
-            <span class="brand-name">在线销售平台</span>
-            <span class="brand-subtitle">Book & Knowledge</span>
+            <span class="brand-name">知阅书店</span>
+            <span class="brand-subtitle">BOOKS & EVERYDAY</span>
           </div>
         </div>
       </div>
@@ -34,6 +22,7 @@
             v-for="item in navItems" 
             :key="item.path"
             :class="['nav-item', { 'active': isActiveRoute(item.path) }]"
+            role="link" tabindex="0" @keydown.enter="navigateTo(item.path)"
             @click.stop="navigateTo(item.path)"
           >
             <div class="nav-content" @click.stop="navigateTo(item.path)">
@@ -46,9 +35,9 @@
       </div>
 
       <!-- 移动端导航按钮 -->
-      <div class="mobile-nav-btn" @click="toggleMobileNav">
+      <button type="button" class="mobile-nav-btn" aria-label="打开导航菜单" :aria-expanded="showMobileNav" @click="toggleMobileNav">
         <i class="fas fa-bars"></i>
-      </div>
+      </button>
 
       <!-- 移动端导航菜单 -->
       <div v-if="showMobileNav" class="mobile-nav-overlay" @click="closeMobileNav">
@@ -82,7 +71,7 @@
               @keyup.enter="handleSearch"
               @focus="searchFocused = true"
               @blur="hideSuggestions"
-              placeholder="搜索商品、资讯..."
+              placeholder="搜索书名、作者、ISBN" aria-label="搜索书名、作者或ISBN"
               class="search-input"
             />
             <i class="fas fa-search search-icon"></i>
@@ -111,16 +100,6 @@
 
         <!-- 快捷操作 -->
         <div class="quick-actions">
-          <!-- 算法控制按钮（仅登录用户显示） -->
-          <div class="algorithm-quick" @click="goToRecommendCenter" v-if="isLoggedIn" title="智能推荐">
-            <i class="fas fa-robot"></i>
-          </div>
-          
-          <!-- 个性化设置按钮（仅登录用户显示） -->
-          <div class="personalize-quick" @click="showPersonalizeDialog = true" v-if="isLoggedIn" title="个性化设置">
-            <i class="fas fa-bullseye"></i>
-          </div>
-          
           <!-- 客服快捷入口 -->
           <div class="service-quick" @click="toggleCustomerService" title="在线客服">
             <i class="fas fa-headset"></i>
@@ -236,7 +215,7 @@
 </template>
 
 <script>
-import router from '@/router';
+
 import logger from '@/utils/logger'
 import eventBus from '@/utils/eventBus';
 
@@ -256,7 +235,7 @@ export default {
       ],
       navItems: [
         { path: '/', name: '首页', icon: 'fas fa-home' },
-        { path: '/products', name: '全部商品', icon: 'fas fa-shopping-bag' },
+        { path: '/products', name: '全部图书', icon: 'fas fa-shopping-bag' },
         // { path: '/group-buy', name: '限时拼团', icon: 'fas fa-users' },
         { path: '/cart', name: '购物车', icon: 'fas fa-shopping-cart' },
         { path: '/order', name: '我的订单', icon: 'fas fa-file-invoice' },
@@ -1513,4 +1492,24 @@ export default {
     color: #e0e0e0;
   }
 }
+
+.front-header { background:#fdfcf9;border-bottom:1px solid #e5e8df;box-shadow:none;backdrop-filter:none; }
+.front-header::before,.front-header::after,.search-effects,.logo-accent,.nav-indicator,.btn-glow { display:none!important; }
+.header-container { max-width:1280px;min-height:80px;height:auto;padding:12px 40px;gap:24px;box-sizing:border-box; }
+.logo-area,.logo-wrapper { background:transparent;border:0;box-shadow:none;padding:0; }.logo-wrapper{gap:10px;}
+.logo-icon { background:#315749;border-radius:7px;box-shadow:none;width:38px;height:42px;transform:none; }.logo-icon i{font-size:20px;color:#fff;}
+.logo-text{display:flex;}.brand-name{font-family:'SimSun',serif;color:#294734;font-size:20px;letter-spacing:.08em;text-shadow:none;}.brand-subtitle{color:#7f8e7c;font-size:8px;letter-spacing:.12em;}
+.nav-section{flex:1;}.nav-menu{background:transparent;box-shadow:none;padding:0;gap:8px;}.nav-item{border-radius:0;background:transparent;box-shadow:none;}.nav-content{font-size:13px;padding:10px 8px;gap:5px;}.nav-item.active{background:transparent;box-shadow:none;color:#315749;}.nav-item.active .nav-content{color:#315749;border-bottom:2px solid #315749;}.nav-item:hover{background:transparent;transform:none;box-shadow:none;}.nav-content i{display:none;}
+.right-section{gap:16px;}.search-container{width:230px;}.search-box{border:1px solid #e0e6d9;border-radius:6px;background:#f3f5ed;box-shadow:none;}.search-input{height:38px;font-size:12px;background:transparent;}.search-icon{color:#73846d;}.search-box:focus-within{border-color:#6f8966;box-shadow:0 0 0 2px #dfe7d7;}
+.quick-actions{display:none;}.login-btn{background:#315749;border:0;box-shadow:none;border-radius:5px;height:38px;padding:0 15px;}.login-btn:hover{background:#254437;transform:none;box-shadow:none;}.user-profile{background:transparent;border:0;box-shadow:none;padding:0;}.user-avatar{background:#315749;box-shadow:none;}.user-role{display:none;}
+.mobile-nav-btn{border:1px solid #e0e6d9;background:#f3f5ed;box-shadow:none;border-radius:5px;color:#315749;min-width:36px;min-height:36px;cursor:pointer;}
+[role=link]:focus-visible,button:focus-visible { outline:2px solid #315749;outline-offset:3px; }
+@media(max-width:1100px){.header-container{padding:12px 24px;gap:16px;}.search-container{width:190px;}.nav-content{font-size:12px;padding:9px 5px;}.nav-menu{gap:2px;}}
+@media(max-width:768px){
+ .header-container{display:grid;grid-template-columns:1fr auto auto;padding:12px 16px;gap:10px 12px;}.logo-area{grid-column:1;grid-row:1;}.logo-text{display:flex;}.brand-name{font-size:18px;}.logo-icon{width:30px;height:34px;}.brand-subtitle{font-size:7px;}.nav-section{display:none;}.mobile-nav-btn{display:block;grid-column:2;grid-row:1;width:36px;height:36px;margin:0;}.right-section{display:contents;}.user-actions{grid-column:3;grid-row:1;}.search-container{grid-column:1/-1;grid-row:2;width:100%;}.search-input{width:100%;height:36px;}.login-btn{height:34px;min-width:36px;padding:0 10px;}.login-btn span{display:none;}.user-details{display:none;}.user-avatar{width:32px;height:32px;}.mobile-nav-menu{background:#fdfcf9;}.mobile-nav-overlay{z-index:2500;}
+}
+
+
+.front-header{height:auto!important;min-height:0;overflow:visible;}.search-input{box-sizing:border-box;min-width:0;}.search-box{width:100%;box-sizing:border-box;}.brand-name{background:none!important;-webkit-text-fill-color:#294734!important;}.nav-menu .nav-item.active,.nav-menu .nav-item:hover{background:transparent!important;box-shadow:none!important;}.nav-item.active .nav-content{color:#315749!important;}
+@media(max-width:768px){.login-btn span{display:inline;font-size:12px;}.brand-subtitle{display:block;}.header-container{min-height:110px;}.search-input{padding-left:38px!important;padding-right:12px!important;}}
 </style> 

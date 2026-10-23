@@ -55,7 +55,7 @@ public class MyInterceptorConfig implements WebMvcConfigurer {
             // 注册资源处理器
             registry.addResourceHandler("/api/img/**")
                     .addResourceLocations(fileUrl)
-                    .resourceChain(false); // 禁用资源链以允许直接文件访问
+                    .resourceChain(false).addResolver(new ImageResourceResolver()); // 禁用资源链以允许直接文件访问
             
         } catch (Exception e) {
             LOGGER.error("Failed to configure image resource handler", e);
@@ -64,7 +64,7 @@ public class MyInterceptorConfig implements WebMvcConfigurer {
                 Path fallbackPath = Paths.get(FileUtil.FILE_BASE_PATH, "img");
                 String fallbackUrl = "file:" + fallbackPath.toAbsolutePath().normalize() + "/";
                 registry.addResourceHandler("/api/img/**")
-                        .addResourceLocations(fallbackUrl);
+                        .addResourceLocations(fallbackUrl).resourceChain(false).addResolver(new ImageResourceResolver());
                 LOGGER.warn("Using fallback image resource handler: {}", fallbackUrl);
             } catch (Exception ex) {
                 LOGGER.error("Failed to register fallback image resource handler", ex);

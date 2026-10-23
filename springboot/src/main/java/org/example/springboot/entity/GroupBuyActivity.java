@@ -70,6 +70,7 @@ public class GroupBuyActivity {
      * 关联商家信息（不映射到数据库）
      */
     @TableField(exist = false)
+    @com.fasterxml.jackson.databind.annotation.JsonSerialize(using = org.example.springboot.config.PublicMerchantSerializer.class)
     private User merchant;
 }
 

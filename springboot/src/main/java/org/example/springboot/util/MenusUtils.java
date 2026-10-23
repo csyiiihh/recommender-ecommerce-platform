@@ -35,7 +35,7 @@ public class MenusUtils {
                         } else {
                             childMenus.add(menu);
                         }
-                        break; // 匹配到角色后，不需要继续检查其他角�?
+                        break; // 匹配到角色后，不需要继续检查其他角�?
                     }
                 }
             }

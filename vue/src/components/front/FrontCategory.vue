@@ -2,8 +2,7 @@
   <div class="category-container" :class="{'is-sidebar': isSidebar}">
     <div class="category-header" :class="{'sidebar-header': isSidebar}">
       <h2 class="section-title">
-        📚 智能分类导航
-        <span class="algo-tag" title="基于您的浏览偏好排序">智能排序</span>
+        图书分类
       </h2>
     </div>
     <!-- 有数据时显示分类项 -->
@@ -12,8 +11,9 @@
         v-for="(category, index) in visibleCategories" 
         :key="category.id || index" 
         class="category-item"
-      :class="{'high-match': index < 2, 'medium-match': index >= 2 && index < 4, 'sidebar-item': isSidebar}"
+        :class="{'sidebar-item': isSidebar}"
         :style="{animationDelay: index * 0.1 + 's'}"
+        role="link" tabindex="0" @keydown.enter="handleCategoryClick(category)"
         @click="handleCategoryClick(category)"
       >
         <div class="icon-wrapper">
@@ -41,22 +41,7 @@
         <span class="category-name">更多分类</span>
         <div class="hover-indicator"></div>
       </div>
-      <!-- 算法探索分类 -->
-      <div 
-        class="category-item algorithm-card"
-        :class="{'sidebar-item': isSidebar}"
-        :style="{animationDelay: (visibleCategories.length + (showMore ? 1 : 0)) * 0.1 + 's'}"
-        @click="handleAlgorithmExplore"
-      >
-        <div class="icon-wrapper">
-          <i class="fas fa-robot"></i>
-          <div class="icon-bg"></div>
-        </div>
-        <span class="category-name">算法探索</span>
-        <div class="category-desc">发现惊喜书籍</div>
-        <button class="btn-surprise">随机推荐</button>
-        <div class="hover-indicator"></div>
-      </div>
+
     </div>
     <!-- 加载状态 -->
     <div class="category-loading" v-if="loading && categories.length === 0">
@@ -161,8 +146,7 @@ export default {
         return this.categoryMatches[categoryId].match || 0;
       }
       // 默认值：根据索引计算（向后兼容）
-      const index = this.categories.findIndex(c => c.id === categoryId);
-      return index < 2 ? 92 - index * 2 : 0;
+      return 0;
     },
     // 获取分类趋势
     getCategoryTrend(categoryId) {
@@ -170,8 +154,7 @@ export default {
         return this.categoryMatches[categoryId].trend || 0;
       }
       // 默认值：根据索引计算（向后兼容）
-      const index = this.categories.findIndex(c => c.id === categoryId);
-      return index >= 2 && index < 4 ? 15 + index * 2 : 0;
+      return 0;
     },
     getIconByName(name) {
       return this.iconMap[name] || 'fas fa-ellipsis-h'
@@ -683,4 +666,18 @@ export default {
     font-size: 13px;
   }
 }
+
+/* Compact categories keep books close to the first screen. */
+.category-container { background:transparent;box-shadow:none;padding:0;border:0;border-radius:0; }
+.category-header { display:none; }
+.category-wrapper { display:flex;flex-wrap:nowrap;gap:10px;overflow-x:auto;justify-content:flex-start;padding:2px 0; }
+.category-item { flex:0 0 auto;min-width:auto;width:auto;min-height:42px;display:flex;flex-direction:row;gap:8px;padding:8px 16px;background:#fff;border:1px solid #e1e6dd;border-radius:5px;box-shadow:none;animation:none;transform:none; }
+.category-item:hover { border-color:#91a891;background:#edf2e9;transform:none;box-shadow:none; }
+.category-item .icon-wrapper,.category-desc,.match-badge,.trend-badge,.hover-indicator,.icon-bg { display:none; }
+.category-name { font-size:13px;margin:0;color:#415b49; }
+.category-item:focus-visible { outline:2px solid #315749;outline-offset:-2px; }
+@media(max-width:600px){.category-item{padding:7px 12px;min-height:36px;}.category-name{font-size:12px;}}
+
+
+.category-container::before,.category-container::after,.category-wrapper::before,.category-wrapper::after{display:none!important;}.category-item{box-sizing:border-box;}.category-container .category-item{font-weight:400;}
 </style> 

@@ -15,8 +15,8 @@ import java.nio.file.Paths;
 
 public class FileUtil {
     private final static  Logger LOGGER = LoggerFactory.getLogger(FileUtil.class);
-    public final static String FILE_BASE_PATH = System.getProperty("user.dir") + "/files/";
-    // 获取项目根目录路�?
+    public final static String FILE_BASE_PATH = System.getProperty("app.upload-dir", System.getenv().getOrDefault("FILE_STORAGE_ROOT", System.getProperty("user.dir") + "/files/"));
+    // 获取项目根目录路�?
     public static Path getProjectRootPath() throws IOException {
 
         PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
@@ -24,74 +24,66 @@ public class FileUtil {
         if (resources.length == 0) {
             throw new IOException("Cannot find project root path.");
         }
-        // 通常第一个资源就是项目的根目�?
+        // 通常第一个资源就是项目的根目�?
         File rootDir = resources[0].getFile();
         return rootDir.toPath();
     }
 
-    // 公共的文件保存方�?
+    // 公共的文件保存方�?
     public static String saveFile(MultipartFile file, String folderName, String baseDir) {
-        String originalFilename = file.getOriginalFilename();
-        assert originalFilename != null;
-        long timestamp = System.currentTimeMillis();
-        String extension = ""; // 文件扩展名，默认为空
-
-        // 获取文件扩展�?
-        int dotIndex = originalFilename.lastIndexOf('.');
-        if (dotIndex > 0) {
-            extension = originalFilename.substring(dotIndex);
+        if (file == null || file.isEmpty() || file.getSize() > 8 * 1024 * 1024) {
+            throw new org.example.springboot.exception.BusinessException("文件为空或超过8MB");
         }
-
-        String dFileName = timestamp + extension;
-
-        // 获取项目根目录路�?
-        Path projectRootPath = null;
-        try {
-            projectRootPath = Paths.get(FILE_BASE_PATH);
-            Path fileDirectory = projectRootPath.resolve(baseDir);
-
-            // 如果folderName不为null，则在指定目录后面加入folderName
-            if (folderName != null && !folderName.isEmpty()) {
-                fileDirectory = fileDirectory.resolve(folderName);
-            }
-
-            if (!Files.exists(fileDirectory)) {
-                Files.createDirectories(fileDirectory); // 如果目录不存在，则创建目�?
-            }
-            Path uploadFilePath = fileDirectory.resolve(dFileName);
-            File uploadFile = uploadFilePath.toFile();
-
-            file.transferTo(uploadFile);
-            LOGGER.info("File saved at: {}", uploadFile.getAbsolutePath());
+        String original = file.getOriginalFilename();
+        if (original == null || !original.matches("(?i).+\\.(png|jpe?g|gif)")) {
+            throw new org.example.springboot.exception.BusinessException("仅支持 PNG、JPEG、GIF 图片");
+        }
+        Path root = Paths.get(FILE_BASE_PATH).toAbsolutePath().normalize();
+        Path directory = root.resolve(baseDir).resolve(folderName == null ? "" : folderName).normalize();
+        if (!directory.startsWith(root)) throw new org.example.springboot.exception.BusinessException("无效存储路径");
+        try (var input = javax.imageio.ImageIO.createImageInputStream(file.getInputStream())) {
+            var readers = javax.imageio.ImageIO.getImageReaders(input);
+            if (!readers.hasNext()) throw new org.example.springboot.exception.BusinessException("文件内容不是有效图片");
+            var reader = readers.next();
+            try {
+                reader.setInput(input);
+                int width = reader.getWidth(0), height = reader.getHeight(0);
+                if (width < 1 || height < 1 || (long) width * height > 25_000_000L) {
+                    throw new org.example.springboot.exception.BusinessException("图片尺寸过大");
+                }
+                var image = reader.read(0);
+                Files.createDirectories(directory);
+                String name = java.util.UUID.randomUUID().toString() + ".png";
+                Path target = directory.resolve(name);
+                if (!javax.imageio.ImageIO.write(image, "png", target.toFile())) throw new IOException("无法编码图片");
+                return "/" + baseDir + "/" + (folderName == null || folderName.isBlank() ? "" : folderName + "/") + name;
+            } finally { reader.dispose(); }
         } catch (IOException e) {
-            e.printStackTrace();
-            return null;
+            throw new org.example.springboot.exception.BusinessException("图片读取或保存失败");
         }
-
-        // 返回相对路径，以便在Web应用中访�?
-        String relativePath = "/" + baseDir + "/" + (folderName != null && !folderName.isEmpty() ? folderName + "/" : "") + dFileName;
-        return relativePath;
     }
 
-    // 保存图片的方�?
+    // 保存图片的方�?
     public static String saveImage(MultipartFile file, String folderName) {
         return saveFile(file, folderName, "img");
     }
 
-    // 保存视频的方�?
+    // 保存视频的方�?
     public static String saveVideo(MultipartFile file, String folderName) {
         return saveFile(file, folderName, "videos");
     }
     /**
-     * 根据文件名删除文�?
+     * 根据文件名删除文�?
      *
      * @param filename 文件名（相对于项目根目录的相对路径）
-     * @return 删除成功返回 true，否则返�?false
+     * @return 删除成功返回 true，否则返�?false
      */
     public static boolean deleteFile(String filename) {
         try {
-            // 获取文件的绝对路�?
-            Path filePath = Paths.get(FILE_BASE_PATH, filename);
+            // 获取文件的绝对路�?
+            Path root = Paths.get(FILE_BASE_PATH).toAbsolutePath().normalize();
+            Path filePath = root.resolve(filename.replaceFirst("^[\\/]+", "")).normalize();
+            if (!filePath.startsWith(root) || filePath.equals(root)) return false;
             if (Files.exists(filePath)) {
                 Files.delete(filePath);
                 LOGGER.info("File deleted: {}", filePath);

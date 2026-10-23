@@ -300,10 +300,9 @@ export default {
     FrontHeader,
     FrontFooter,
     MagicStick,
-    Refresh,
+
     InfoFilled,
-    Like,
-    Dislike
+
   },
   data() {
     const safeMarkRaw = (comp) => comp ? markRaw(comp) : comp

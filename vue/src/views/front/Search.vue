@@ -95,10 +95,10 @@ import FrontFooter from '@/components/front/FrontFooter.vue'
 import ProductCard from '@/components/front/ProductCard.vue'
 import Request from '@/utils/request'
 import logger from '@/utils/logger'
-import { debounce } from 'lodash'
+
 
 export default {
-  name: 'Search',
+  name: 'SearchView',
   components: {
     FrontHeader,
     FrontFooter,

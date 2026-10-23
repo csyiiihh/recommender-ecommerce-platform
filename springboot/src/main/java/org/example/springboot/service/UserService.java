@@ -25,13 +25,14 @@ import java.util.List;
 
 @Service
 public class UserService {
+    @org.springframework.beans.factory.annotation.Autowired private AccessService access;
+    @org.springframework.beans.factory.annotation.Autowired private org.example.springboot.service.email.VerificationCodeService codes;
     private static final Logger LOGGER = LoggerFactory.getLogger(UserService.class);
     @Resource
     private UserMapper userMapper;
     @Resource
     private MenuMapper menuMapper;
-    @Value("${user.defaultPassword}")
-    private String DEFAULT_PWD;
+
 
 
 
@@ -63,6 +64,21 @@ private FavoriteMapper favoriteMapper;
         return userMapper.selectOne(studentLambdaQueryWrapper);
     }
 
+    @org.springframework.transaction.annotation.Transactional
+    public Result<?> register(User user) {
+        if (user.getPassword() == null || user.getPassword().length() < 6 || user.getPassword().length() > 72) return Result.error("400", "密码长度须为6到72个字符");
+        if (user.getUsername() == null || (user.getUsername().isBlank() || user.getUsername().length() < 3 || user.getUsername().length() > 20) || user.getEmail() == null || !user.getEmail().matches("[^\\s@]+@[^\\s@]+\\.[^\\s@]+")) return Result.error("400", "用户名或邮箱格式错误");
+        if (!codes.verifyCode("register", user.getEmail(), user.getCode())) return Result.error("400", "验证码错误或过期");
+        user.setRole("USER"); user.setBusinessLicense(null);
+        int result = createUser(user);
+        return result > 0 ? Result.success() : Result.error("400", "用户名或邮箱已存在");
+    }
+    public boolean resetPassword(String email, String password, String code) {
+        if (!codes.verifyCode("reset", email, code)) return false;
+        User user = getByEmail(email); if(user == null) return false;
+        User update = new User(); update.setId(user.getId()); update.setPassword(bCryptPasswordEncoder.encode(password));
+        return userMapper.updateById(update) > 0;
+    }
     public Result<?> login(User user) {
         try {
             User compare = getByUsername(user.getUsername());
@@ -98,46 +114,50 @@ private FavoriteMapper favoriteMapper;
         return userMapper.selectList(queryWrapper);
     }
     public int createUser(User user) {
+        if (user.getUsername() == null || user.getUsername().isBlank() || user.getEmail() == null || user.getEmail().isBlank()) throw new BusinessException("用户名和邮箱不能为空");
+        user.setId(null);
+        if (!java.util.Set.of("USER", "MERCHANT", "ADMIN").contains(user.getRole() == null ? "USER" : user.getRole())) throw new BusinessException("无效角色");
         if (userMapper.selectOne(new QueryWrapper<User>().eq("username", user.getUsername())) != null) {
             return -1;
         }
         if (userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getEmail, user.getEmail())) != null) {
             return -2;
         }
-        user.setPassword(StringUtils.isNotBlank(user.getPassword()) ? user.getPassword() : DEFAULT_PWD);
+        if (user.getPassword() == null || user.getPassword().length() < 6 || user.getPassword().getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 72) throw new BusinessException("密码须至少6个字符且不超过72字节");
         user.setPassword(bCryptPasswordEncoder.encode(user.getPassword()));
         user.setRole(StringUtils.isNotBlank(user.getRole()) ? user.getRole() : "USER");
         user.setStatus(AccountStatus.ENABLED.getValue());
         return userMapper.insert(user);
     }
+    @org.springframework.transaction.annotation.Transactional
     public Integer deleteUserById(int id) {
-
+        access.admin();
+        if (!checkStockRelation(id)) return -2;
+        if (!checkUserProducts(id)) return -1;
+        if (orderMapper.selectCount(new LambdaQueryWrapper<Order>().eq(Order::getUserId, id)) > 0) throw new BusinessException("存在历史订单，请停用账号而非删除");
         deleteUserRelations(id);
-        if(!checkStockRelation(id)){
-            return -2;
-        }
-        if(!checkUserProducts(id)){
-            return -1;
-        }
         return userMapper.deleteById(id);
     }
+    @org.springframework.transaction.annotation.Transactional
     public boolean updateUser(Long id, User user) {
-        user.setId(id);
-        return userMapper.updateById(user) > 0;
+        User old = userMapper.selectById(id);
+        if (old == null) return false;
+        User safe = new User(); safe.setId(id); safe.setName(user.getName()); safe.setBusinessLicense(user.getBusinessLicense());
+        if(user.getEmail() != null && !java.util.Objects.equals(user.getEmail(), old.getEmail())) throw new BusinessException("邮箱变更需要单独验证，当前暂不支持");
+        // Email changes require a separate verified-email workflow.
+        if (access.isAdmin()) { if(user.getRole() != null && !java.util.Set.of("USER", "MERCHANT", "ADMIN").contains(user.getRole())) throw new BusinessException("无效角色"); safe.setRole(user.getRole()); safe.setStatus(user.getStatus()); safe.setBusinessLicense(user.getBusinessLicense()); }
+        return userMapper.updateById(safe) > 0;
     }
     public User getByUsername(String  username){
         return userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getUsername,username));
     }
     public boolean forgetPassword(String email, String newPassword) {
-        User oldUser = userMapper.selectOne(new QueryWrapper<User>().eq("email", email));
-        if (oldUser != null) {
-            oldUser.setPassword(bCryptPasswordEncoder.encode(newPassword));
-            return userMapper.updateById(oldUser) > 0;
-        }
-        return false;
+        throw new BusinessException("请使用验证码重置密码");
     }
 
     public boolean updatePassword(int id, UserPasswordUpdate userPasswordUpdate) {
+        String password = userPasswordUpdate.getNewPassword();
+        if(password == null || password.length() < 6 || password.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 72) throw new BusinessException("新密码长度无效");
         User oldUser = userMapper.selectById(id);
         if (oldUser != null &&bCryptPasswordEncoder.matches(userPasswordUpdate.getOldPassword(),oldUser.getPassword())) {
             oldUser.setPassword(bCryptPasswordEncoder.encode(userPasswordUpdate.getNewPassword()));
@@ -146,17 +166,16 @@ private FavoriteMapper favoriteMapper;
 
         return false;
     }
+    @org.springframework.transaction.annotation.Transactional
     public Integer deleteBatch(List<Integer> ids) {
+        access.admin();
         for (Integer id : ids) {
-            deleteUserRelations(id);
-            if(!checkStockRelation(id)){
-                return -2;
-            };
-            if(!checkUserProducts(id)){
-                return -1;
-            }
+            if (!checkStockRelation(id)) return -2;
+            if (!checkUserProducts(id)) return -1;
+            if (orderMapper.selectCount(new LambdaQueryWrapper<Order>().eq(Order::getUserId, id)) > 0) throw new BusinessException("存在历史订单，请停用账号而非删除");
         }
-        return userMapper.deleteByIds(ids) ;
+        for (Integer id : ids) deleteUserRelations(id);
+        return userMapper.deleteByIds(ids);
     }
 
     public List<User> getAllUsers() {

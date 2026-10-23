@@ -127,7 +127,7 @@
               link 
               size="small" 
               @click="handleViewLicense(row)">
-              <el-icon><Picture /></el-icon> 查看执照
+              <el-icon><PictureIcon /></el-icon> 查看执照
             </el-button>
           </template>
         </el-table-column>
@@ -199,7 +199,7 @@
           >
         </div>
         <div v-else class="no-license">
-          <el-icon><Picture /></el-icon>
+          <el-icon><PictureIcon /></el-icon>
           <p>暂未上传营业执照</p>
         </div>
       </div>
@@ -211,17 +211,17 @@
 import Request from '@/utils/request'
 import logger from '@/utils/logger'
 import Pagination from '@/components/Pagination/index.vue'
-import { Plus, Refresh, Edit, Delete, Picture } from '@element-plus/icons-vue'
+import { Plus, Refresh, Edit, Delete, PictureIcon } from '@element-plus/icons-vue'
 
 export default {
-  name: 'UserManager',
+  name: 'UserManagerView',
   components: { 
     Pagination,
     Plus,
     Refresh,
     Edit,
     Delete,
-    Picture
+    PictureIcon
   },
   inject: ['userInfo'],
   data() {

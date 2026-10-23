@@ -134,6 +134,7 @@
 </template>
 
 <script>
+import { getProductOptions } from '@/utils/productOptions'
 import Request from '../utils/request.js'
 import logger from '@/utils/logger'
 import Pagination from '../components/Pagination/index.vue'
@@ -225,7 +226,7 @@ export default {
     // 获取商品列表
     async getProducts() {
       try {
-        const res = await Request.get('/product/all')
+        const res = await getProductOptions({ status: 1 })
         if (res.code === '0') {
           this.productList = res.data
         }

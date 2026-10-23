@@ -206,7 +206,7 @@
 
           <div class="members-list">
             <div 
-              v-for="(member, index) in team.members" 
+              v-for="member in team.members"
               :key="member.id"
               class="member-item">
               <div class="member-avatar">

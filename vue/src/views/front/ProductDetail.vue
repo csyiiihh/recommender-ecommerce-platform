@@ -52,7 +52,7 @@
           </div>
           
           <div class="product-info">
-            <div class="category-tag">{{ product.category.name || '商品' }}</div>
+            <div class="category-tag">{{ product.category?.name || '图书' }}</div>
             <h1 class="product-name">{{ product.name }}</h1>
             
             <div class="price-section">

@@ -4,6 +4,7 @@ import router from "./router";
 import store from "./store";
 import ElementPlus from "element-plus";
 import "element-plus/dist/index.css";
+import "@fortawesome/fontawesome-free/css/all.min.css";
 import * as ElementPlusIconsVue from "@element-plus/icons-vue";
 import { ElMessage, ElMessageBox, ElNotification } from "element-plus";
 import '../src/assets/init.css'

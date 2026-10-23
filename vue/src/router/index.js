@@ -167,7 +167,7 @@ export const setRoutes = () => {
   const userMenuListStr = localStorage.getItem("userMenuList")
   if (userMenuListStr && userMenuListStr !== 'undefined') {
     const currentRoutes = router.getRoutes().map(v => v.name)
-    if (!currentRoutes.includes('Layout')) {
+    if (!currentRoutes.includes('home')) {
       const currRouter = {
         path: '/',
         name: 'home',

@@ -81,6 +81,7 @@ import logger from '@/utils/logger'
 import { User, Edit, Message, Upload, Check } from '@element-plus/icons-vue'
 
 export default {
+  components: { User, Edit, Message, Upload, Check },
   name: 'PersonInfo',
   inject: ['userInfo'],
   
