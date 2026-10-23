@@ -15,22 +15,23 @@ import static org.mockito.Mockito.*;
 class InventoryReservationTest {
     final InventoryReservationMapper rows = mock(InventoryReservationMapper.class);
     final ProductMapper products = mock(ProductMapper.class);
-    final InventoryReservationService service = new InventoryReservationService(rows, products, true);
-    Order order() { Order o = new Order(); o.setId(1L); o.setProductId(2L); o.setQuantity(3); o.setOrderType(0); o.setStatus(0); o.setCreatedAt(Timestamp.from(Instant.now().minusSeconds(7200))); return o; }
+    final UserMapper users = mock(UserMapper.class);
+    final InventoryReservationService service = new InventoryReservationService(rows, products, users, true, 10, 50);
+    Order order() { Order o = new Order(); o.setId(1L); o.setUserId(9L); o.setProductId(2L); o.setQuantity(3); o.setOrderType(0); o.setStatus(0); o.setCreatedAt(Timestamp.from(Instant.now().minusSeconds(7200))); return o; }
     InventoryReservation row(int state) { var r = new InventoryReservation(); r.setOrderId(1L); r.setProductId(2L); r.setQuantity(3); r.setState(state); return r; }
     @Test void disabledFeatureWorksWithoutMigration() {
         when(rows.tableExists()).thenReturn(0);
-        var off = new InventoryReservationService(rows, products, false); assertDoesNotThrow(off::validateSchemaAndSwitch);
+        var off = new InventoryReservationService(rows, products, users, false, 10, 50); assertDoesNotThrow(off::validateSchemaAndSwitch);
         off.reserve(order()); off.release(order()); assertFalse(off.consume(order())); assertFalse(off.hasHeld(order()));
         verify(rows).tableExists(); verifyNoMoreInteractions(rows); verifyNoInteractions(products);
     }
     @Test void cannotEnableBeforeMigration() { assertThrows(IllegalStateException.class, service::validateSchemaAndSwitch); }
     @Test void cannotDisableWithHeldStock() {
         when(rows.tableExists()).thenReturn(1); when(rows.countHeld()).thenReturn(1L);
-        assertThrows(IllegalStateException.class, new InventoryReservationService(rows, products, false)::validateSchemaAndSwitch);
+        assertThrows(IllegalStateException.class, new InventoryReservationService(rows, products, users, false, 10, 50)::validateSchemaAndSwitch);
     }
     @Test void enabledFeatureAcceptsInstalledSchema() { when(rows.tableExists()).thenReturn(1); assertDoesNotThrow(service::validateSchemaAndSwitch); }
-    @Test void canDisableAfterAllReservationsSettle() { when(rows.tableExists()).thenReturn(1); assertDoesNotThrow(new InventoryReservationService(rows, products, false)::validateSchemaAndSwitch); }
+    @Test void canDisableAfterAllReservationsSettle() { when(rows.tableExists()).thenReturn(1); assertDoesNotThrow(new InventoryReservationService(rows, products, users, false, 10, 50)::validateSchemaAndSwitch); }
     @Test void reserveDecreasesAvailabilityWithoutRecordingSales() {
         when(products.reserveStock(2L, 3)).thenReturn(1); when(rows.insert(1L, 2L, 3)).thenReturn(1);
         service.reserve(order()); verify(products).reserveStock(2L, 3); verifyNoMoreInteractions(products);
@@ -75,5 +76,58 @@ class InventoryReservationTest {
         OrderMapper orders = mock(OrderMapper.class); InventoryReservationService inventory = mock(InventoryReservationService.class);
         when(inventory.isEnabled()).thenReturn(true); when(orders.findExpiredUnpaidIds(any())).thenReturn(List.of(1L)); when(orders.selectForUpdate(1L)).thenReturn(order());
         assertThrows(BusinessException.class, () -> new UnpaidOrderExpiryService(orders, inventory, 30).closeExpiredOrders());
+    }
+    @Test void enabledCheckoutLocksBuyerBeforeAllocations() {
+        when(users.selectForUpdate(9L)).thenReturn(new org.example.springboot.entity.User());
+        service.lockBuyer(9L); verify(users).selectForUpdate(9L); verifyNoInteractions(rows, products);
+    }
+    @Test void nonexistentBuyerCannotAcquireAllocationLock() {
+        assertThrows(BusinessException.class, () -> service.lockBuyer(9L)); verifyNoInteractions(rows, products);
+    }
+    @Test void missingBuyerCannotAcquireAllocationLock() {
+        assertThrows(BusinessException.class, () -> service.lockBuyer(null)); verifyNoInteractions(users, rows, products);
+    }
+    @Test void disabledFeatureDoesNotLockBuyer() {
+        new InventoryReservationService(rows, products, users, false, 10, 50).lockBuyer(9L);
+        verifyNoInteractions(users, rows, products);
+    }
+    @Test void heldOrderLimitRejectsBeforeAnyInventoryWrite() {
+        when(rows.countBuyerHeldOrders(9L)).thenReturn(10L);
+        assertThrows(BusinessException.class, () -> service.reserve(order())); verifyNoInteractions(products);
+        verify(rows, never()).insert(anyLong(), anyLong(), anyInt()); verify(rows, never()).countBuyerHeldUnits(anyLong());
+    }
+    @Test void heldUnitsLimitRejectsBeforeAnyInventoryWrite() {
+        when(rows.countBuyerHeldUnits(9L)).thenReturn(49L);
+        assertThrows(BusinessException.class, () -> service.reserve(order())); verifyNoInteractions(products);
+        verify(rows, never()).insert(anyLong(), anyLong(), anyInt());
+    }
+    @Test void exactRemainingOrderAndUnitAllowanceCanBeUsed() {
+        when(rows.countBuyerHeldOrders(9L)).thenReturn(9L); when(rows.countBuyerHeldUnits(9L)).thenReturn(47L);
+        when(products.reserveStock(2L, 3)).thenReturn(1); when(rows.insert(1L, 2L, 3)).thenReturn(1);
+        assertDoesNotThrow(() -> service.reserve(order())); verify(products).reserveStock(2L, 3);
+    }
+    @Test void singleOrderCannotExceedWholeUnitAllowance() {
+        Order o = order(); o.setQuantity(51); assertThrows(BusinessException.class, () -> service.reserve(o)); verifyNoInteractions(products);
+    }
+    @Test void largeExistingCountCannotOverflowUnitCheck() {
+        when(rows.countBuyerHeldUnits(9L)).thenReturn(Long.MAX_VALUE);
+        assertThrows(BusinessException.class, () -> service.reserve(order())); verifyNoInteractions(products);
+    }
+    @Test void quotaReadsAreScopedToOrderBuyer() {
+        when(products.reserveStock(2L, 3)).thenReturn(1); when(rows.insert(1L, 2L, 3)).thenReturn(1);
+        service.reserve(order()); verify(rows).countBuyerHeldOrders(9L); verify(rows).countBuyerHeldUnits(9L);
+    }
+    @Test void repeatedExistingHoldDoesNotConsumeQuotaAgain() {
+        when(rows.find(1L)).thenReturn(row(1)); service.reserve(order());
+        verify(rows, never()).countBuyerHeldOrders(anyLong()); verify(rows, never()).countBuyerHeldUnits(anyLong()); verifyNoInteractions(products);
+    }
+    @Test void missingOrderBuyerCannotWriteReservation() {
+        Order o = order(); o.setUserId(null); assertThrows(BusinessException.class, () -> service.reserve(o)); verifyNoInteractions(products); verify(rows, never()).insert(anyLong(), anyLong(), anyInt());
+    }
+    @Test void invalidQuotaConfigurationFailsEarly() {
+        for (int[] pair : List.of(new int[]{0, 50}, new int[]{10, 0}, new int[]{-1, 50}, new int[]{10, -1})) {
+            assertThrows(IllegalArgumentException.class, () -> new InventoryReservationService(rows, products, users, true, pair[0], pair[1]));
+        }
+        verifyNoInteractions(users, rows, products);
     }
 }

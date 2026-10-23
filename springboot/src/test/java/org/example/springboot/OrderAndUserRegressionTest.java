@@ -38,6 +38,9 @@ class OrderAndUserRegressionTest {
         ArgumentCaptor<Order> inserted=ArgumentCaptor.forClass(Order.class); verify(orderMapper).insert(inserted.capture());
         assertEquals(new BigDecimal("50.00"), inserted.getValue().getTotalPrice()); assertEquals(0,inserted.getValue().getStatus());
         verify(inventory).reserve(inserted.getValue());
+        var sequence = inOrder(inventory, productMapper, orderMapper);
+        sequence.verify(inventory).lockBuyer(1L); sequence.verify(productMapper).selectById(2L);
+        sequence.verify(orderMapper).insert(any(Order.class)); sequence.verify(inventory).reserve(any(Order.class));
     }
     @Test void negativeQuantityIsRejected() {
         Order input = new Order(); input.setUserId(1L); input.setQuantity(-1);
@@ -89,7 +92,29 @@ class OrderAndUserRegressionTest {
         when(orderMapper.insert(any(Order.class))).thenAnswer(i -> { i.<Order>getArgument(0).setId(10L); return 1; });
         assertEquals("0", orders.createOrdersFromCart(java.util.Map.of("cartIds", List.of(4L), "userId", 1L)).getCode());
         ArgumentCaptor<Order> created = ArgumentCaptor.forClass(Order.class); verify(inventory).reserve(created.capture());
+        verify(access).owner(1L); verify(inventory).lockBuyer(1L);
         assertEquals(10L, created.getValue().getId()); assertEquals(new BigDecimal("50"), created.getValue().getTotalPrice());
         verify(cartMapper, never()).delete(any());
+    }
+    @Test void reservationQuotaFailureCannotReturnCreatedCartCheckout() {
+        Cart cart = new Cart(); cart.setId(4L); cart.setUserId(1L); cart.setProductId(2L); cart.setQuantity(2);
+        Product product = new Product(); product.setId(2L); product.setStatus(1); product.setStock(5); product.setPrice(new BigDecimal("25"));
+        when(cartMapper.selectById(4L)).thenReturn(cart); when(productMapper.selectById(2L)).thenReturn(product); when(orderMapper.insert(any(Order.class))).thenReturn(1);
+        doThrow(new BusinessException("quota exceeded")).when(inventory).reserve(any());
+        assertThrows(BusinessException.class, () -> orders.createOrdersFromCart(java.util.Map.of("cartIds", List.of(4L), "userId", 1L)));
+        verify(cartMapper, never()).delete(any());
+    }
+    @Test void cartCheckoutCannotClaimAnotherUserBeforeQuotaLock() {
+        doThrow(new org.springframework.security.access.AccessDeniedException("denied")).when(access).owner(2L);
+        assertThrows(org.springframework.security.access.AccessDeniedException.class, () -> orders.createOrdersFromCart(java.util.Map.of("cartIds", List.of(4L), "userId", 2L)));
+        verifyNoInteractions(inventory, cartMapper, productMapper, orderMapper);
+    }
+    @Test void singleCheckoutLocksActualOrderOwnerEvenWhenAdministrativeScopeAllowsAnotherId() {
+        User current = new User(); current.setId(1L); when(access.current()).thenReturn(current);
+        Product product = new Product(); product.setId(2L); product.setStock(10); product.setStatus(1); product.setPrice(new BigDecimal("25"));
+        when(productMapper.selectById(2L)).thenReturn(product); when(orderMapper.insert(any(Order.class))).thenReturn(1);
+        Order input = new Order(); input.setUserId(9L); input.setProductId(2L); input.setQuantity(1);
+        orders.createOrder(input); verify(inventory).lockBuyer(1L); verify(inventory, never()).lockBuyer(9L);
+        ArgumentCaptor<Order> saved = ArgumentCaptor.forClass(Order.class); verify(inventory).reserve(saved.capture()); assertEquals(1L, saved.getValue().getUserId());
     }
 }

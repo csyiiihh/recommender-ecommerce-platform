@@ -68,16 +68,18 @@ public class OrderService {
 
 
 
-    @Transactional(rollbackFor = Exception.class)
+    @Transactional(rollbackFor = Exception.class, isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
     public Result<?> createOrder(Order order) {
         access.owner(order.getUserId());
         if(order.getQuantity() == null || order.getQuantity() < 1) throw new BusinessException("数量必须大于0");
+        Long buyerId = access.current().getId();
+        inventory.lockBuyer(buyerId);
         Product product = productMapper.selectById(order.getProductId());
         if(product == null || !Integer.valueOf(1).equals(product.getStatus())) throw new BusinessException("商品不存在或已下架");
         if(product.getStock() < order.getQuantity()) return ResultUtils.stockInsufficient();
         BigDecimal price = Integer.valueOf(1).equals(product.getIsDiscount()) && product.getDiscountPrice() != null ? product.getDiscountPrice() : product.getPrice();
         if(price == null || price.signum() <= 0) throw new BusinessException("商品价格无效");
-        Order safe = new Order(); safe.setUserId(access.current().getId()); safe.setProductId(product.getId());
+        Order safe = new Order(); safe.setUserId(buyerId); safe.setProductId(product.getId());
         safe.setQuantity(order.getQuantity()); safe.setPrice(price); safe.setTotalPrice(price.multiply(BigDecimal.valueOf(order.getQuantity())));
         safe.setStatus(0); safe.setLastStatus(0); safe.setOrderType(0); safe.setRefundStatus(0);
         safe.setRecvName(order.getRecvName()); safe.setRecvAddress(order.getRecvAddress()); safe.setRecvPhone(order.getRecvPhone()); safe.setRemark(order.getRemark());
@@ -469,7 +471,7 @@ public class OrderService {
      * @param params 包含购物车ID列表、收货信息等
      * @return 返回商户订单号用于支付
      */
-    @Transactional
+    @Transactional(isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
     public Result<?> createOrdersFromCart(Map<String, Object> params) {
         try {
             // 解析参数
@@ -485,6 +487,9 @@ public class OrderService {
                 return ResultUtils.paramError("购物车为空");
             }
             
+            access.owner(userId);
+            inventory.lockBuyer(userId);
+
             // 生成商户订单号（时间戳 + 随机数）
             String outTradeNo = UUID.randomUUID().toString().replace("-", "");
             
@@ -553,6 +558,8 @@ public class OrderService {
             result.put("orderCount", orderCount);
             
             return ResultUtils.success(result);
+        } catch (org.springframework.security.access.AccessDeniedException e) {
+            throw e;
         } catch (Exception e) {
             LOGGER.error("创建购物车订单异常：{}", e.getMessage(), e);
             throw new BusinessException(ResultCode.OPERATION_FAILED.getCode(), "创建订单失败：" + e.getMessage());

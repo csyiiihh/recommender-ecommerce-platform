@@ -5,6 +5,7 @@ import org.example.springboot.entity.Order;
 import org.example.springboot.entity.InventoryReservation;
 import org.example.springboot.mapper.InventoryReservationMapper;
 import org.example.springboot.mapper.ProductMapper;
+import org.example.springboot.mapper.UserMapper;
 import org.example.springboot.exception.BusinessException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -17,9 +18,16 @@ public class InventoryReservationService {
     private final InventoryReservationMapper reservations;
     private final ProductMapper products;
     private final boolean enabled;
-    public InventoryReservationService(InventoryReservationMapper reservations, ProductMapper products,
-            @Value("${inventory.reservation.enabled:false}") boolean enabled) {
-        this.reservations = reservations; this.products = products; this.enabled = enabled;
+    private final UserMapper users;
+    private final int maxHeldOrders;
+    private final int maxHeldUnits;
+    public InventoryReservationService(InventoryReservationMapper reservations, ProductMapper products, UserMapper users,
+            @Value("${inventory.reservation.enabled:false}") boolean enabled,
+            @Value("${inventory.reservation.max-held-orders:10}") int maxHeldOrders,
+            @Value("${inventory.reservation.max-held-units:50}") int maxHeldUnits) {
+        if (maxHeldOrders < 1 || maxHeldUnits < 1) throw new IllegalArgumentException("Inventory reservation limits must be positive");
+        this.reservations = reservations; this.products = products; this.users = users; this.enabled = enabled;
+        this.maxHeldOrders = maxHeldOrders; this.maxHeldUnits = maxHeldUnits;
     }
     @PostConstruct
     public void validateSchemaAndSwitch() {
@@ -30,6 +38,18 @@ public class InventoryReservationService {
         }
     }
     public boolean isEnabled() { return enabled; }
+    /** Acquire before product/order reads or writes in a READ_COMMITTED checkout transaction. */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void lockBuyer(Long userId) {
+        if (!enabled) return;
+        if (userId == null || users.selectForUpdate(userId) == null) throw new BusinessException("用户不存在");
+    }
+    private void checkQuota(Order order) {
+        if (order.getUserId() == null) throw new BusinessException("库存预占缺少用户信息");
+        if (reservations.countBuyerHeldOrders(order.getUserId()) >= maxHeldOrders) throw new BusinessException("待付款预占订单已达上限，请先付款或取消已有订单");
+        long units = reservations.countBuyerHeldUnits(order.getUserId());
+        if (units > (long) maxHeldUnits - order.getQuantity()) throw new BusinessException("待付款预占数量已达上限，请先付款或取消已有订单");
+    }
     @Transactional(propagation = Propagation.MANDATORY)
     public void reserve(Order order) {
         if (!enabled || !Integer.valueOf(0).equals(order.getOrderType())) return;
@@ -40,6 +60,7 @@ public class InventoryReservationService {
             if (existing.getState() == 1) return;
             throw new BusinessException("库存预占已结束");
         }
+        checkQuota(order);
         if (products.reserveStock(order.getProductId(), order.getQuantity()) != 1) throw new BusinessException("可售库存不足");
         if (reservations.insert(order.getId(), order.getProductId(), order.getQuantity()) != 1) throw new BusinessException("保存库存预占失败");
     }
