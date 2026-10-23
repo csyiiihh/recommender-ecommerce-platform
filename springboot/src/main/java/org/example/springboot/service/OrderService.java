@@ -224,6 +224,10 @@ public class OrderService {
         }
     }
 
+    public Result<org.example.springboot.dto.OrderSummary> getMyOrderSummary() {
+        return ResultUtils.success(orderMapper.selectBuyerSummary(access.current().getId()));
+    }
+
     public Result<?> getOrdersByPage(Long userId,Long id,String status, Long merchantId,Integer currentPage, Integer size) {
         LambdaQueryWrapper<Order> queryWrapper = new LambdaQueryWrapper<>();
         if (userId != null) {

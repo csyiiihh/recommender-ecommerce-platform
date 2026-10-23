@@ -62,6 +62,10 @@ public class OrderController {
         access.owner(userId);
         return orderService.getOrdersByUserId(userId);
     }
+    @GetMapping("/my-summary")
+    public Result<org.example.springboot.dto.OrderSummary> getMyOrderSummary() {
+        return orderService.getMyOrderSummary();
+    }
     @GetMapping("/page")
     public Result<?> getOrdersByPage(
             @RequestParam(required = false) String userId,  // 改为 String 类型

@@ -21,28 +21,36 @@
             <div class="stats-item">
               <i class="fas fa-receipt"></i>
               <span class="stats-label">总订单</span>
-              <span class="stats-value">{{ total }}</span>
+              <span class="stats-value">{{ orderSummary?.total ?? '—' }}</span>
             </div>
             <div class="stats-item unpaid-stats">
               <i class="fas fa-credit-card"></i>
               <span class="stats-label">未支付</span>
-              <span class="stats-value">{{ unpaidTotal }}</span>
+              <span class="stats-value">{{ orderSummary?.unpaid ?? '—' }}</span>
               <div class="stats-tooltip">需要完成支付的订单</div>
             </div>
-            <div class="stats-item" v-if="pendingOrdersCount > 0">
+            <div class="stats-item">
               <i class="fas fa-clock"></i>
               <span class="stats-label">待处理</span>
-              <span class="stats-value">{{ pendingOrdersCount }}</span>
+              <span class="stats-value">{{ orderSummary?.pending ?? '—' }}</span>
               <div class="stats-tooltip">待支付和已支付订单</div>
             </div>
+          </div>
+          <div v-if="summaryError" class="summary-error" role="status">
+            统计暂不可用 <el-button link type="primary" :loading="summaryLoading" @click="getOrderStatistics">重试统计</el-button>
           </div>
         </div>
       </div>
 
       <!-- 订单列表 -->
       <div class="order-content" v-loading="loading">
+        <div v-if="listError && !loading" class="order-load-error" role="alert">
+          <h3>订单加载失败</h3>
+          <p>暂时无法获取订单，请稍后重试。</p>
+          <el-button type="primary" @click="getOrders">重新加载订单</el-button>
+        </div>
         <!-- 空订单提示 -->
-        <div v-if="!loading && orders.length === 0" class="empty-orders">
+        <div v-else-if="!loading && orders.length === 0" class="empty-orders">
           <div class="empty-animation">
             <div class="empty-icon">
               <i class="fas fa-file-invoice"></i>
@@ -259,7 +267,7 @@
         </div>
 
         <!-- 分页 -->
-        <div class="pagination-wrapper" v-if="total > 0">
+        <div class="pagination-wrapper" v-if="total > 0 && !listError">
           <el-pagination background v-model:current-page="currentPage" :page-size="pageSize" :total="total" layout="prev, pager, next, jumper"
             @current-change="getOrders">
           </el-pagination>
@@ -475,6 +483,7 @@
 
 <script>
 import { h } from 'vue'
+import { readFrontUser } from '@/utils/favoriteState'
 import FrontHeader from '@/components/front/FrontHeader.vue'
 import FrontFooter from '@/components/front/FrontFooter.vue'
 import Request from '@/utils/request'
@@ -497,15 +506,19 @@ export default {
   },
   data() {
     return {
-      userInfo: JSON.parse(localStorage.getItem('frontUser') || '{}'),
+      userInfo: (readFrontUser() || {}),
       loading: false,
       payingOrderId: null,
       orders: [],
       currentPage: 1,
       pageSize: 10,
       total: 0,
-      pendingTotal: 0, // 新增：待处理订单总数
-      unpaidTotal: 0, // 新增：未支付订单总数
+      orderSummary: null,
+      summaryLoading: false,
+      summaryError: false,
+      listError: false,
+      listSequence: 0,
+      summarySequence: 0,
       paymentDialogVisible: false,
       paymentMethod: 'balance',
       currentOrder: null,
@@ -572,8 +585,12 @@ export default {
   created() {
     this.getOrders()
   },
+  beforeUnmount() {
+    this.listSequence++
+    this.summarySequence++
+  },
   mounted() {
-    this.userInfo = JSON.parse(localStorage.getItem('frontUser') || '{}')
+    this.userInfo = (readFrontUser() || {})
   },
   methods: {
     isLogin() {
@@ -590,113 +607,49 @@ export default {
     },
     formatTime,
     async getOrders() {
-      this.isLogin()
+      if (!this.isLogin()) return
+      const sequence = ++this.listSequence
       this.loading = true
+      this.listError = false
+      this.getOrderStatistics()
       try {
-        const userId = this.userInfo.id
-        
-        // 获取订单列表
-        const res = await Request.get('/order/page', {
-          params: {
-            userId,
-            currentPage: this.currentPage,
-            size: this.pageSize
-          }
-        })
-        
-        if (res.code === '0') {
-          if (res.data.total === 0) {
-            this.orders = []
-            this.total = 0
-            this.pendingTotal = 0
-            this.unpaidTotal = 0
-          } else {
-            this.orders = res.data.records
-            this.total = res.data.total
-            
-            // 获取订单状态统计数据
-            await this.getOrderStatistics(userId)
-          }
-        }
+        const res = await Request.get('/order/page', { params: {
+          userId: this.userInfo.id, currentPage: this.currentPage, size: this.pageSize
+        } })
+        if (sequence !== this.listSequence) return
+        if (res.code !== '0' || !Array.isArray(res.data?.records)) throw new Error('订单数据暂不可用')
+        this.orders = res.data.records
+        this.total = res.data.total
       } catch (error) {
+        if (sequence !== this.listSequence) return
         logger.error('获取订单列表失败:', error)
-        this.$message.error('获取订单列表失败')
+        this.orders = []
+        this.total = 0
+        this.listError = true
       } finally {
-        this.loading = false
+        if (sequence === this.listSequence) this.loading = false
       }
     },
-    
-    // 新增：获取订单状态统计数据
-    async getOrderStatistics(userId) {
-      // 使用当前页数据作为主要统计来源（避免查询所有订单导致超时）
-      // 如果当前页没有数据，才尝试获取第一页数据
+    async getOrderStatistics() {
+      const sequence = ++this.summarySequence
+      this.summaryLoading = true
+      this.summaryError = false
+      this.orderSummary = null
       try {
-        logger.debug('开始获取订单统计数据，用户ID:', userId)
-        
-        // 如果当前页已有数据，直接使用当前页数据统计
-        if (this.orders && this.orders.length > 0) {
-          this.unpaidTotal = this.orders.filter(order => order.status === 0).length
-          this.pendingTotal = this.orders.filter(order => [0, 1].includes(order.status)).length
-          logger.debug('使用当前页数据统计 - 未支付:', this.unpaidTotal, '待处理:', this.pendingTotal)
-          return
-        }
-        
-        // 如果当前页没有数据，尝试获取第一页数据（限制size为合理值，避免超时）
-        const res = await Request.get('/order/page', {
-          params: {
-            userId,
-            currentPage: 1,
-            size: 100 // 限制为100条，避免超时
-          },
-          timeout: 10000, // 10秒超时，如果超时则使用降级方案
-          silent: true // 标记为静默请求，超时时不显示错误消息
-        })
-        
-        logger.debug('订单API响应:', res)
-        
-        if (res.code === '0' && res.data && res.data.records) {
-          const orders = res.data.records
-          
-          // 统计当前页数据
-          this.unpaidTotal = orders.filter(order => order.status === 0).length
-          const paidCount = orders.filter(order => order.status === 1).length
-          this.pendingTotal = this.unpaidTotal + paidCount
-          
-          // 如果返回的数据少于总数，说明还有更多订单，但为了性能不再查询
-          const total = res.data.total || 0
-          if (total > orders.length) {
-            logger.debug(`订单总数(${total})超过当前页数据(${orders.length})，仅统计当前页`)
-          }
-          
-          logger.debug('统计结果 - 当前页订单:', orders.length, '未支付:', this.unpaidTotal, '已支付:', paidCount, '待处理:', this.pendingTotal)
-        } else {
-          // 使用默认值
-          this.unpaidTotal = 0
-          this.pendingTotal = 0
-          logger.debug('获取订单数据失败，使用默认值')
-        }
-        
+        const res = await Request.get('/order/my-summary')
+        if (sequence !== this.summarySequence) return
+        const data = res.data
+        if (res.code !== '0' || !data || !['total', 'unpaid', 'pending'].every(key => Number.isSafeInteger(data[key]) && data[key] >= 0)
+            || data.unpaid > data.pending || data.pending > data.total) throw new Error('订单统计暂不可用')
+        this.orderSummary = data
       } catch (error) {
-        // 静默处理所有错误，使用降级方案
-        // 不记录错误日志，避免在控制台产生噪音
-        if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
-          logger.debug('订单统计请求超时，使用降级方案（静默处理）')
-        } else {
-          logger.debug('获取订单统计数据失败，使用降级方案（静默处理）:', error.message)
-        }
-        
-        // 使用当前页数据作为备选方案
-        if (this.orders && this.orders.length > 0) {
-          this.unpaidTotal = this.orders.filter(order => order.status === 0).length
-          this.pendingTotal = this.orders.filter(order => [0, 1].includes(order.status)).length
-        } else {
-          // 如果没有当前页数据，使用默认值
-          this.unpaidTotal = 0
-          this.pendingTotal = 0
-        }
-        logger.debug('使用降级方案 - 未支付:', this.unpaidTotal, '待处理:', this.pendingTotal)
+        if (sequence !== this.summarySequence) return
+        logger.debug('订单统计暂不可用:', error.message)
+        this.summaryError = true
+      } finally {
+        if (sequence === this.summarySequence) this.summaryLoading = false
       }
-      },
+    },
 
       getStatusText(status) {
         const statusMap = {
@@ -1106,11 +1059,6 @@ export default {
     }
   },
   computed: {
-    // 待处理订单数量（使用从后端获取的准确数据）
-    pendingOrdersCount() {
-      return this.pendingTotal
-    },
-    
     orderStatusText() {
       const statusMap = {
         0: '待支付',
@@ -1143,6 +1091,10 @@ export default {
 </script>
 
 <style scoped>
+.order-load-error { padding: 48px 20px; text-align: center; color: #52675e; }
+.order-load-error p { margin: 12px 0 20px; }
+.summary-error { margin-top: 8px; color: #8a5c35; font-size: 13px; }
+
 /* 整体布局样式 */
 .order-page {
   min-height: 100vh;
@@ -1305,6 +1257,7 @@ export default {
 
 .header-right {
   display: flex;
+  flex-direction: column;
   align-items: center;
 }
 
@@ -2529,8 +2482,17 @@ export default {
     padding: 24px;
   }
   
+  .page-header {
+    flex-direction: column;
+    gap: 20px;
+  }
   .header-right {
-    display: none;
+    display: flex;
+    width: 100%;
+  }
+  .order-stats {
+    flex-wrap: wrap;
+    justify-content: center;
   }
 }
 

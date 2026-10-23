@@ -26,4 +26,14 @@ public interface OrderMapper extends BaseMapper<Order> {
     int closeOneExpiredUnpaid(@org.apache.ibatis.annotations.Param("id") Long id, @org.apache.ibatis.annotations.Param("cutoff") java.sql.Timestamp cutoff);
     @org.apache.ibatis.annotations.Select("SELECT * FROM `order` WHERE user_id = #{buyerId} AND out_trade_no LIKE CONCAT(#{prefix}, '%') ORDER BY id")
     java.util.List<Order> selectCheckoutByPrefix(@org.apache.ibatis.annotations.Param("buyerId") Long buyerId, @org.apache.ibatis.annotations.Param("prefix") String prefix);
+    @org.apache.ibatis.annotations.Select("SELECT COUNT(*) AS total, "
+        + "COALESCE(SUM(CASE WHEN status = 0 THEN 1 ELSE 0 END), 0) AS unpaid, "
+        + "COALESCE(SUM(CASE WHEN status IN (0, 1) THEN 1 ELSE 0 END), 0) AS pending "
+        + "FROM `order` WHERE user_id = #{buyerId}")
+    @org.apache.ibatis.annotations.ConstructorArgs({
+        @org.apache.ibatis.annotations.Arg(column = "total", javaType = long.class),
+        @org.apache.ibatis.annotations.Arg(column = "unpaid", javaType = long.class),
+        @org.apache.ibatis.annotations.Arg(column = "pending", javaType = long.class)
+    })
+    org.example.springboot.dto.OrderSummary selectBuyerSummary(@org.apache.ibatis.annotations.Param("buyerId") Long buyerId);
 } 
