@@ -108,11 +108,15 @@
                 <span>{{ order.refundReason || '退款申请已提交，等待处理' }}</span>
                 <small v-if="order.refundStatus === 5 && (order.refundReason?.startsWith('拼团失败自动退款') || order.refundReason === '支付后无法履约自动退款')">系统将自动处理，失败后会继续重试，无需重复提交。退款到账时间以支付渠道为准。</small>
               </div>
+              <div v-if="order.status === 7" class="refund-progress-note" role="status">
+                <strong>退款申请未通过</strong>
+                <span>订单将继续按原状态处理，请关注后续履约进度。</span>
+              </div>
               <!-- 订单图书和收货信息 -->
               <div class="order-body">
                 <div class="product-section">
                   <div class="product-image-wrapper">
-                <el-image :src="order.product.imageUrl?.startsWith('http') ? order.product.imageUrl : `/api${order.product.imageUrl}`" fit="cover"
+                <el-image :src="productImage(order.product)" fit="cover"
                   class="product-image">
                   <template #error>
                     <div class="image-slot">
@@ -126,7 +130,7 @@
                   </div>
                 <div class="product-details">
                   <h3 class="product-name">
-                    {{ order.product.name }}
+                    {{ order.product?.name || '商品信息暂不可用' }}
                     <!-- 拼团标识 -->
                     <el-tag v-if="order.orderType === 1" type="warning" size="small" style="margin-left: 8px;">
                       <i class="fas fa-users"></i> 拼团
@@ -134,16 +138,9 @@
                   </h3>
                     <div class="product-price-info">
                       <div class="price-container">
-                        <span class="current-price" :class="{ 'discount': order.product.isDiscount }">
+                        <span class="current-price">
                       ¥{{ Number(order.price || 0).toFixed(2) }}
                     </span>
-                    <span class="original-price" v-if="order.product.isDiscount">
-                      ¥{{ order.product.price.toFixed(2) }}
-                    </span>
-                        <div class="discount-badge" v-if="order.product.isDiscount">
-                          <i class="fas fa-tag"></i>
-                          优惠
-                  </div>
                       </div>
                       <div class="quantity-info">
                         <span class="quantity-label">数量:</span>
@@ -154,30 +151,12 @@
                         </el-tag>
                       </div>
                     </div>
-                    <div class="product-meta">
-                      <div class="meta-item">
-                        <i class="fas fa-cube"></i>
-                        <span>库存: {{ order.product.stock || 0 }}</span>
-                      </div>
-                    <!-- 数量调整：拼团订单不允许修改数量 -->
-                    <div class="quantity-adjust" v-if="order.status === 0 && order.orderType !== 1">
-                      <el-input-number 
-                        v-model="order.quantity" 
-                        :min="1" 
-                        :max="order.product.stock" 
-                        size="small"
-                        @change="handleQuantityChange(order)"
-                          class="quantity-input"
-                      ></el-input-number>
-                    </div>
-                    <!-- 拼团订单提示 -->
-                    <div class="quantity-tip" v-if="order.status === 0 && order.orderType === 1" style="color: #E6A23C; font-size: 12px; margin-top: 8px;">
-                      <i class="fas fa-info-circle"></i> 拼团订单限购1件，不可修改数量
-                    </div>
-                  </div>
+                    <p v-if="order.status === 0" class="order-purchase-note">
+                      如需调整数量，请取消后重新下单。
+                    </p>
                 </div>
-                  </div>
-                
+              </div>
+
                 <!-- 收货信息 -->
                 <div class="delivery-section">
                   <div class="section-header">
@@ -222,15 +201,15 @@
               <div class="order-actions">
                     <!-- 主要操作按钮 -->
                     <div class="primary-actions">
-                      <el-button v-if="order.status === 0" type="primary" :loading="payingOrderId === order.id" :disabled="payingOrderId !== null" @click="handlePayment(order)" class="action-btn pay-btn">
+                      <el-button v-if="order.status === 0 && order.product?.id" type="primary" :loading="payingOrderId === order.id" :disabled="payingOrderId !== null" @click="handlePayment(order)" class="action-btn pay-btn">
                         <i class="fas fa-credit-card"></i>
                   立即支付
                 </el-button>
-                      <el-button v-if="order.status === 2" type="success" @click="handleConfirm(order)" class="action-btn confirm-btn">
+                      <el-button v-if="fulfillmentStatus(order) === 2" type="success" @click="handleConfirm(order)" class="action-btn confirm-btn">
                         <i class="fas fa-check-circle"></i>
                   确认收货
                 </el-button>
-                      <el-button v-if="order.status === 3" @click="handleReview(order)" class="action-btn review-btn">
+                      <el-button v-if="order.status === 3 && order.product?.id" @click="handleReview(order)" class="action-btn review-btn">
                         <i class="fas fa-star"></i>
                         图书评价
                 </el-button>
@@ -238,7 +217,7 @@
                     
                     <!-- 次要操作按钮 -->
                     <div class="secondary-actions">
-                      <el-button v-if="[1, 2, 3].includes(order.status)" link @click="showRefundDialog(order)" class="text-btn refund-btn">
+                      <el-button v-if="[1, 2].includes(order.status)" link @click="showRefundDialog(order)" class="text-btn refund-btn">
                         <i class="fas fa-undo"></i>
                   申请退款
                 </el-button>
@@ -250,14 +229,11 @@
                         <i class="fas fa-edit"></i>
                   修改收货信息
                 </el-button>
-                      <el-button v-if="order.status > 1" link @click="handleViewLogistics(order)" class="text-btn logistics-btn">
+                      <el-button v-if="canViewLogistics(order)" link @click="handleViewLogistics(order)" class="text-btn logistics-btn">
                         <i class="fas fa-truck"></i>
                   查看物流
                 </el-button>
-                      <el-button v-if="[3, 4, 6].includes(order.status)" link @click="handleDelete(order)" class="text-btn delete-btn">
-                        <i class="fas fa-trash-alt"></i>
-                  删除订单
-                </el-button>
+
               </div>
             </div>
           </div>
@@ -391,7 +367,7 @@
     <!-- 修改评价对话框 -->
     <el-dialog title="图书评价" v-model="reviewDialogVisible" width="500px">
       <div v-if="currentOrder" class="review-product-info">
-        <el-image :src="currentOrder.product.imageUrl?.startsWith('http') ? currentOrder.product.imageUrl : `/api${currentOrder.product.imageUrl}`" fit="cover"
+        <el-image :src="productImage(currentOrder.product)" fit="cover"
           class="review-product-image">
         </el-image>
         <div class="review-product-detail">
@@ -418,20 +394,6 @@
           <el-button @click="reviewDialogVisible = false">取消</el-button>
           <el-button type="primary" @click="submitReview">提交评价</el-button>
         </div>
-      </template>
-    </el-dialog>
-
-    <!-- 添加删除订单对话框 -->
-    <el-dialog
-      title="删除订单"
-      v-model="deleteDialogVisible"
-      width="30%">
-      <span>确定要删除该订单吗？删除后将无法恢复。</span>
-      <template #footer>
-        <span class="dialog-footer">
-          <el-button @click="deleteDialogVisible = false">取消</el-button>
-          <el-button type="danger" @click="confirmDelete">确定</el-button>
-        </span>
       </template>
     </el-dialog>
 
@@ -570,8 +532,6 @@ export default {
           { min: 5, max: 500, message: '评价内容长度在 5 到 500 个字符', trigger: 'blur' }
         ]
       },
-      deleteDialogVisible: false,
-      currentDeleteOrder: null,
       logisticsDialogVisible: false,
       logisticsInfo: null,
       logisticsStatusMap: {
@@ -606,6 +566,17 @@ export default {
       return true
     },
     formatTime,
+    fulfillmentStatus(order) {
+      return order.status === 7 ? order.lastStatus : order.status
+    },
+    canViewLogistics(order) {
+      return [2, 3].includes(order.status) || ([5, 6, 7].includes(order.status) && order.lastStatus === 2)
+    },
+    productImage(product) {
+      const url = product?.imageUrl
+      if (typeof url !== 'string' || !url) return ''
+      return url.startsWith('http') ? url : `/api${url}`
+    },
     async getOrders() {
       if (!this.isLogin()) return
       const sequence = ++this.listSequence
@@ -660,7 +631,7 @@ export default {
           4: '已取消',
           5: '退款中',
           6: '已退款',
-          7: '退款失败'
+          7: '退款未通过'
         }
         return statusMap[status] || '未知状态'
       },
@@ -698,6 +669,7 @@ export default {
       },
 
       handleReview(order) {
+        if (!order.product?.id) { this.$message.warning('商品信息暂不可用'); return }
         // 确保order包含完整的商品信息
         this.currentOrder = {
           ...order,
@@ -925,52 +897,6 @@ export default {
           }
         }
       },
-    async handleQuantityChange(order) {
-      try {
-        // 创建更新订单对象
-        const updateOrder = {
-          id: order.id,
-          quantity: order.quantity,
-          totalPrice: order.quantity * (order.product.isDiscount ? order.product.discountPrice : order.price)
-        };
-
-        const res = await Request.put(`/order/${order.id}`, updateOrder);
-        
-        if (res.code === '0') {
-          // 更新本地订单总价
-          order.totalPrice = updateOrder.totalPrice;
-          this.$message.success('数量修改成功');
-        } else {
-          this.$message.error(res.msg || '修改失败');
-          // 修改失败时重新获取订单列表
-          this.getOrders();
-        }
-      } catch (error) {
-        logger.error('修改数量失败:', error);
-        this.$message.error('修改数量失败');
-        // 修改失败时重新获取订单列表
-        this.getOrders();
-      }
-    },
-    handleDelete(order) {
-      this.currentDeleteOrder = order;
-      this.deleteDialogVisible = true;
-    },
-    async confirmDelete() {
-      try {
-        const res = await Request.delete(`/order/${this.currentDeleteOrder.id}`);
-        if (res.code === '0') {
-          this.$message.success('订单删除成功');
-          this.deleteDialogVisible = false;
-          this.getOrders(); // 刷新订单列表
-        } else {
-          this.$message.error(res.msg || '删除失败');
-        }
-      } catch (error) {
-        logger.error('删除订单失败:', error);
-        this.$message.error('删除订单失败');
-      }
-    },
     // 获取物流状态对应的类型
     getLogisticsStatusType(status) {
       const typeMap = {
@@ -1005,7 +931,7 @@ export default {
         // Render product names as text, including names containing HTML characters.
         const message = h('div', { class: 'payment-confirm' }, [
           h('div', { class: 'payment-info' }, [
-            h('p', { class: 'product-name' }, `${order.product.name} × ${order.quantity}`),
+            h('p', { class: 'product-name' }, `${order.product?.name || '订单商品'} × ${order.quantity}`),
             h('p', { class: 'order-info' }, `订单号: ${order.id}`),
             h('div', { class: 'payment-amount' }, [
               h('span', '支付金额:'), h('span', { class: 'amount' }, `¥${order.totalPrice.toFixed(2)}`)
@@ -1068,7 +994,7 @@ export default {
         4: '已取消',
         5: '退款中',
         6: '已退款',
-        7: '退款失败'
+        7: '退款未通过'
       }
       return (status) => statusMap[status] || '未知状态'
     },
@@ -1729,28 +1655,6 @@ export default {
   color: #ff6b6b;
 }
 
-.original-price {
-  font-size: 16px;
-  color: #9ca3af;
-  text-decoration: line-through;
-}
-
-.discount-badge {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  background: linear-gradient(135deg, #ff6b6b, #ff8e53);
-  color: white;
-  font-size: 12px;
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-weight: 600;
-}
-
-.discount-badge i {
-  font-size: 10px;
-}
-
 .quantity-info {
   display: flex;
   align-items: center;
@@ -1794,27 +1698,11 @@ export default {
   font-size: 14px;
 }
 
-.quantity-adjust {
-  display: flex;
-  align-items: center;
-}
-
-.quantity-input {
-  width: 120px;
-}
-
-.quantity-input :deep(.el-input__inner) {
-  border: 1.5px solid rgba(58, 91, 160, 0.2);
-  border-radius: 8px;
-  text-align: center;
-  font-weight: 600;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(58, 91, 160, 0.08);
-}
-
-.quantity-input :deep(.el-input__inner:focus) {
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(58, 91, 160, 0.12), 0 4px 16px rgba(58, 91, 160, 0.15);
+.order-purchase-note {
+  margin: 10px 0 0;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.6;
 }
 
 /* 收货信息样式 */
@@ -2054,11 +1942,7 @@ export default {
   border-color: rgba(6, 182, 212, 0.2);
 }
 
-.delete-btn:hover {
-  color: #ef4444;
-  background: rgba(239, 68, 68, 0.1);
-  border-color: rgba(239, 68, 68, 0.2);
-}
+
 
 /* 分页样式 */
 .pagination-wrapper {
