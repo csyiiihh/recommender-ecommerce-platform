@@ -17,3 +17,31 @@ application-local.properties
 /online_sales.sql
 /online_sales_data_struct.sql
 /springboot/files/
+
+# Editor metadata and generated local files
+*.iml
+*.code-workspace
+.DS_Store
+Thumbs.db
+coverage/
+.cache/
+.eslintcache
+*.tsbuildinfo
+
+# Local notes, demonstrations and unused font copies
+/GITHUB_SETUP.md
+/代码改进进度总结.md
+/代码质量改进示例.md
+/代码质量检查报告.md
+/优化实施总结.md
+/后端接口需求说明.md
+/系统优化升级方案.md
+/项目进度和维护文档.md
+/springboot/Redis使用指南.md
+/springboot/Redis快速使用示例.java
+/vue/SESSION_SUMMARY.md
+/vue/UI_OPTIMIZATION_PLAN.md
+/vue/src/assets/fonts/MiSans-Regular.woff
+/vue/src/assets/fonts/MiSans-Regular.woff2
+/vue/src/assets/fonts/5EkWAplwkHic.woff
+/vue/src/assets/fonts/5EkWAplwkHic.woff2
