@@ -20,6 +20,7 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class PaymentRegressionTest {
     @Mock OrderMapper orders;
+    @Mock UnpaidOrderExpiryService expiry;
     @Mock ProductMapper products;
     @Mock CartMapper carts;
     @Mock AccessService access;

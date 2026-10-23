@@ -1,6 +1,7 @@
 package org.example.springboot.service;
 
 import org.example.springboot.mapper.OrderMapper;
+import org.example.springboot.entity.Order;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,9 +24,17 @@ public class UnpaidOrderExpiryService {
         this.inventory = inventory;
         this.timeoutMinutes = timeoutMinutes;
     }
+    /** Payment entry and background cleanup use the same inclusive cutoff. */
+    public boolean isPastPaymentDeadline(Order order, Instant now) {
+        return Integer.valueOf(0).equals(order.getOrderType()) && order.getCreatedAt() != null
+            && !order.getCreatedAt().after(cutoff(now));
+    }
+    private Timestamp cutoff(Instant now) {
+        return Timestamp.from(now.minus(timeoutMinutes, ChronoUnit.MINUTES));
+    }
     @Transactional(rollbackFor = Exception.class)
     public int closeExpiredOrders() {
-        Timestamp cutoff = Timestamp.from(Instant.now().minus(timeoutMinutes, ChronoUnit.MINUTES));
+        Timestamp cutoff = cutoff(Instant.now());
         if (!inventory.isEnabled()) return orders.closeExpiredUnpaid(cutoff, 200);
         int closed = 0;
         for (Long id : orders.findExpiredUnpaidIds(cutoff)) {

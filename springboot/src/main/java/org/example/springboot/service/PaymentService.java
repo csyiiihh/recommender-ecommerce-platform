@@ -16,6 +16,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 @Service
 public class PaymentService {
     @Autowired private OrderMapper orders;
+    @Autowired private UnpaidOrderExpiryService expiry;
     @Autowired private InventoryReservationService inventory;
     @Autowired private ProductMapper products;
     @Autowired private CartMapper carts;
@@ -32,9 +33,16 @@ public class PaymentService {
         List<Order> list = orders.selectTradeForUpdate(tradeNo);
         if(list.isEmpty()) throw new BusinessException("订单不存在");
         BigDecimal total = BigDecimal.ZERO;
+        java.time.Instant now = java.time.Instant.now();
         for(Order order : list) {
             access.owner(order.getUserId());
             if(!Integer.valueOf(0).equals(order.getStatus())) throw new BusinessException("订单状态不允许支付");
+            if (order.getTradeNo() != null || order.getPayTime() != null) {
+                throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.CONFLICT, "订单已记录支付信息，请刷新订单查看");
+            }
+            if (expiry.isPastPaymentDeadline(order, now)) {
+                throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.CONFLICT, "订单已超过付款期限，请取消后重新下单");
+            }
             validateAmount(order);
             total = total.add(order.getTotalPrice());
         }

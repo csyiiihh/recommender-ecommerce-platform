@@ -214,7 +214,7 @@
               <div class="order-actions">
                     <!-- 主要操作按钮 -->
                     <div class="primary-actions">
-                      <el-button v-if="order.status === 0" type="primary" @click="handlePayment(order)" class="action-btn pay-btn">
+                      <el-button v-if="order.status === 0" type="primary" :loading="payingOrderId === order.id" :disabled="payingOrderId !== null" @click="handlePayment(order)" class="action-btn pay-btn">
                         <i class="fas fa-credit-card"></i>
                   立即支付
                 </el-button>
@@ -474,6 +474,7 @@
 </template>
 
 <script>
+import { h } from 'vue'
 import FrontHeader from '@/components/front/FrontHeader.vue'
 import FrontFooter from '@/components/front/FrontFooter.vue'
 import Request from '@/utils/request'
@@ -498,6 +499,7 @@ export default {
     return {
       userInfo: JSON.parse(localStorage.getItem('frontUser') || '{}'),
       loading: false,
+      payingOrderId: null,
       orders: [],
       currentPage: 1,
       pageSize: 10,
@@ -1043,102 +1045,51 @@ export default {
     },
     // 添加支付处理方法 - 支付宝支付
     async handlePayment(order) {
-      if(!this.isLogin()) return;
-      
+      if (!this.isLogin() || this.payingOrderId !== null) return
+      this.payingOrderId = order.id
+      let loading = null
       try {
-        // 获取商品信息，展示更详细的支付信息
-        const productName = order.product.name;
-        const quantity = order.quantity;
-        
-        // 添加确认支付对话框
-        await this.$confirm(
-          `<div class="payment-confirm">
-            <div class="payment-info">
-              <p class="product-name">${productName} × ${quantity}</p>
-              <p class="order-info">订单号: ${order.id}</p>
-              <div class="payment-amount">
-                <span>支付金额:</span>
-                <span class="amount">¥${order.totalPrice.toFixed(2)}</span>
-              </div>
-              <p class="payment-method">支付方式: 支付宝</p>
-            </div>
-          </div>`, 
-          '确认支付', 
-          {
-            confirmButtonText: '去支付',
-            cancelButtonText: '取消',
-            type: 'warning',
-            center: true,
-            dangerouslyUseHTMLString: true,
-            customClass: 'payment-confirm-dialog'
-          }
-        );
-        
-        // 显示加载中
-        const loading = this.$loading({
-          lock: true,
-          text: '准备支付中...',
-          spinner: 'fas fa-spinner fa-spin',
-          background: 'rgba(255, 255, 255, 0.7)'
-        });
-        
-        // 先调用准备支付接口，获取商户订单号
-        const prepareRes = await Request.post(`/order/${order.id}/prepare-pay`)
-        
-        if (prepareRes.code !== '0') {
-          loading.close()
-          this.$message.error(prepareRes.msg || '准备支付失败')
-          return
-        }
-        
-        const { outTradeNo, totalAmount } = prepareRes.data
-        
-        // 准备支付宝支付参数
-        const currentDate = new Date().toLocaleDateString('zh-CN')
-        const userInfo = JSON.parse(localStorage.getItem('frontUser') || '{}')
-        const orderName = `${currentDate}-图书商城-${userInfo.username || userInfo.name}-订单${order.id}`
-        
-        loading.text = '正在跳转支付页面...'
-        
-        // 调用支付宝支付接口
-        const response = await Request({
-          method: 'post',
-          baseURL: '',
-                url: '/alipay/create',
-                authScope: 'frontUser',
-          params: {
-            orderNo: outTradeNo,
-            orderName: orderName,
-            payPrice: totalAmount.toFixed(2)
-          },
-          responseType: 'text',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded'
-          }
+        // Render product names as text, including names containing HTML characters.
+        const message = h('div', { class: 'payment-confirm' }, [
+          h('div', { class: 'payment-info' }, [
+            h('p', { class: 'product-name' }, `${order.product.name} × ${order.quantity}`),
+            h('p', { class: 'order-info' }, `订单号: ${order.id}`),
+            h('div', { class: 'payment-amount' }, [
+              h('span', '支付金额:'), h('span', { class: 'amount' }, `¥${order.totalPrice.toFixed(2)}`)
+            ]),
+            h('p', { class: 'payment-method' }, '支付方式: 支付宝')
+          ])
+        ])
+        await this.$confirm(message, '确认支付', {
+          confirmButtonText: '去支付', cancelButtonText: '取消', type: 'warning',
+          center: true, customClass: 'payment-confirm-dialog'
         })
-        
-        loading.close()
-        
-        // 将支付页面HTML写入新窗口
+        loading = this.$loading({ lock: true, text: '准备支付中...', background: 'rgba(255, 255, 255, 0.7)' })
+        const prepareRes = await Request.post(`/order/${order.id}/prepare-pay`)
+        if (prepareRes.code !== '0') { this.$message.error(prepareRes.msg || '准备支付失败'); return }
+        loading.setText('正在跳转支付页面...')
+        const response = await Request({
+          method: 'post', baseURL: '', url: '/alipay/create', authScope: 'frontUser',
+          params: { orderNo: prepareRes.data.outTradeNo }, responseType: 'text',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+        })
         const div = document.createElement('div')
         div.innerHTML = response.data
+        const form = div.querySelector('form')
+        if (!form) throw new Error('未能打开支付页面，请在订单列表中重试')
         document.body.appendChild(div)
-        div.querySelector('form').submit()
-        document.body.removeChild(div)
-        
+        try { form.submit() } finally { div.remove() }
       } catch (error) {
-        if (error === 'cancel') {
-          this.$message({
-            type: 'info',
-            message: '已取消支付'
-          });
-        } else {
-          logger.error('支付失败:', error);
-          this.$message.error('支付失败：' + (error.response?.data || error.message || '请稍后重试'));
+        if (error !== 'cancel' && error !== 'close') {
+          logger.error('支付失败:', error)
+          if (error.response?.status !== 409) this.$message.error('支付未完成，请刷新订单后重试')
         }
+      } finally {
+        if (loading) loading.close()
+        this.payingOrderId = null
       }
     },
-    
+
     // 新增状态图标方法
     getStatusIcon(status) {
       const iconMap = {
