@@ -242,7 +242,7 @@
                   </div>
                 </div>
               </div>
-              <el-button type="primary" size="large" :disabled="selectedCount === 0 || !selectedAddressId" @click="handleCheckout" class="checkout-btn">
+              <el-button type="primary" size="large" :loading="checkoutBusy" :disabled="selectedCount === 0 || !selectedAddressId || checkoutBusy" @click="handleCheckout" class="checkout-btn">
                 <i class="fab fa-alipay"></i>
                 <span>支付宝支付</span>
               </el-button>
@@ -261,6 +261,8 @@ import FrontFooter from '@/components/front/FrontFooter.vue'
 import Request from '@/utils/request'
 import eventBus from '@/utils/eventBus'
 import logger from '@/utils/logger'
+import { checkoutRequestKey, forgetCheckoutRequest } from '@/utils/checkoutRequest'
+import { readFrontUser } from '@/utils/favoriteState'
 import { Minus, Plus } from '@element-plus/icons-vue'
 
 export default {
@@ -273,11 +275,12 @@ export default {
   },
   data() {
     return {
-      userInfo: JSON.parse(localStorage.getItem('frontUser') || '{}'),
+      userInfo: (readFrontUser() || {}),
       loading: false,
       cartItems: [],
       allSelected: false,
       selectedAddressId: null,
+      checkoutBusy: false,
       addresses: []
     }
   },
@@ -558,95 +561,47 @@ export default {
     
     // 结算 - 支付宝支付
     async handleCheckout() {
-      if (this.addresses.length === 0) {
-        this.$message.warning('您还没有添加收货地址')
-        this.$router.push('/user-center')
-        return
-      }
-      
-      if (!this.selectedAddressId) {
-        this.$message.warning('请选择收货地址')
-        return
-      }
-
+      if (this.checkoutBusy) return
+      if (this.addresses.length === 0) { this.$message.warning('请先添加收货地址'); this.$router.push('/user-center'); return }
+      const selectedAddress = this.addresses.find(addr => addr.id === this.selectedAddressId)
+      const selectedItems = this.cartItems.filter(item => item.selected)
+      if (!selectedAddress) { this.$message.warning('请选择收货地址'); return }
+      if (!selectedItems.length) { this.$message.warning('请选择需要结算的商品'); return }
+      this.checkoutBusy = true
+      let loading = null
+      let requestKey = null
       try {
-        const selectedItems = this.cartItems.filter(item => item.selected)
-        const selectedAddress = this.addresses.find(addr => addr.id === this.selectedAddressId)
-        
-        // 创建订单数据
-        const orderData = {
-          cartIds: selectedItems.map(item => item.id),
-          userId: this.userInfo.id,
-          recvName: selectedAddress.receiver,
-          recvAddress: selectedAddress.address,
-          recvPhone: selectedAddress.phone
+        const orderData = { cartIds: selectedItems.map(item => item.id), userId: this.userInfo.id,
+          recvName: selectedAddress.receiver, recvAddress: selectedAddress.address, recvPhone: selectedAddress.phone }
+        const intent = { ...orderData, items: selectedItems.map(item => [item.id, item.productId || item.product.id, item.quantity]).sort((a, b) => a[0] - b[0]) }
+        intent.cartIds.sort((a, b) => a - b)
+        requestKey = await checkoutRequestKey('cart', this.userInfo.id, intent)
+        loading = this.$loading({ lock: true, text: '订单处理中...', background: 'rgba(255,255,255,0.8)' })
+        const orderRes = await Request.post('/order/cart/create', orderData, { headers: { 'Idempotency-Key': requestKey } })
+        if (orderRes.code !== '0') { this.$message.error(orderRes.msg || '创建订单失败'); return }
+        const { outTradeNo, paymentAllowed } = orderRes.data
+        if (paymentAllowed === false) {
+          this.$message.info('这批订单已处理，请在我的订单中查看')
+          await this.$router.push('/order')
+          forgetCheckoutRequest('cart', this.userInfo.id, requestKey)
+          return
         }
-        
-        // 创建订单
-        const loading = this.$loading({
-          lock: true,
-          text: '订单处理中...',
-          background: 'rgba(255,255,255,0.8)'
-        })
-        
-        const orderRes = await Request.post('/order/cart/create', orderData)
-        loading.close()
-        
-        if (orderRes.code === '0') {
-          const { outTradeNo, totalAmount, orderCount } = orderRes.data
-          
-          this.$message.success(`成功创建${orderCount}个订单，正在跳转支付...`)
-          
-          // 准备支付宝支付参数
-          const currentDate = new Date().toLocaleDateString('zh-CN')
-          const orderName = `${currentDate}-在线销售平台-${this.userInfo.username || this.userInfo.name}-购物车订单`
-          
-          // 调用支付宝支付接口
-          const payLoading = this.$loading({
-            lock: true,
-            text: '正在跳转支付页面...',
-            background: 'rgba(255,255,255,0.8)'
-          })
-          
-          setTimeout(async () => {
-            try {
-              // 使用axios直接调用支付接口，设置响应类型为text以接收HTML
-              const response = await Request({
-                method: 'post',
-                baseURL: '',
-                url: '/alipay/create',
-                authScope: 'frontUser',
-                params: {
-                  orderNo: outTradeNo,
-                  orderName: orderName,
-                  payPrice: totalAmount.toFixed(2)
-                },
-                responseType: 'text',
-                headers: {
-                  'Content-Type': 'application/x-www-form-urlencoded'
-                }
-              })
-              
-              payLoading.close()
-              
-              // 将支付页面HTML写入新窗口
-              const div = document.createElement('div')
-              div.innerHTML = response.data
-              document.body.appendChild(div)
-              div.querySelector('form').submit()
-              document.body.removeChild(div)
-            } catch (error) {
-              payLoading.close()
-              logger.error('支付失败:', error)
-              this.$message.error('支付失败：' + (error.response?.data || error.message))
-            }
-          }, 1000)
-        } else {
-          this.$message.error(orderRes.msg || '创建订单失败')
-        }
+        // Retain the key through payment handoff/failure; a retry must reuse this batch.
+        const response = await Request({ method: 'post', baseURL: '', url: '/alipay/create', authScope: 'frontUser',
+          params: { orderNo: outTradeNo }, responseType: 'text', headers: { 'Content-Type': 'application/x-www-form-urlencoded' } })
+        const div = document.createElement('div')
+        div.innerHTML = response.data
+        const form = div.querySelector('form')
+        if (!form) throw new Error('未能打开支付页面，请稍后重试或在我的订单中继续支付')
+        document.body.appendChild(div)
+        try { form.submit() } finally { div.remove() }
       } catch (error) {
-        logger.error('下单失败:', error)
-        this.$message.error('下单失败：' + (error.message || '未知错误'))
+        if (error.response?.status === 409) forgetCheckoutRequest('cart', this.userInfo.id, requestKey)
+        logger.error('结算失败:', error)
+        if (error.response?.status !== 409) this.$message.error('结算未完成，可重试；已有订单也可在我的订单中继续处理')
+      } finally {
+        if (loading) loading.close()
+        this.checkoutBusy = false
       }
     },
     async getAddresses() {

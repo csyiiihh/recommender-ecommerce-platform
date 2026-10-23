@@ -32,6 +32,7 @@ public class OrderService {
     @Autowired private AccessService access;
     @Autowired private FulfillmentPolicy fulfillment;
     @Autowired private InventoryReservationService inventory;
+    @Autowired private CheckoutIdempotencyService checkoutRequests;
     @Autowired private AlipayService alipay;
     @Autowired private AutomaticRefundService automaticRefunds;
     private static final Logger LOGGER = LoggerFactory.getLogger(OrderService.class);
@@ -69,10 +70,16 @@ public class OrderService {
 
 
     @Transactional(rollbackFor = Exception.class, isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
-    public Result<?> createOrder(Order order) {
+    public Result<?> createOrder(Order order) { return createOrder(order, null); }
+
+    @Transactional(rollbackFor = Exception.class, isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
+    public Result<?> createOrder(Order order, String requestKey) {
         access.owner(order.getUserId());
         if(order.getQuantity() == null || order.getQuantity() < 1) throw new BusinessException("数量必须大于0");
         Long buyerId = access.current().getId();
+        var request = requestKey == null ? null : checkoutRequests.prepare(buyerId, "single", requestKey,
+            Arrays.asList(order.getProductId(), order.getQuantity(), order.getRecvName(), order.getRecvAddress(), order.getRecvPhone(), order.getRemark()));
+        if (request != null && !request.existing().isEmpty()) return ResultUtils.success(request.existing().get(0));
         inventory.lockBuyer(buyerId);
         Product product = productMapper.selectById(order.getProductId());
         if(product == null || !Integer.valueOf(1).equals(product.getStatus())) throw new BusinessException("商品不存在或已下架");
@@ -83,7 +90,7 @@ public class OrderService {
         safe.setQuantity(order.getQuantity()); safe.setPrice(price); safe.setTotalPrice(price.multiply(BigDecimal.valueOf(order.getQuantity())));
         safe.setStatus(0); safe.setLastStatus(0); safe.setOrderType(0); safe.setRefundStatus(0);
         safe.setRecvName(order.getRecvName()); safe.setRecvAddress(order.getRecvAddress()); safe.setRecvPhone(order.getRecvPhone()); safe.setRemark(order.getRemark());
-        safe.setOutTradeNo(UUID.randomUUID().toString().replace("-", ""));
+        safe.setOutTradeNo(request == null ? UUID.randomUUID().toString().replace("-", "") : request.tradeNo());
         if(orderMapper.insert(safe) != 1) throw new BusinessException("创建订单失败");
         inventory.reserve(safe);
         return ResultUtils.success(safe);
@@ -472,7 +479,10 @@ public class OrderService {
      * @return 返回商户订单号用于支付
      */
     @Transactional(isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
-    public Result<?> createOrdersFromCart(Map<String, Object> params) {
+    public Result<?> createOrdersFromCart(Map<String, Object> params) { return createOrdersFromCart(params, null); }
+
+    @Transactional(isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
+    public Result<?> createOrdersFromCart(Map<String, Object> params, String requestKey) {
         try {
             // 解析参数
             @SuppressWarnings("unchecked")
@@ -488,16 +498,20 @@ public class OrderService {
             }
             
             access.owner(userId);
+            var cartKeys = normalizedCartIds(cartIds);
+            var request = requestKey == null ? null : checkoutRequests.prepare(userId, "cart", requestKey,
+                Arrays.asList(cartKeys, recvName, recvAddress, recvPhone));
+            if (request != null && !request.existing().isEmpty()) return ResultUtils.success(cartCheckoutResponse(request.existing(), true));
             inventory.lockBuyer(userId);
 
             // 生成商户订单号（时间戳 + 随机数）
-            String outTradeNo = UUID.randomUUID().toString().replace("-", "");
+            String outTradeNo = request == null ? UUID.randomUUID().toString().replace("-", "") : request.tradeNo();
             
             int orderCount = 0;
             BigDecimal totalAmount = BigDecimal.ZERO;
             
             // 遍历购物车项创建订单
-            for (Number cartId : cartIds.stream().distinct().toList()) {
+            for (Long cartId : cartKeys) {
                 Cart cart = cartMapper.selectById(cartId.longValue());
                 if (cart == null || !userId.equals(cart.getUserId()) || cart.getQuantity() == null || cart.getQuantity() < 1) throw new BusinessException("购物车记录无效");
                 
@@ -556,14 +570,39 @@ public class OrderService {
             result.put("outTradeNo", outTradeNo);
             result.put("totalAmount", totalAmount);
             result.put("orderCount", orderCount);
+            result.put("paymentAllowed", true);
+            result.put("replayed", false);
             
             return ResultUtils.success(result);
-        } catch (org.springframework.security.access.AccessDeniedException e) {
+        } catch (org.springframework.security.access.AccessDeniedException | org.springframework.web.server.ResponseStatusException e) {
             throw e;
         } catch (Exception e) {
             LOGGER.error("创建购物车订单异常：{}", e.getMessage(), e);
             throw new BusinessException(ResultCode.OPERATION_FAILED.getCode(), "创建订单失败：" + e.getMessage());
         }
+    }
+
+    private List<Long> normalizedCartIds(List<?> ids) {
+        java.util.TreeSet<Long> normalized = new java.util.TreeSet<>();
+        for (Object value : ids) {
+            if (!(value instanceof Number)) throw new BusinessException("购物车编号必须为正整数");
+            try {
+                long id = new BigDecimal(value.toString()).longValueExact();
+                if (id < 1) throw new ArithmeticException("Non-positive ID");
+                normalized.add(id);
+            } catch (NumberFormatException | ArithmeticException e) { throw new BusinessException("购物车编号必须为正整数"); }
+        }
+        return List.copyOf(normalized);
+    }
+
+    private Map<String, Object> cartCheckoutResponse(List<Order> orders, boolean replayed) {
+        Map<String, Object> response = new HashMap<>();
+        response.put("outTradeNo", orders.get(0).getOutTradeNo());
+        response.put("totalAmount", orders.stream().map(Order::getTotalPrice).reduce(BigDecimal.ZERO, BigDecimal::add));
+        response.put("orderCount", orders.size());
+        response.put("paymentAllowed", orders.stream().allMatch(order -> Integer.valueOf(0).equals(order.getStatus()) && order.getTradeNo() == null && order.getPayTime() == null));
+        response.put("replayed", replayed);
+        return response;
     }
 
     /**

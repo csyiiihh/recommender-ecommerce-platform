@@ -256,7 +256,7 @@
       <template #footer>
         <div class="dialog-footer">
           <el-button @click="orderDialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="confirmOrder" :disabled="!selectedAddressId">
+          <el-button type="primary" @click="confirmOrder" :loading="submittingOrder" :disabled="!selectedAddressId || submittingOrder">
             提交订单
           </el-button>
         </div>
@@ -271,6 +271,7 @@
 import Request from '@/utils/request'
 import logger from '@/utils/logger'
 import { readFrontUser } from '@/utils/favoriteState'
+import { checkoutRequestKey, forgetCheckoutRequest } from '@/utils/checkoutRequest'
 import { formatTime } from '@/utils/time'
 import FrontHeader from '@/components/front/FrontHeader.vue'
 import FrontFooter from '@/components/front/FrontFooter.vue'
@@ -303,6 +304,7 @@ export default {
       reviewsRequestVersion: 0,
       detailRequestVersion: 0,
       orderDialogVisible: false,
+      submittingOrder: false,
       selectedAddressId: null,
       addresses: [],
       activeTab: 'detail',
@@ -449,42 +451,32 @@ export default {
       return `${addr.phone} ${addr.address}`
     },
     async confirmOrder() {
+      if (this.submittingOrder) return
+      const selectedAddress = this.addresses.find(addr => addr.id === this.selectedAddressId)
+      if (!selectedAddress) { this.$message.warning('请选择收货地址'); return }
+      this.submittingOrder = true
       let loading = null
+      let requestKey = null
       try {
-        if (!this.selectedAddressId) {
-          this.$message.warning('请选择收货地址')
-          return
-        }
-
-        loading = this.$loading({
-          lock: true,
-          text: '正在提交订单...',
-          background: 'rgba(0, 0, 0, 0.7)'
-        })
-
-        const selectedAddress = this.addresses.find(addr => addr.id === this.selectedAddressId)
         const orderData = {
-          userId: this.userInfo.id,
-          productId: this.product.id,
-          quantity: this.quantity,
-          price: this.product.isDiscount ? this.product.discountPrice : this.product.price,
-          totalPrice: (this.product.isDiscount ? this.product.discountPrice : this.product.price) * this.quantity,
-          recvAddress: selectedAddress.address,
-          recvPhone: selectedAddress.phone,
-          recvName: selectedAddress.receiver
+          userId: this.userInfo.id, productId: this.product.id, quantity: this.quantity,
+          recvAddress: selectedAddress.address, recvPhone: selectedAddress.phone, recvName: selectedAddress.receiver
         }
-
-        const res = await Request.post('/order', orderData)
-        if (res.code === '0') {
-          this.$message.success('下单成功')
-          this.orderDialogVisible = false
-          this.$router.push('/order')
-        }
+        requestKey = await checkoutRequestKey('single', this.userInfo.id, orderData)
+        loading = this.$loading({ lock: true, text: '正在提交订单...', background: 'rgba(0, 0, 0, 0.7)' })
+        const res = await Request.post('/order', orderData, { headers: { 'Idempotency-Key': requestKey } })
+        if (res.code !== '0') { this.$message.error(res.msg || '创建订单失败'); return }
+        this.$message.success('下单成功，请在我的订单中查看')
+        this.orderDialogVisible = false
+        await this.$router.push('/order')
+        forgetCheckoutRequest('single', this.userInfo.id, requestKey)
       } catch (error) {
+        if (error.response?.status === 409) forgetCheckoutRequest('single', this.userInfo.id, requestKey)
         logger.error('创建订单失败:', error)
-        this.$message.error('下单失败')
+        if (error.response?.status !== 409) this.$message.error('提交未完成，可重试；如已下单，请在我的订单中查看')
       } finally {
         if (loading) loading.close()
+        this.submittingOrder = false
       }
     }
   },

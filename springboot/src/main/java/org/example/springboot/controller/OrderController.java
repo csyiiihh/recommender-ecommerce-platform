@@ -31,9 +31,9 @@ public class OrderController {
     @Autowired
     private UserMapper userMapper;
     @PostMapping
-    public Result<?> createOrder(@Valid @RequestBody Order order) {
+    public Result<?> createOrder(@Valid @RequestBody Order order, @RequestHeader(value = "Idempotency-Key", required = false) String requestKey) {
         access.owner(order.getUserId());
-        return orderService.createOrder(order);
+        return orderService.createOrder(order, requestKey);
     }
     @PutMapping("/{id}/status")
     public Result<?> updateOrderStatus(
@@ -148,9 +148,9 @@ public class OrderController {
      * 从购物车创建订单（支付宝支付）
      */
     @PostMapping("/cart/create")
-    public Result<?> createOrdersFromCart(@RequestBody Map<String, Object> params) {
+    public Result<?> createOrdersFromCart(@RequestBody Map<String, Object> params, @RequestHeader(value = "Idempotency-Key", required = false) String requestKey) {
         access.owner(Long.valueOf(params.get("userId").toString()));
-        return orderService.createOrdersFromCart(params);
+        return orderService.createOrdersFromCart(params, requestKey);
     }
     
     /**
