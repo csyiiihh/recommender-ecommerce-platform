@@ -31,6 +31,7 @@ import java.util.stream.Collectors;
 public class OrderService {
     @Autowired private AccessService access;
     @Autowired private FulfillmentPolicy fulfillment;
+    @Autowired private InventoryReservationService inventory;
     @Autowired private AlipayService alipay;
     @Autowired private AutomaticRefundService automaticRefunds;
     private static final Logger LOGGER = LoggerFactory.getLogger(OrderService.class);
@@ -67,6 +68,7 @@ public class OrderService {
 
 
 
+    @Transactional(rollbackFor = Exception.class)
     public Result<?> createOrder(Order order) {
         access.owner(order.getUserId());
         if(order.getQuantity() == null || order.getQuantity() < 1) throw new BusinessException("数量必须大于0");
@@ -81,6 +83,7 @@ public class OrderService {
         safe.setRecvName(order.getRecvName()); safe.setRecvAddress(order.getRecvAddress()); safe.setRecvPhone(order.getRecvPhone()); safe.setRemark(order.getRemark());
         safe.setOutTradeNo(UUID.randomUUID().toString().replace("-", ""));
         if(orderMapper.insert(safe) != 1) throw new BusinessException("创建订单失败");
+        inventory.reserve(safe);
         return ResultUtils.success(safe);
     }
 
@@ -97,6 +100,7 @@ public class OrderService {
         if (ship) { access.sellerOrder(id); this.fulfillment.requireShipping(order); }
         if (complete) this.fulfillment.requireReceipt(order);
         if(!cancel && !ship && !complete) throw new BusinessException("不允许的订单状态变更");
+        if (cancel) inventory.release(order);
         order.setLastStatus(old); order.setStatus(status);
         if(orderMapper.updateById(order) != 1) throw new BusinessException("更新订单失败");
         if(complete) {
@@ -532,7 +536,8 @@ public class OrderService {
                 order.setOutTradeNo(outTradeNo);  // 所有订单使用同一个outTradeNo
                 order.setRefundStatus(0);
                 
-                orderMapper.insert(order);
+                if (orderMapper.insert(order) != 1) throw new BusinessException("创建订单失败");
+                inventory.reserve(order);
                 
                 orderCount++;
                 totalAmount = totalAmount.add(order.getTotalPrice());

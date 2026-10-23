@@ -21,6 +21,7 @@ class FulfillmentAndDeliveryTest {
     @Mock LogisticsMapper logistics;
     @Mock GroupBuyTeamMapper teams;
     @Mock AccessService access;
+    @org.mockito.Mock org.example.springboot.service.InventoryReservationService inventory;
     @InjectMocks LogisticsService shipping;
     @InjectMocks OrderService orderService;
     @BeforeEach void policy() {

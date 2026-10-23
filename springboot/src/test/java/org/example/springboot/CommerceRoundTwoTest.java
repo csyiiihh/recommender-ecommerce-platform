@@ -28,6 +28,7 @@ class CommerceRoundTwoTest {
     @Mock GroupBuyTeamMapper groupBuyTeamMapper;
     @Mock GroupBuyActivityMapper groupBuyActivityMapper;
     @Mock AutomaticRefundService automaticRefunds;
+    @org.mockito.Mock org.example.springboot.service.InventoryReservationService inventory;
     @InjectMocks OrderService service;
     @InjectMocks StockService stocks;
     @InjectMocks GroupBuyServiceImpl groups;

@@ -10,4 +10,10 @@ public interface ProductMapper extends BaseMapper<Product> {
     Product selectForUpdate(@org.apache.ibatis.annotations.Param("id") Long id);
     @org.apache.ibatis.annotations.Update("UPDATE product SET stock = stock - #{quantity}, sales_count = COALESCE(sales_count, 0) + #{quantity} WHERE id = #{id} AND status = 1 AND stock >= #{quantity} AND #{quantity} > 0")
     int deductStock(@org.apache.ibatis.annotations.Param("id") Long id, @org.apache.ibatis.annotations.Param("quantity") Integer quantity);
+    @org.apache.ibatis.annotations.Update("UPDATE product SET stock = stock - #{quantity} WHERE id = #{id} AND status = 1 AND stock >= #{quantity} AND #{quantity} > 0")
+    int reserveStock(@org.apache.ibatis.annotations.Param("id") Long id, @org.apache.ibatis.annotations.Param("quantity") int quantity);
+    @org.apache.ibatis.annotations.Update("UPDATE product SET stock = stock + #{quantity} WHERE id = #{id} AND #{quantity} > 0")
+    int releaseReservedStock(@org.apache.ibatis.annotations.Param("id") Long id, @org.apache.ibatis.annotations.Param("quantity") int quantity);
+    @org.apache.ibatis.annotations.Update("UPDATE product SET sales_count = COALESCE(sales_count, 0) + #{quantity} WHERE id = #{id} AND #{quantity} > 0")
+    int recordReservedSale(@org.apache.ibatis.annotations.Param("id") Long id, @org.apache.ibatis.annotations.Param("quantity") int quantity);
 } 

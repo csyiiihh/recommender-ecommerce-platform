@@ -17,6 +17,7 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class OrderAndUserRegressionTest {
     @Mock ProductMapper productMapper;
+    @Mock CartMapper cartMapper;
     @Mock OrderMapper orderMapper;
     @Mock UserMapper userMapper;
     @Mock StockInMapper stockInMapper;
@@ -25,6 +26,7 @@ class OrderAndUserRegressionTest {
     @Mock FulfillmentPolicy fulfillment;
     @Mock org.example.springboot.service.email.VerificationCodeService codes;
     @Mock org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
+    @org.mockito.Mock org.example.springboot.service.InventoryReservationService inventory;
     @InjectMocks OrderService orders;
     @InjectMocks UserService users;
     @Test void submittedPriceAndPaidStateAreIgnoredOnCreate() {
@@ -35,6 +37,7 @@ class OrderAndUserRegressionTest {
         orders.createOrder(input);
         ArgumentCaptor<Order> inserted=ArgumentCaptor.forClass(Order.class); verify(orderMapper).insert(inserted.capture());
         assertEquals(new BigDecimal("50.00"), inserted.getValue().getTotalPrice()); assertEquals(0,inserted.getValue().getStatus());
+        verify(inventory).reserve(inserted.getValue());
     }
     @Test void negativeQuantityIsRejected() {
         Order input = new Order(); input.setUserId(1L); input.setQuantity(-1);
@@ -73,5 +76,20 @@ class OrderAndUserRegressionTest {
         when(access.isMerchant()).thenReturn(true);
         assertEquals("0", orders.updateOrderStatus(1L, 2).getCode());
         assertEquals(2, order.getStatus()); verify(access).sellerOrder(1L);
+    }
+    @Test void manualUnpaidCancellationReleasesReservation() {
+        Order order = new Order(); order.setId(1L); order.setStatus(0);
+        when(orderMapper.selectForUpdate(1L)).thenReturn(order); when(orderMapper.updateById(any(Order.class))).thenReturn(1);
+        orders.updateOrderStatus(1L, 4); verify(inventory).release(order); assertEquals(4, order.getStatus());
+    }
+    @Test void cartCheckoutReservesServerPricedOrderAfterSuccessfulInsert() {
+        Cart cart = new Cart(); cart.setId(4L); cart.setUserId(1L); cart.setProductId(2L); cart.setQuantity(2);
+        Product product = new Product(); product.setId(2L); product.setStatus(1); product.setStock(5); product.setPrice(new BigDecimal("25"));
+        when(cartMapper.selectById(4L)).thenReturn(cart); when(productMapper.selectById(2L)).thenReturn(product);
+        when(orderMapper.insert(any(Order.class))).thenAnswer(i -> { i.<Order>getArgument(0).setId(10L); return 1; });
+        assertEquals("0", orders.createOrdersFromCart(java.util.Map.of("cartIds", List.of(4L), "userId", 1L)).getCode());
+        ArgumentCaptor<Order> created = ArgumentCaptor.forClass(Order.class); verify(inventory).reserve(created.capture());
+        assertEquals(10L, created.getValue().getId()); assertEquals(new BigDecimal("50"), created.getValue().getTotalPrice());
+        verify(cartMapper, never()).delete(any());
     }
 }

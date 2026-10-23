@@ -20,4 +20,8 @@ public interface OrderMapper extends BaseMapper<Order> {
         + "AND created_at <= #{cutoff} ORDER BY created_at, id LIMIT #{batchSize}")
     int closeExpiredUnpaid(@org.apache.ibatis.annotations.Param("cutoff") java.sql.Timestamp cutoff,
         @org.apache.ibatis.annotations.Param("batchSize") int batchSize);
+    @org.apache.ibatis.annotations.Select("SELECT id FROM `order` WHERE status = 0 AND order_type = 0 AND trade_no IS NULL AND pay_time IS NULL AND created_at <= #{cutoff} ORDER BY id LIMIT 200")
+    java.util.List<Long> findExpiredUnpaidIds(@org.apache.ibatis.annotations.Param("cutoff") java.sql.Timestamp cutoff);
+    @org.apache.ibatis.annotations.Update("UPDATE `order` SET last_status = 0, status = 4, updated_at = CURRENT_TIMESTAMP WHERE id = #{id} AND status = 0 AND order_type = 0 AND trade_no IS NULL AND pay_time IS NULL AND created_at <= #{cutoff}")
+    int closeOneExpiredUnpaid(@org.apache.ibatis.annotations.Param("id") Long id, @org.apache.ibatis.annotations.Param("cutoff") java.sql.Timestamp cutoff);
 } 

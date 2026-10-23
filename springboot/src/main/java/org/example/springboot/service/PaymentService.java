@@ -16,6 +16,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 @Service
 public class PaymentService {
     @Autowired private OrderMapper orders;
+    @Autowired private InventoryReservationService inventory;
     @Autowired private ProductMapper products;
     @Autowired private CartMapper carts;
     @Autowired private AccessService access;
@@ -80,7 +81,9 @@ public class PaymentService {
             }
             unpaid.add(order);
             if (!locked.containsKey(order.getProductId())) locked.put(order.getProductId(), products.selectForUpdate(order.getProductId()));
-            quantities.merge(order.getProductId(), order.getQuantity(), Integer::sum);
+            if (!inventory.hasHeld(order)) quantities.merge(order.getProductId(), order.getQuantity(), Integer::sum);
+            Product product = locked.get(order.getProductId());
+            if (product == null || !Integer.valueOf(1).equals(product.getStatus())) fulfillable = false;
         }
         for (var entry : quantities.entrySet()) {
             Product product = locked.get(entry.getKey());
@@ -105,13 +108,14 @@ public class PaymentService {
             order.setPayTime(new Timestamp(System.currentTimeMillis()));
             order.setUpdatedAt(order.getPayTime());
             if (!fulfillable) {
+                inventory.release(order);
                 order.setRefundStatus(AutomaticRefundService.AUTO_PENDING);
                 order.setRefundReason(AutomaticRefundService.UNFULFILLABLE);
             }
             if (orders.updateById(order) != 1) throw new BusinessException("更新支付状态失败");
-            if (!fulfillable) continue; // No inventory was deducted; refunds must not add it back.
+            if (!fulfillable) continue; // Any reservation was released; compensation must not replenish again.
             if (Integer.valueOf(1).equals(order.getOrderType())) groups.handlePaymentSuccess(order.getId());
-            else if (products.deductStock(order.getProductId(), order.getQuantity()) != 1) throw new BusinessException("库存扣减失败");
+            else if (!inventory.consume(order) && products.deductStock(order.getProductId(), order.getQuantity()) != 1) throw new BusinessException("库存扣减失败");
             carts.delete(new LambdaQueryWrapper<Cart>().eq(Cart::getUserId, order.getUserId()).eq(Cart::getProductId, order.getProductId()));
         }
     }

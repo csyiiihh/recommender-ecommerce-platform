@@ -26,6 +26,7 @@ class PaymentRegressionTest {
     @Mock AlipayService alipay;
     @Mock AlipayConfig config;
     @Mock GroupBuyService groups;
+    @org.mockito.Mock org.example.springboot.service.InventoryReservationService inventory;
     @InjectMocks PaymentService payments;
     static KeyPair keys;
     Order order;
@@ -108,5 +109,17 @@ class PaymentRegressionTest {
         when(orders.selectTradeForUpdate("trade-1")).thenReturn(new ArrayList<>(List.of(order)));
         doThrow(new org.springframework.security.access.AccessDeniedException("denied")).when(access).owner(1L);
         assertThrows(org.springframework.security.access.AccessDeniedException.class, () -> payments.create("trade-1")); verifyNoInteractions(alipay);
+    }
+    @Test void heldStockCanBePaidWhenRemainingAvailabilityIsZero() throws Exception {
+        product.setStock(0); when(orders.selectTradeForUpdate("trade-1")).thenReturn(new ArrayList<>(List.of(order)));
+        when(products.selectForUpdate(2L)).thenReturn(product); when(inventory.hasHeld(order)).thenReturn(true); when(inventory.consume(order)).thenReturn(true); when(orders.updateById(any(Order.class))).thenReturn(1);
+        payments.notifyPaid(signed("50.00")); payments.notifyPaid(signed("50.00"));
+        assertEquals(1, order.getStatus()); verify(inventory).consume(order); verify(products, never()).deductStock(anyLong(), anyInt());
+    }
+    @Test void delistedReservedProductReleasesBeforeCompensation() throws Exception {
+        product.setStatus(0); when(orders.selectTradeForUpdate("trade-1")).thenReturn(new ArrayList<>(List.of(order)));
+        when(products.selectForUpdate(2L)).thenReturn(product); when(inventory.hasHeld(order)).thenReturn(true); when(orders.updateById(any(Order.class))).thenReturn(1);
+        payments.notifyPaid(signed("50.00")); payments.notifyPaid(signed("50.00"));
+        assertEquals(5, order.getStatus()); verify(inventory).release(order); verify(inventory, never()).consume(any()); verify(products, never()).deductStock(anyLong(), anyInt());
     }
 }
