@@ -2,16 +2,16 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { h } from 'vue'
 import { ElMessage } from 'element-plus'
 import logger from '@/utils/logger'
-import home from '../layout/index.vue';
+const home = () => import('../layout/index.vue')
 
 
-import ShowView from '@/views/showView.vue';
+const ShowView = () => import('@/views/showView.vue')
 
-import Login from '@/views/Login.vue';
-import LRLayout from '@/layout/LRLayout.vue';
-import RegisterVue from '@/views/RegisterVue.vue';
-import Forget from '@/views/Forget.vue';
-import Menu from '@/views/Menu.vue';
+const Login = () => import('@/views/Login.vue')
+const LRLayout = () => import('@/layout/LRLayout.vue')
+const RegisterVue = () => import('@/views/RegisterVue.vue')
+const Forget = () => import('@/views/Forget.vue')
+const Menu = () => import('@/views/Menu.vue')
 import Home from '@/views/front/Home.vue';
 
 const routes = [

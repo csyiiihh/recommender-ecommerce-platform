@@ -24,6 +24,10 @@
           <button v-if="isLoggedIn" type="button" class="preferences-link" @click="goToRecommendCenter">阅读偏好 <span aria-hidden="true">↗</span></button>
         </div>
         <div v-if="loading" class="loading-books" role="status">正在为你寻找好书…</div>
+        <div v-else-if="recommendError" class="load-error" role="alert">
+          <p>图书加载失败，请稍后重试</p>
+          <el-button @click="loadRecommendations">重新加载推荐</el-button>
+        </div>
         <div v-else-if="recommendProducts.length" class="product-grid">
           <product-card v-for="product in recommendProducts" :key="product.id" :product="product" @toggle-favorite="handleToggleFavorite" />
         </div>
@@ -34,7 +38,12 @@
           <div><span class="eyebrow">JUST ARRIVED</span><h2 id="new-title">书架上的新朋友</h2><p>新书上架，给阅读多一点新鲜感。</p></div>
           <router-link to="/products?type=new" class="section-more">更多新书 <span aria-hidden="true">→</span></router-link>
         </div>
-        <div v-if="newProducts.length" class="product-grid">
+        <div v-if="newProductsLoading" class="loading-books" role="status">正在加载新书…</div>
+        <div v-else-if="newProductsError" class="load-error" role="alert">
+          <p>新书加载失败，请稍后重试</p>
+          <el-button @click="getNewProducts">重新加载新书</el-button>
+        </div>
+        <div v-else-if="newProducts.length" class="product-grid">
           <product-card v-for="product in newProducts.slice(0, 4)" :key="product.id" :product="product" @toggle-favorite="handleToggleFavorite" />
         </div>
         <el-empty v-else description="新书正在整理中" />
@@ -59,7 +68,7 @@ export default {
   name: 'HomeView',
   components: { FrontHeader, FrontFooter, FrontCarousel, FrontCategory, ProductCard, FrontNotice },
   data() {
-    return { recommendProducts: [], newProducts: [], isLoggedIn: false, userId: null, refresh: true, loading: true, activeAlgorithm: 'personalized', requestVersion: 0 }
+    return { recommendProducts: [], newProducts: [], isLoggedIn: false, userId: null, refresh: true, loading: true, activeAlgorithm: 'personalized', requestVersion: 0, recommendError: false, newProductsError: false, newProductsLoading: true, newRequestVersion: 0 }
   },
   methods: {
     async handleAlgorithmChange(algorithm) {
@@ -69,6 +78,7 @@ export default {
     async loadRecommendations() {
       const version = ++this.requestVersion
       this.loading = true
+      this.recommendError = false
       try {
         let products = []
         if (this.isLoggedIn && this.activeAlgorithm === 'personalized') {
@@ -79,22 +89,32 @@ export default {
         }
         if (!Array.isArray(products) || !products.length) {
           const result = await Request.get('/product/page', { params: { size: 8, sortField: this.activeAlgorithm === 'trending' ? 'sales' : 'createdAt', sortOrder: 'desc' }, silent: true })
-          products = result.code === '0' ? result.data?.records || [] : []
+          if (result.code !== '0' || !Array.isArray(result.data?.records)) throw new Error('图书列表响应异常')
+          products = result.data.records
         }
         // A slow response from a previous tab must not overwrite the current selection.
         if (version === this.requestVersion) this.recommendProducts = products.slice(0, 8).map(p => ({ ...p }))
       } catch (error) {
-        if (version === this.requestVersion) this.recommendProducts = []
+        if (version === this.requestVersion) { this.recommendProducts = []; this.recommendError = true }
         logger.error('推荐图书加载失败', error)
       } finally {
         if (version === this.requestVersion) this.loading = false
       }
     },
     async getNewProducts() {
+      const version = ++this.newRequestVersion
+      this.newProductsLoading = true
+      this.newProductsError = false
       try {
         const result = await Request.get('/product/page', { params: { size: 4, sortField: 'updatedAt', sortOrder: 'desc' }, silent: true })
-        if (result.code === '0') this.newProducts = (result.data?.records || []).slice(0, 4).map(p => ({ ...p }))
-      } catch (error) { logger.error('新书加载失败', error) }
+        if (result.code !== '0' || !Array.isArray(result.data?.records)) throw new Error('新书列表响应异常')
+        if (version === this.newRequestVersion) this.newProducts = result.data.records.slice(0, 4).map(p => ({ ...p }))
+      } catch (error) {
+        if (version === this.newRequestVersion) { this.newProducts = []; this.newProductsError = true }
+        logger.error('新书加载失败', error)
+      } finally {
+        if (version === this.newRequestVersion) this.newProductsLoading = false
+      }
     },
     handleToggleFavorite({ product, status }) {
       for (const item of [...this.recommendProducts, ...this.newProducts]) if (item.id === product.id) item.isFavorite = status === 1
@@ -110,7 +130,7 @@ export default {
     this.loadRecommendations()
     this.getNewProducts()
   },
-  beforeUnmount() { ++this.requestVersion }
+  beforeUnmount() { ++this.requestVersion; ++this.newRequestVersion }
 }
 </script>
 
@@ -139,6 +159,8 @@ h1 { font-family:'Noto Serif SC','Source Han Serif SC','SimSun',serif; font-size
 .reading-tabs .preferences-link { margin-left:auto; padding-right:0; }
 .product-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:22px; }
 .loading-books { padding:64px 20px; text-align:center; color:#738577; }
+.load-error { padding:40px 20px; text-align:center; color:#69776e; }
+.load-error p { margin-bottom:16px; }
 .service-notices { border-top:1px solid #e1e6dd; padding-top:20px; }
 .service-notices summary { cursor:pointer; font-size:14px; padding:10px 0; }
 .service-notices summary span { font-size:12px; color:#7b877e; margin-left:16px; }

@@ -211,7 +211,7 @@
 import Request from '@/utils/request'
 import logger from '@/utils/logger'
 import Pagination from '@/components/Pagination/index.vue'
-import { Plus, Refresh, Edit, Delete, PictureIcon } from '@element-plus/icons-vue'
+import { Plus, Refresh, Edit, Delete, Picture as PictureIcon } from '@element-plus/icons-vue'
 
 export default {
   name: 'UserManagerView',

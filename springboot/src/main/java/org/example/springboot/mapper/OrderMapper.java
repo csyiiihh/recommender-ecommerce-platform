@@ -14,4 +14,10 @@ public interface OrderMapper extends BaseMapper<Order> {
     int updateDeliveryIfUnshipped(@org.apache.ibatis.annotations.Param("id") Long id,
         @org.apache.ibatis.annotations.Param("name") String name, @org.apache.ibatis.annotations.Param("address") String address,
         @org.apache.ibatis.annotations.Param("phone") String phone);
+    // The conditional update competes atomically with payment's order row locks.
+    @org.apache.ibatis.annotations.Update("UPDATE `order` SET last_status = 0, status = 4, updated_at = CURRENT_TIMESTAMP "
+        + "WHERE status = 0 AND order_type = 0 AND trade_no IS NULL AND pay_time IS NULL "
+        + "AND created_at <= #{cutoff} ORDER BY created_at, id LIMIT #{batchSize}")
+    int closeExpiredUnpaid(@org.apache.ibatis.annotations.Param("cutoff") java.sql.Timestamp cutoff,
+        @org.apache.ibatis.annotations.Param("batchSize") int batchSize);
 } 

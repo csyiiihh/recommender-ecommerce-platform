@@ -291,7 +291,7 @@ import FrontFooter from '@/components/front/FrontFooter.vue'
 import Request from '@/utils/request'
 import logger from '@/utils/logger'
 import { ElMessage } from 'element-plus'
-import { MagicStick, Refresh, InfoFilled, Like, Dislike } from '@element-plus/icons-vue'
+import { MagicStick, Refresh, InfoFilled, Star as Like, Close as Dislike } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
 
 export default {

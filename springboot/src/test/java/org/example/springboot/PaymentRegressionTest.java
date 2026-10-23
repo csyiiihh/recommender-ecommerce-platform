@@ -86,8 +86,19 @@ class PaymentRegressionTest {
     @Test void lateSignedPaymentForCanceledOrderIsCompensated() throws Exception {
         order.setStatus(4); when(orders.selectTradeForUpdate("trade-1")).thenReturn(new ArrayList<>(List.of(order)));
         when(products.selectForUpdate(2L)).thenReturn(product); when(orders.updateById(any(Order.class))).thenReturn(1);
-        payments.notifyPaid(signed("50.00"));
-        assertEquals(5,order.getStatus()); verify(products,never()).deductStock(anyLong(),anyInt());
+        payments.notifyPaid(signed("50.00")); payments.notifyPaid(signed("50.00"));
+        assertEquals(5, order.getStatus());
+        assertEquals(AutomaticRefundService.AUTO_PENDING, order.getRefundStatus());
+        assertEquals(AutomaticRefundService.UNFULFILLABLE, order.getRefundReason());
+        verify(orders, times(1)).updateById(any(Order.class));
+        verify(products, never()).deductStock(anyLong(), anyInt());
+        verifyNoInteractions(alipay, carts);
+    }
+    @Test void paymentCreationRejectsClosedOrders() {
+        order.setStatus(4);
+        when(orders.selectTradeForUpdate("trade-1")).thenReturn(new ArrayList<>(List.of(order)));
+        assertThrows(BusinessException.class, () -> payments.create("trade-1"));
+        verifyNoInteractions(alipay);
     }
     @Test void paymentCreationUsesDatabaseTotal() {
         when(orders.selectTradeForUpdate("trade-1")).thenReturn(new ArrayList<>(List.of(order)));

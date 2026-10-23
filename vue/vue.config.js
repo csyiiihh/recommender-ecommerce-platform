@@ -3,6 +3,19 @@ module.exports = defineConfig({
   productionSourceMap: false,
   transpileDependencies: true,
   lintOnSave: true, //关闭语法检查
+  // Load optional admin dependencies only when their routes are opened.
+  chainWebpack: config => { config.plugins.delete('prefetch'); },
+  configureWebpack: {
+    optimization: {
+      splitChunks: {
+        cacheGroups: {
+          charts: { test: /[\\/]node_modules[\\/](echarts|zrender)[\\/]/, name: 'charts', chunks: 'all', priority: 30 },
+          spreadsheet: { test: /[\\/]node_modules[\\/](xlsx|file-saver)[\\/]/, name: 'spreadsheet', chunks: 'all', priority: 30 },
+          editor: { test: /[\\/]node_modules[\\/](@wangeditor|slate|slate-history|slate-hyperscript|snabbdom)[\\/]/, name: 'editor', chunks: 'all', priority: 30 }
+        }
+      }
+    }
+  },
   devServer: {  
     client: {
       overlay: false
