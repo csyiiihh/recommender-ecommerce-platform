@@ -3,9 +3,6 @@ package org.example.springboot.config;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.type.CollectionType;
-import com.fasterxml.jackson.databind.type.MapType;
-import com.fasterxml.jackson.databind.type.SimpleType;
 import org.springframework.cache.CacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -55,7 +52,7 @@ public class RedisConfig {
 
     /**
      * 配置Redis缓存管理器（可选，如果使用@Cacheable等注解）
-     * 注意：如果使用Redis缓存，需要将application.properties中的spring.cache.type改为redis
+     * 当前业务未使用缓存注解；保留此配置供后续显式接入。
      */
     @Bean
     public CacheManager cacheManager(RedisConnectionFactory factory) {

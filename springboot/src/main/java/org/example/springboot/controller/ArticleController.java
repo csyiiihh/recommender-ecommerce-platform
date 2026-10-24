@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotNull;
 import org.example.springboot.common.Result;
 import org.example.springboot.entity.Article;
 import org.example.springboot.service.ArticleService;
+import org.example.springboot.service.AccessService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +23,9 @@ public class ArticleController {
 
     @Autowired
     private ArticleService articleService;
+
+    @Autowired
+    private AccessService access;
 
     @PostMapping
     public Result<?> createArticle(@Valid @RequestBody Article article) {
@@ -51,6 +55,16 @@ public class ArticleController {
             @RequestParam(required = false) Integer status,
             @RequestParam(defaultValue = "1") @Min(value = 1, message = "当前页必须大于0") Integer currentPage,
             @RequestParam(defaultValue = "10") @Min(value = 1, message = "每页大小必须大于0") Integer size) {
+        return Result.success(articleService.getArticlesByPage(title, 1, currentPage, size));
+    }
+
+    @GetMapping("/manage/page")
+    public Result<?> getManagedArticlesByPage(
+            @RequestParam(required = false) String title,
+            @RequestParam(required = false) Integer status,
+            @RequestParam(defaultValue = "1") @Min(1) Integer currentPage,
+            @RequestParam(defaultValue = "10") @Min(1) Integer size) {
+        access.admin();
         return Result.success(articleService.getArticlesByPage(title, status, currentPage, size));
     }
 

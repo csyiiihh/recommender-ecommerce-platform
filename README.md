@@ -68,9 +68,9 @@
 
 | 层次 | 技术 |
 | --- | --- |
-| 前端 | Vue 3、Vue Router、Vuex、Element Plus、Axios、ECharts |
+| 前端 | Vue 3、Vue Router、Element Plus、Axios、ECharts |
 | 后端 | Java 17、Spring Boot 3.4.1、MyBatis Plus、Spring Security、JWT |
-| 数据与缓存 | MySQL 8、Redis、Caffeine |
+| 数据与基础设施 | MySQL 8；Redis 保留连接与诊断配置，业务查询暂未接入缓存 |
 | 支付与验证 | 支付宝 SDK、JUnit 5、Mockito |
 
 ```mermaid
@@ -84,7 +84,6 @@ flowchart LR
     R --> DB[(MySQL)]
     O --> DB
     C --> DB
-    B --> CACHE[Redis / Caffeine]
     O --> P[支付宝接口]
     P -->|签名通知| B
     T[超时与补偿任务] --> O
@@ -100,7 +99,7 @@ flowchart LR
 
 ## 本地运行
 
-需要 Java 17+、Maven 3.9.x、Node.js 22 / npm、MySQL 8 与 Redis。按 [开发与部署指南](docs/SETUP.md) 初始化**独立开发库**，并配置数据库、JWT 和邮件等本地参数。
+需要 Java 17+、Maven 3.9.x、Node.js 22 / npm 与 MySQL 8。Redis 仅在验证连接诊断能力时另行准备。按 [开发与部署指南](docs/SETUP.md) 初始化**独立开发库**，并配置数据库、JWT 和邮件等本地参数。
 
 ```bash
 git clone https://github.com/csyiiihh/recommender-ecommerce-platform.git
@@ -120,7 +119,7 @@ npm run serve
 
 ## 测试与验证
 
-最近一轮本地验证（2026-10-24）：**239 项后端测试通过，31 个浏览器模拟场景通过**，后端打包成功。浏览器验证覆盖结算重试、支付失败恢复、订单统计、买家与管理端操作及资讯图片保存。
+最近一轮本地验证（2026-10-24）：**269 项后端测试通过，35 个浏览器模拟场景通过**，后端打包成功。浏览器验证覆盖结算重试、支付失败恢复、订单统计、买家与管理端操作、资讯图片保存及商品编辑上传。
 
 ```bash
 # springboot 目录：测试并打包
@@ -138,6 +137,7 @@ npm run build
 - [环境配置、数据库初始化、启动与部署](docs/SETUP.md)
 - [交易补偿、库存预占与幂等边界](springboot/交易补偿与库存说明.md)
 - [隔离验证与真实环境验收清单](springboot/隔离联调与验收清单.md)
+- [资讯访问边界与冗余清理](docs/CLEANUP.md)
 
 ## 当前边界与后续计划
 

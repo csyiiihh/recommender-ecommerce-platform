@@ -10,6 +10,7 @@ import org.example.springboot.common.Result;
 import org.example.springboot.entity.Dict.SysDict;
 import org.example.springboot.mapper.Dict.DictTypeMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -26,20 +27,28 @@ public class SysDictController {
     private DictTypeMapper sysDictMapper;
 
     /**
-     * 新增/修改字典类型
+     * 新增字典类型
      * @param sysDict
      * @return
      */
     @PostMapping("/save")
     public Result<?> save(@RequestBody @Valid SysDict sysDict) {
+        if (sysDict.getDictTypeCode() == null || sysDict.getDictTypeCode().isBlank()) {
+            return error("-1", "字典编码不能为空");
+        }
+        sysDict.setDictTypeCode(sysDict.getDictTypeCode().trim());
         QueryWrapper<SysDict> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("dict_type_code",sysDict.getDictTypeCode());
         List<Object> exitDictType = sysDictMapper.selectObjs(queryWrapper);
-        if(exitDictType!=null){
+        if (exitDictType != null && !exitDictType.isEmpty()) {
             return error("-1","该类型已存在");
         }
-        int result = sysDictMapper.insert(sysDict);
-        return result>0 ? success() : error("-1", "保存失败");
+        try {
+            int result = sysDictMapper.insert(sysDict);
+            return result > 0 ? success() : error("-1", "保存失败");
+        } catch (DuplicateKeyException e) {
+            return error("-1", "该类型已存在");
+        }
     }
 
     /**

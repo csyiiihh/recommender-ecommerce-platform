@@ -1,7 +1,6 @@
 import { createApp } from "vue";
 import App from "./App.vue";
 import router from "./router";
-import store from "./store";
 import ElementPlus from "element-plus";
 import "element-plus/dist/index.css";
 import "@fortawesome/fontawesome-free/css/all.min.css";
@@ -24,7 +23,6 @@ for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
 
 app.use(ElementPlus);
 app.use(router);
-app.use(store);
 
 // 全局属性
 app.config.globalProperties.HOST = "/api";

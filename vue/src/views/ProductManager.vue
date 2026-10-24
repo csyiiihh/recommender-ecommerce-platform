@@ -102,7 +102,7 @@
         <el-table-column prop="id" label="ID" width="80"></el-table-column>
         <el-table-column label="商品图片" width="120">
           <template #default="{ row }">
-            <el-image v-if="row && row.imageUrl" :src="'/api'+row.imageUrl" :preview-src-list="['/api'+row.imageUrl]" fit="cover" style="width: 80px; height: 80px"></el-image>
+            <el-image v-if="row && row.imageUrl" :src="buildImageUrl(row.imageUrl)" :preview-src-list="[buildImageUrl(row.imageUrl)]" fit="cover" style="width: 80px; height: 80px"></el-image>
             <span v-else>-</span>
           </template>
         </el-table-column>
@@ -188,7 +188,7 @@
           <p v-if="form.id" style="font-size:12px;color:#7b8376">库存请通过出入库管理调整，保留变更记录。</p>
           <el-form-item label="商品图片" prop="imageUrl">
             <el-upload class="avatar-uploader" action="#" :show-file-list="false" :auto-upload="false" :on-change="handleUpload">
-              <img v-if="form.imageUrl" :src="'api/'+form.imageUrl" class="avatar">
+              <img v-if="form.imageUrl" :src="buildImageUrl(form.imageUrl)" class="avatar">
               <i v-else class="fas fa-plus avatar-uploader-icon"></i>
             </el-upload>
           </el-form-item>
@@ -220,30 +220,16 @@
       </template>
     </el-dialog>
 
-    <!-- 图片裁剪对话框 - 暂时禁用，vue-cropper 不支持 Vue 3 -->
-    <!-- TODO: 需要替换为支持 Vue 3 的图片裁剪库 -->
-    <!--
-    <el-dialog title="图片裁剪" v-model="cropperVisible" width="600px" append-to-body :close-on-click-modal="false" :close-on-press-escape="false">
-      <div class="cropper-content">
-        <vue-cropper ref="cropper" :img="cropImage" :info="true" :autoCrop="true" :autoCropWidth="300" :autoCropHeight="300" :fixedBox="true" :fixed="true"
-          :fixedNumber="[1, 1]" :centerBox="true" outputType="png" :full="true" :canMove="true" :canMoveBox="true" :original="false" :enlarge="1"></vue-cropper>
-      </div>
-      <template #footer>
-        <el-button @click="cropperVisible = false">取 消</el-button>
-        <el-button type="primary" @click="handleCropUpload">确 定</el-button>
-      </template>
-    </el-dialog>
-    -->
+
   </div>
 </template>
 
 <script>
 import Request from '@/utils/request'
+import { buildImageUrl } from '@/utils/imageUrl'
 import logger from '@/utils/logger'
 import Pagination from '@/components/Pagination/index.vue'
 import { Plus, Refresh, Edit, Delete, Search } from '@element-plus/icons-vue'
-// TODO: vue-cropper 不支持 Vue 3，需要替换为支持 Vue 3 的图片裁剪库
-// import { VueCropper } from 'vue-cropper'
 import '@wangeditor/editor/dist/css/style.css'
 import { Editor, Toolbar } from '@wangeditor/editor-for-vue'
 import '@/assets/iconfont.css'
@@ -253,7 +239,6 @@ export default {
   inject: ['userInfo'],
   components: {
     Pagination,
-    // VueCropper, // TODO: 需要替换为支持 Vue 3 的图片裁剪库
     Editor,
     Toolbar,
     Plus,
@@ -334,10 +319,6 @@ export default {
           { validator: validateDiscountPrice, trigger: 'blur' }
         ]
       },
-      // 图片裁剪相关
-      cropperVisible: false,
-      cropImage: '',
-      uploadFile: null,
       topSalesProduct: null,
       editor: null,
       mode: 'default', // 或 'simple'
@@ -405,6 +386,7 @@ export default {
     this.getList()
   },
   methods: {
+    buildImageUrl,
     // 获取分类列表
     async getCategories() {
       try {
@@ -582,41 +564,6 @@ export default {
       }
 
       return false // 阻止自动上传
-    },
-    // 修改 handleCropUpload 方法
-    async handleCropUpload() {
-      try {
-        // 获取裁剪后的 blob 数据
-        const blob = await new Promise((resolve) => {
-          this.$refs.cropper.getCropBlob((data) => resolve(data))
-        })
-        // 创建文件对象
-        const fileName = `cropped-${Date.now()}.png`
-        const file = new File([blob], fileName, { type: 'image/png' })
-
-        // 创建 FormData
-        const formData = new FormData()
-        formData.append('file', file)
-
-        // 发送上传请求
-        const res = await Request.post('/file/upload/img', formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-            'token': this.userInfo.token
-          }
-        })
-
-        if (res.code === '0') {
-          this.form.imageUrl = res.data
-          this.$message.success('图片上传成功')
-          this.cropperVisible = false
-        } else {
-          throw new Error(res.msg || '上传失败')
-        }
-      } catch (error) {
-        logger.error('图片上传失败:', error)
-        this.$message.error(error.message || '图片上传失败')
-      }
     },
     // 提交表单
     submitForm() {
@@ -1063,49 +1010,9 @@ export default {
   line-height: 1;
 }
 
-/* 图片裁剪相关样式 */
-.cropper-content {
-  height: 400px;
-  width: 100%;
-}
-
-:deep(.cropper-view-box) {
-  border-radius: 4px;
-  border: 1px solid #409eff;
-}
-
-:deep(.cropper-container) {
-  width: 100% !important;
-  height: 100% !important;
-}
-
-:deep(.vue-cropper) {
-  width: 100% !important;
-  height: 100% !important;
-}
-
-/* 调整裁剪对话框的样式 */
+/* 商品编辑对话框内边距 */
 :deep(.el-dialog__body) {
   padding: 10px 20px;
 }
 
-.cropper-content {
-  background-color: #f5f7fa;
-  border-radius: 4px;
-}
-
-/* 优化裁剪工具的显示 */
-:deep(.cropper-point) {
-  background-color: #409eff;
-  width: 8px;
-  height: 8px;
-}
-
-:deep(.cropper-line) {
-  background-color: #409eff;
-}
-
-:deep(.cropper-face) {
-  background-color: inherit;
-}
 </style> 

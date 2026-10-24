@@ -13,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -25,6 +26,7 @@ public class ArticleService {
 
     public Result<?> createArticle(Article article) {
         try {
+            article.setViewCount(0);
             int result = articleMapper.insert(article);
             if (result > 0) {
                 LOGGER.info("创建资讯成功，资讯ID：{}，标题：{}", article.getId(), article.getTitle());
@@ -52,6 +54,7 @@ public class ArticleService {
             // Images may be shared; database failures cannot restore deleted files.
             // Retain uploads on edits and deletions; clean up only after a reference audit.
             article.setId(id);
+            article.setViewCount(null); // The editor must not overwrite live read counts.
             int result = articleMapper.updateById(article);
             if (result > 0) {
                 LOGGER.info("更新资讯成功，资讯ID：{}，标题：{}", id, article.getTitle());
@@ -92,23 +95,19 @@ public class ArticleService {
         }
     }
 
+    @Transactional(rollbackFor = Exception.class)
     public Result<?> getArticleById(Long id) {
-        try {
-            Article article = articleMapper.selectById(id);
-            if (article == null) {
-                LOGGER.warn("查询资讯失败，资讯ID：{} 不存在", id);
-                return ResultUtils.dataNotFound("资讯不存在");
+        // Lock only published content; an unpublish or edit waits for this read transaction.
+        Article article = articleMapper.selectPublishedForUpdate(id);
+        if (article == null || !Integer.valueOf(1).equals(article.getStatus())) return ResultUtils.dataNotFound("资讯不存在");
+        int views = article.getViewCount() == null ? 0 : Math.max(0, article.getViewCount());
+        if (views < Integer.MAX_VALUE) {
+            if (articleMapper.incrementPublishedViews(id) != 1) {
+                throw new BusinessException("更新资讯浏览量失败");
             }
-            
-            // 增加浏览量
-            article.setViewCount(article.getViewCount() + 1);
-            articleMapper.updateById(article);
-            LOGGER.debug("查询资讯成功，资讯ID：{}，浏览量：{}", id, article.getViewCount());
-            return ResultUtils.success(article);
-        } catch (Exception e) {
-            LOGGER.error("查询资讯异常，资讯ID：{}，错误：{}", id, e.getMessage(), e);
-            throw new BusinessException(ResultCode.OPERATION_FAILED.getCode(), "查询资讯失败：" + e.getMessage());
+            article.setViewCount(views + 1);
         }
+        return ResultUtils.success(article);
     }
 
     public Page<Article> getArticlesByPage(String title, Integer status,
@@ -136,8 +135,12 @@ public class ArticleService {
         }
         
         try {
-            article.setStatus(status);
-            int result = articleMapper.updateById(article);
+            if (status == null || (status != 0 && status != 1)) return ResultUtils.paramError("状态必须为0或1");
+            Article patch = new Article();
+            patch.setId(id);
+            patch.setStatus(status);
+            patch.setViewCount(null);
+            int result = articleMapper.updateById(patch);
             if (result > 0) {
                 LOGGER.info("更新资讯状态成功，资讯ID：{}，标题：{}，新状态：{}", id, article.getTitle(), status);
                 return ResultUtils.success();

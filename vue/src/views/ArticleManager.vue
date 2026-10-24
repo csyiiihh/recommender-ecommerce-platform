@@ -199,6 +199,7 @@
 
 <script>
 import Request from '@/utils/request'
+import { buildImageUrl } from '@/utils/imageUrl'
 import logger from '@/utils/logger'
 import Pagination from '@/components/Pagination/index.vue'
 import '@wangeditor/editor/dist/css/style.css'
@@ -315,25 +316,7 @@ export default {
   },
   methods: {
     formatTime,
-    // 构建正确的图片URL
-    buildImageUrl(imageUrl) {
-      if (!imageUrl) {
-        return '';
-      }
-      
-      // 如果已经是完整的HTTP/HTTPS URL，直接返回
-      if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
-        return imageUrl;
-      }
-      
-      // 如果以 / 开头，说明是相对路径（如 /img/xxx.png）
-      if (imageUrl.startsWith('/')) {
-        return `/api${imageUrl}`;
-      }
-      
-      // 如果只是文件名（如 1767524244906.png），添加 /img/ 前缀
-      return `/api/img/${imageUrl}`;
-    },
+    buildImageUrl,
     // 获取文章列表
     async getList() {
       try {
@@ -341,7 +324,7 @@ export default {
           ...this.queryParams,
           ...this.searchForm
         }
-        const res = await Request.get('/article/page', { params })
+        const res = await Request.get('/article/manage/page', { params })
         if (res.code === '0') {
           this.articles = res.data.records || []
           this.total = res.data.total
