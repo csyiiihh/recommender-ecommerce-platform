@@ -269,7 +269,7 @@ export default {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(135deg, #f8faf5 0%, #f5f7fa 100%);
+  background: linear-gradient(135deg, #f8faf5 0%, var(--store-surface) 100%);
 }
 
 .main-content {
@@ -290,7 +290,7 @@ export default {
   background: white;
   padding: 20px 24px;
   border-radius: 12px;
-  border: 1px solid #ebeef5;
+  border: 1px solid var(--store-border-light);
   position: relative;
   overflow: hidden;
 }
@@ -308,7 +308,7 @@ export default {
 .page-header h2 {
   font-size: 24px;
   font-weight: 500;
-  color: #2c3e50;
+  color: var(--store-ink);
   margin: 0;
 }
 
@@ -330,7 +330,7 @@ export default {
   background: white;
   padding: 16px 24px;
   border-radius: 12px;
-  border: 1px solid #ebeef5;
+  border: 1px solid var(--store-border-light);
 }
 
 .filter-box {
@@ -350,11 +350,11 @@ export default {
   height: 32px;
   line-height: 32px;
   transition: all 0.3s ease;
-  border: 1px solid #dcdfe6;
+  border: 1px solid var(--store-border);
 }
 
 .sort-options :deep(.el-radio-button:not(:last-child) .el-radio-button__inner) {
-  border-right: 1px solid #DCDFE6;
+  border-right: 1px solid var(--store-border);
 }
 
 .sort-options :deep(.el-radio-button__orig-radio:checked + .el-radio-button__inner) {

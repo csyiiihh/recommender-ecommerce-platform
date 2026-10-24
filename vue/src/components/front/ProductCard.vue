@@ -362,7 +362,7 @@ export default {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, rgba(52, 152, 219, 0.02) 0%, transparent 50%);
+  background: linear-gradient(135deg, rgba(var(--store-brand-rgb), 0.02) 0%, transparent 50%);
   opacity: 0;
   transition: opacity 0.4s ease;
   z-index: 0;
@@ -372,10 +372,10 @@ export default {
 .product-card:hover {
   transform: translateY(-8px) scale(1.01);
   box-shadow:
-    0 16px 40px rgba(52, 152, 219, 0.15),
+    0 16px 40px rgba(var(--store-brand-rgb), 0.15),
     0 8px 16px rgba(0, 0, 0, 0.08),
-    0 0 0 1px rgba(52, 152, 219, 0.1);
-  border-color: rgba(52, 152, 219, 0.2);
+    0 0 0 1px rgba(var(--store-brand-rgb), 0.1);
+  border-color: rgba(var(--store-brand-rgb), 0.2);
 }
 
 .product-card:hover::before {
@@ -443,7 +443,7 @@ export default {
   width: 100%;
   padding-bottom: 100%;
   overflow: hidden;
-  background: #f8f9fa;
+  background: var(--store-page);
 }
 
 .product-image {
@@ -487,7 +487,7 @@ export default {
 }
 
 .badge.algo-badge {
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: linear-gradient(135deg, var(--store-brand-light), var(--store-olive));
   display: flex;
   align-items: center;
   gap: 4px;
@@ -506,10 +506,10 @@ export default {
 
 @keyframes badgePulse {
   0%, 100% {
-    box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 2px 6px rgba(var(--store-brand-light-rgb), 0.3);
   }
   50% {
-    box-shadow: 0 2px 12px rgba(102, 126, 234, 0.5);
+    box-shadow: 0 2px 12px rgba(var(--store-brand-light-rgb), 0.5);
   }
 }
 
@@ -569,7 +569,7 @@ export default {
 .reason-score,
 .reason-confidence {
   padding: 2px 8px;
-  background: rgba(58, 91, 160, 0.08);
+  background: rgba(var(--store-brand-rgb), 0.08);
   border-radius: 10px;
 }
 
@@ -584,7 +584,7 @@ export default {
   margin: 0;
   font-size: 15px;
   font-weight: 600;
-  color: #2c3e50;
+  color: var(--store-ink);
   line-height: 1.8;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -637,7 +637,7 @@ export default {
   margin-top: 6px;
   font-size: 12px;
   color: #909399;
-  background: rgba(245, 247, 250, 0.8);
+  background: rgba(var(--store-surface-rgb), 0.8);
   padding: 4px 10px;
   border-radius: 20px;
 }
@@ -658,7 +658,7 @@ export default {
   font-size: 12px;
   color: #606266;
   margin-top: 6px;
-  background: rgba(245, 247, 250, 0.8);
+  background: rgba(var(--store-surface-rgb), 0.8);
   padding: 4px 10px;
   border-radius: 20px;
 }
@@ -671,7 +671,7 @@ export default {
 .product-footer {
   margin-top: 8px;
   padding-top: 8px;
-  border-top: 1px solid #f0f2f5;
+  border-top: 1px solid var(--store-surface);
 }
 
 .action-group {
@@ -688,12 +688,12 @@ export default {
   border-radius: 50%;
   color: #909399;
   transition: all 0.3s ease;
-  background: #f5f7fa;
+  background: var(--store-surface);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
 }
 
 .favorite-btn:hover {
-  background: #f0f2f5;
+  background: var(--store-surface);
   transform: translateY(-2px);
 }
 
@@ -717,7 +717,7 @@ export default {
   font-weight: 600;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow:
-    0 4px 12px rgba(52, 152, 219, 0.25),
+    0 4px 12px rgba(var(--store-brand-rgb), 0.25),
     0 2px 4px rgba(0, 0, 0, 0.1);
   position: relative;
   overflow: hidden;
@@ -740,7 +740,7 @@ export default {
   background: linear-gradient(135deg, var(--primary-dark), var(--primary-light));
   transform: translateY(-3px) scale(1.02);
   box-shadow:
-    0 8px 20px rgba(52, 152, 219, 0.35),
+    0 8px 20px rgba(var(--store-brand-rgb), 0.35),
     0 4px 8px rgba(0, 0, 0, 0.12);
 }
 
@@ -761,7 +761,7 @@ export default {
   height: 100%;
   color: #909399;
   font-size: 24px;
-  background: #f5f7fa;
+  background: var(--store-surface);
   gap: 8px;
 }
 

@@ -13,7 +13,21 @@ export default {
   components: {
     CustomerServiceWidget
   },
+  watch: {
+    isStorefrontTheme: {
+      immediate: true,
+      handler(enabled) {
+        document.documentElement.classList.toggle('storefront-theme', enabled)
+      }
+    }
+  },
+  beforeUnmount() {
+    document.documentElement.classList.remove('storefront-theme')
+  },
   computed: {
+    isStorefrontTheme() {
+      return !this.$route.matched.some(route => route.name === 'home')
+    },
     showCustomerService() {
       // 只在前端用户页面显示客服组件
       // 1. 排除登录、注册、忘记密码页面

@@ -699,7 +699,7 @@ export default {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(135deg, #ffffff 0%, #f5f7fa 50%, #ecf5ff 100%);
+  background: linear-gradient(135deg, #ffffff 0%, var(--store-surface) 50%, var(--store-surface-active) 100%);
   position: relative;
   overflow-x: hidden;
 }
@@ -711,8 +711,8 @@ export default {
   left: -50%;
   width: 200%;
   height: 200%;
-  background: radial-gradient(circle at 25% 25%, rgba(58, 91, 160, 0.02) 0%, transparent 50%),
-              radial-gradient(circle at 75% 75%, rgba(91, 124, 189, 0.02) 0%, transparent 50%);
+  background: radial-gradient(circle at 25% 25%, rgba(var(--store-brand-rgb), 0.02) 0%, transparent 50%),
+              radial-gradient(circle at 75% 75%, rgba(var(--store-brand-rgb), 0.02) 0%, transparent 50%);
   z-index: -1;
   animation: backgroundFloat 25s ease-in-out infinite;
 }
@@ -741,7 +741,7 @@ export default {
   backdrop-filter: blur(20px);
   padding: 24px;
   border-radius: 18px;
-  box-shadow: 0 6px 24px rgba(58, 91, 160, 0.1);
+  box-shadow: 0 6px 24px rgba(var(--store-brand-rgb), 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
   position: relative;
   overflow: hidden;
@@ -803,12 +803,12 @@ export default {
 
 .title-icon-wrapper:hover {
   transform: translateY(-2px) scale(1.05);
-  box-shadow: 0 12px 30px rgba(58, 91, 160, 0.3);
+  box-shadow: 0 12px 30px rgba(var(--store-brand-rgb), 0.3);
 }
 
 @keyframes iconPulse {
-  0%, 100% { box-shadow: 0 8px 20px rgba(58, 91, 160, 0.2); }
-  50% { box-shadow: 0 8px 20px rgba(58, 91, 160, 0.4), 0 0 30px rgba(58, 91, 160, 0.1); }
+  0%, 100% { box-shadow: 0 8px 20px rgba(var(--store-brand-rgb), 0.2); }
+  50% { box-shadow: 0 8px 20px rgba(var(--store-brand-rgb), 0.4), 0 0 30px rgba(var(--store-brand-rgb), 0.1); }
 }
 
 .title-icon-wrapper i {
@@ -823,7 +823,7 @@ export default {
   right: -3px;
   bottom: -3px;
   border-radius: 23px;
-  background: linear-gradient(135deg, rgba(58, 91, 160, 0.3), rgba(91, 124, 189, 0.3));
+  background: linear-gradient(135deg, rgba(var(--store-brand-rgb), 0.3), rgba(var(--store-brand-rgb), 0.3));
   opacity: 0;
   transition: opacity 0.3s ease;
   z-index: -1;
@@ -847,7 +847,7 @@ export default {
   margin: 0 0 8px 0;
   font-size: 28px;
   font-weight: 700;
-  color: #1a202c;
+  color: var(--store-ink);
   position: relative;
 }
 
@@ -881,7 +881,7 @@ export default {
 
 .subtitle-text {
   font-size: 16px;
-  color: #64748b;
+  color: var(--store-muted);
   font-weight: 400;
 }
 
@@ -890,7 +890,7 @@ export default {
   align-items: center;
   gap: 6px;
   padding: 4px 12px;
-  background: rgba(58, 91, 160, 0.1);
+  background: rgba(var(--store-brand-rgb), 0.1);
   color: var(--primary-color);
   border-radius: 20px;
   font-size: 14px;
@@ -922,7 +922,7 @@ export default {
 
 .modern-search :deep(.el-input__inner) {
   height: 48px;
-  border: 1.5px solid #e2e8f0;
+  border: 1.5px solid var(--store-border);
   border-radius: 24px;
   padding-left: 42px;
   padding-right: 16px;
@@ -930,12 +930,12 @@ export default {
   transition: all 0.3s ease;
   background: rgba(255, 255, 255, 0.98);
   backdrop-filter: blur(10px);
-  box-shadow: 0 2px 12px rgba(58, 91, 160, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 12px rgba(var(--store-brand-rgb), 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .modern-search :deep(.el-input__inner:focus) {
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(58, 91, 160, 0.15), 0 4px 20px rgba(58, 91, 160, 0.2);
+  box-shadow: 0 0 0 3px rgba(var(--store-brand-rgb), 0.15), 0 4px 20px rgba(var(--store-brand-rgb), 0.2);
   background: rgba(255, 255, 255, 1);
 }
 
@@ -959,7 +959,7 @@ export default {
   align-items: center;
   justify-content: center;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(58, 91, 160, 0.25);
+  box-shadow: 0 4px 12px rgba(var(--store-brand-rgb), 0.25);
   flex-shrink: 0;
 }
 
@@ -969,7 +969,7 @@ export default {
 
 .search-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(58, 91, 160, 0.35);
+  box-shadow: 0 8px 20px rgba(var(--store-brand-rgb), 0.35);
 }
 
 .search-suggestions {
@@ -980,7 +980,7 @@ export default {
   background: white;
   border-radius: 16px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--store-border);
   z-index: 1000;
   margin-top: 8px;
   overflow: hidden;
@@ -993,12 +993,12 @@ export default {
   padding: 12px 18px;
   cursor: pointer;
   transition: all 0.2s ease;
-  color: #64748b;
+  color: var(--store-muted);
   font-size: 14px;
 }
 
 .suggestion-item:hover {
-  background: rgba(58, 91, 160, 0.08);
+  background: rgba(var(--store-brand-rgb), 0.08);
   color: var(--primary-color);
 }
 
@@ -1068,7 +1068,7 @@ export default {
   transform: translateY(-50%);
   width: 1px;
   height: 30px;
-  background: linear-gradient(to bottom, transparent, #e2e8f0, transparent);
+  background: linear-gradient(to bottom, transparent, var(--store-border), transparent);
 }
 
 .filter-label {
@@ -1078,7 +1078,7 @@ export default {
   cursor: pointer;
   padding: 20px 24px;
   transition: all 0.3s ease;
-  color: #64748b;
+  color: var(--store-muted);
   font-size: 15px;
   position: relative;
   font-weight: 500;
@@ -1086,13 +1086,13 @@ export default {
 }
 
 .filter-label:hover {
-  background: rgba(58, 91, 160, 0.08);
+  background: rgba(var(--store-brand-rgb), 0.08);
   color: var(--primary-color);
   transform: translateY(-1px);
 }
 
 .filter-label.active {
-  background: rgba(58, 91, 160, 0.12);
+  background: rgba(var(--store-brand-rgb), 0.12);
   color: var(--primary-color);
 }
 
@@ -1112,7 +1112,7 @@ export default {
   width: 24px;
   height: 24px;
   border-radius: 8px;
-  background: rgba(58, 91, 160, 0.1);
+  background: rgba(var(--store-brand-rgb), 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1121,7 +1121,7 @@ export default {
 
 .filter-label:hover .filter-icon,
 .filter-label.active .filter-icon {
-  background: rgba(58, 91, 160, 0.15);
+  background: rgba(var(--store-brand-rgb), 0.15);
   transform: scale(1.1);
 }
 
@@ -1171,7 +1171,7 @@ export default {
 .view-toggle {
   border-radius: 12px;
   overflow: hidden;
-  background: rgba(58, 91, 160, 0.1);
+  background: rgba(var(--store-brand-rgb), 0.1);
 }
 
 .view-toggle :deep(.el-button) {
@@ -1198,7 +1198,7 @@ export default {
 }
 
 .reset-btn:hover {
-  background: rgba(58, 91, 160, 0.1);
+  background: rgba(var(--store-brand-rgb), 0.1);
   transform: translateY(-1px);
 }
 
@@ -1212,9 +1212,9 @@ export default {
   align-items: center;
   gap: 16px;
   padding: 16px 20px;
-  background: rgba(236, 245, 255, 0.8);
+  background: rgba(var(--store-surface-active-rgb), 0.8);
   border-radius: 16px;
-  border: 1px dashed rgba(58, 91, 160, 0.2);
+  border: 1px dashed rgba(var(--store-brand-rgb), 0.2);
 }
 
 .quick-filters-title {
@@ -1240,7 +1240,7 @@ export default {
 
 .quick-tag:hover {
   transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(58, 91, 160, 0.2);
+  box-shadow: 0 2px 8px rgba(var(--store-brand-rgb), 0.2);
 }
 
 /* 已选择的过滤条件 */
@@ -1249,9 +1249,9 @@ export default {
   align-items: center;
   margin-bottom: 24px;
   padding: 16px 24px;
-  background: rgba(58, 91, 160, 0.06);
+  background: rgba(var(--store-brand-rgb), 0.06);
   border-radius: 16px;
-  border: 1px dashed rgba(58, 91, 160, 0.25);
+  border: 1px dashed rgba(var(--store-brand-rgb), 0.25);
 }
 
 .selected-filters-title {
@@ -1305,13 +1305,13 @@ export default {
   font-size: 14px;
   border-radius: 12px;
   margin: 4px 0;
-  color: #64748b;
+  color: var(--store-muted);
   transition: all 0.3s ease;
   cursor: pointer;
 }
 
 :deep(.dropdown-item:hover) {
-  background: rgba(58, 91, 160, 0.12);
+  background: rgba(var(--store-brand-rgb), 0.12);
   color: var(--primary-color);
   transform: translateX(4px);
 }
@@ -1357,7 +1357,7 @@ export default {
   align-items: center;
   margin-bottom: 24px;
   padding-bottom: 16px;
-  border-bottom: 1px solid rgba(58, 91, 160, 0.1);
+  border-bottom: 1px solid rgba(var(--store-brand-rgb), 0.1);
 }
 
 .results-info {
@@ -1371,7 +1371,7 @@ export default {
   align-items: center;
   gap: 8px;
   font-size: 15px;
-  color: #64748b;
+  color: var(--store-muted);
   font-weight: 500;
 }
 
@@ -1471,7 +1471,7 @@ export default {
   width: 120px;
   height: 120px;
   border-radius: 50%;
-  background: linear-gradient(135deg, rgba(58, 91, 160, 0.1), rgba(58, 91, 160, 0.05));
+  background: linear-gradient(135deg, rgba(var(--store-brand-rgb), 0.1), rgba(var(--store-brand-rgb), 0.05));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1481,7 +1481,7 @@ export default {
 
 .empty-icon i {
   font-size: 48px;
-  color: rgba(58, 91, 160, 0.6);
+  color: rgba(var(--store-brand-rgb), 0.6);
 }
 
 @keyframes float {
@@ -1497,7 +1497,7 @@ export default {
 .empty-content h3 {
   font-size: 20px;
   font-weight: 600;
-  color: #374151;
+  color: var(--store-text);
   margin: 0 0 12px 0;
 }
 
@@ -1562,12 +1562,12 @@ export default {
   background: var(--gradient-primary);
   color: white;
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(58, 91, 160, 0.3);
+  box-shadow: 0 4px 12px rgba(var(--store-brand-rgb), 0.3);
 }
 
 :deep(.el-pagination.is-background .el-pager li:not(.disabled):hover) {
   color: var(--primary-color);
-  background: rgba(58, 91, 160, 0.1);
+  background: rgba(var(--store-brand-rgb), 0.1);
   transform: translateY(-1px);
 }
 
@@ -1582,7 +1582,7 @@ export default {
 
 :deep(.el-pagination .btn-prev:hover),
 :deep(.el-pagination .btn-next:hover) {
-  background: rgba(58, 91, 160, 0.1);
+  background: rgba(var(--store-brand-rgb), 0.1);
   color: var(--primary-color);
   transform: translateY(-1px);
 }
@@ -1593,7 +1593,7 @@ export default {
 
 :deep(.el-select .el-input .el-input__inner) {
   border-radius: 12px;
-  border: 2px solid #e2e8f0;
+  border: 2px solid var(--store-border);
   transition: all 0.3s ease;
 }
 
@@ -1604,18 +1604,18 @@ export default {
 :deep(.el-pagination__total) {
   margin-right: 20px;
   font-weight: 500;
-  color: #64748b;
+  color: var(--store-muted);
 }
 
 :deep(.el-pagination__jump) {
   margin-left: 20px;
   font-weight: 500;
-  color: #64748b;
+  color: var(--store-muted);
 }
 
 :deep(.el-pagination__jump .el-input .el-input__inner) {
   border-radius: 12px;
-  border: 2px solid #e2e8f0;
+  border: 2px solid var(--store-border);
   transition: all 0.3s ease;
 }
 
@@ -1726,7 +1726,7 @@ export default {
   .filter-actions {
     width: 100%;
     padding: 16px 20px;
-    border-top: 1px solid rgba(58, 91, 160, 0.1);
+    border-top: 1px solid rgba(var(--store-brand-rgb), 0.1);
     justify-content: space-between;
   }
   
@@ -1915,16 +1915,16 @@ export default {
 }
 
 .filter-group::-webkit-scrollbar-track {
-  background: rgba(58, 91, 160, 0.1);
+  background: rgba(var(--store-brand-rgb), 0.1);
   border-radius: 2px;
 }
 
 .filter-group::-webkit-scrollbar-thumb {
-  background: rgba(58, 91, 160, 0.3);
+  background: rgba(var(--store-brand-rgb), 0.3);
   border-radius: 2px;
 }
 
 .filter-group::-webkit-scrollbar-thumb:hover {
-  background: rgba(58, 91, 160, 0.5);
+  background: rgba(var(--store-brand-rgb), 0.5);
 }
 </style> 

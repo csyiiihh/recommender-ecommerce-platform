@@ -319,7 +319,7 @@ export default {
       if (team.status === 2) return '#f56c6c'
       const percent = team.currentPeople / team.requiredPeople * 100
       if (percent >= 80) return '#e6a23c'
-      return '#409eff'
+      return '#315749'
     },
     
     shareTeam(team) {
@@ -472,7 +472,7 @@ export default {
 }
 
 .product-title:hover {
-  color: #409eff;
+  color: var(--store-brand);
 }
 
 .price-info {

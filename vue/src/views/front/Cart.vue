@@ -860,7 +860,7 @@ export default {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(135deg, #ffffff 0%, #f5f7fa 50%, #ecf5ff 100%);
+  background: linear-gradient(135deg, #ffffff 0%, var(--store-surface) 50%, var(--store-surface-active) 100%);
   position: relative;
   overflow-x: hidden;
 }
@@ -872,8 +872,8 @@ export default {
   left: -50%;
   width: 200%;
   height: 200%;
-  background: radial-gradient(circle at 25% 25%, rgba(58, 91, 160, 0.02) 0%, transparent 50%),
-              radial-gradient(circle at 75% 75%, rgba(91, 124, 189, 0.02) 0%, transparent 50%);
+  background: radial-gradient(circle at 25% 25%, rgba(var(--store-brand-rgb), 0.02) 0%, transparent 50%),
+              radial-gradient(circle at 75% 75%, rgba(var(--store-brand-rgb), 0.02) 0%, transparent 50%);
   z-index: -1;
   animation: backgroundFloat 25s ease-in-out infinite;
 }
@@ -965,12 +965,12 @@ export default {
 
 .title-icon:hover {
   transform: translateY(-2px) scale(1.05);
-  box-shadow: 0 12px 30px rgba(58, 91, 160, 0.3);
+  box-shadow: 0 12px 30px rgba(var(--store-brand-rgb), 0.3);
 }
 
 @keyframes iconPulse {
-  0%, 100% { box-shadow: 0 8px 20px rgba(58, 91, 160, 0.2); }
-  50% { box-shadow: 0 8px 20px rgba(58, 91, 160, 0.4), 0 0 30px rgba(58, 91, 160, 0.1); }
+  0%, 100% { box-shadow: 0 8px 20px rgba(var(--store-brand-rgb), 0.2); }
+  50% { box-shadow: 0 8px 20px rgba(var(--store-brand-rgb), 0.4), 0 0 30px rgba(var(--store-brand-rgb), 0.1); }
 }
 
 .title-icon i {
@@ -985,7 +985,7 @@ export default {
   right: -3px;
   bottom: -3px;
   border-radius: 23px;
-  background: linear-gradient(135deg, rgba(58, 91, 160, 0.3), rgba(91, 124, 189, 0.3));
+  background: linear-gradient(135deg, rgba(var(--store-brand-rgb), 0.3), rgba(var(--store-brand-rgb), 0.3));
   opacity: 0;
   transition: opacity 0.3s ease;
   z-index: -1;
@@ -1004,13 +1004,13 @@ export default {
 .title-content h2 {
   font-size: 28px;
   font-weight: 700;
-  color: #1a202c;
+  color: var(--store-ink);
   margin: 0 0 8px 0;
 }
 
 .header-subtitle {
   font-size: 16px;
-  color: #64748b;
+  color: var(--store-muted);
   font-weight: 400;
   margin: 0;
 }
@@ -1031,14 +1031,14 @@ export default {
   align-items: center;
   gap: 8px;
   padding: 16px 20px;
-  background: rgba(58, 91, 160, 0.1);
+  background: rgba(var(--store-brand-rgb), 0.1);
   border-radius: 16px;
   transition: all 0.3s ease;
 }
 
 .stats-item:hover {
   transform: translateY(-2px);
-  background: rgba(58, 91, 160, 0.15);
+  background: rgba(var(--store-brand-rgb), 0.15);
 }
 
 .stats-item i {
@@ -1048,7 +1048,7 @@ export default {
 
 .stats-label {
   font-size: 12px;
-  color: #64748b;
+  color: var(--store-muted);
   font-weight: 500;
 }
 
@@ -1101,7 +1101,7 @@ export default {
   width: 120px;
   height: 120px;
   border-radius: 50%;
-  background: linear-gradient(135deg, rgba(58, 91, 160, 0.1), rgba(58, 91, 160, 0.05));
+  background: linear-gradient(135deg, rgba(var(--store-brand-rgb), 0.1), rgba(var(--store-brand-rgb), 0.05));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1111,7 +1111,7 @@ export default {
 
 .empty-icon i {
   font-size: 48px;
-  color: rgba(58, 91, 160, 0.6);
+  color: rgba(var(--store-brand-rgb), 0.6);
 }
 
 .empty-items {
@@ -1128,7 +1128,7 @@ export default {
 .empty-item {
   width: 8px;
   height: 8px;
-  background: rgba(58, 91, 160, 0.3);
+  background: rgba(var(--store-brand-rgb), 0.3);
   border-radius: 50%;
   animation: floatItems 2s ease-in-out infinite;
 }
@@ -1149,7 +1149,7 @@ export default {
 .empty-content h3 {
   font-size: 24px;
   font-weight: 600;
-  color: #374151;
+  color: var(--store-text);
   margin: 0 0 12px 0;
 }
 
@@ -1186,7 +1186,7 @@ export default {
 
 .empty-actions .el-button:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(58, 91, 160, 0.3);
+  box-shadow: 0 8px 20px rgba(var(--store-brand-rgb), 0.3);
 }
 
 /* 表头样式 */
@@ -1195,12 +1195,12 @@ export default {
   grid-template-columns: 80px 3fr 1fr 1fr 1fr 1fr;
   align-items: center;
   padding: 20px 32px;
-  background: linear-gradient(135deg, rgba(58, 91, 160, 0.06), rgba(255, 255, 255, 0.8));
+  background: linear-gradient(135deg, rgba(var(--store-brand-rgb), 0.06), rgba(255, 255, 255, 0.8));
   border-radius: 24px 24px 0 0;
   font-size: 14px;
-  color: #64748b;
+  color: var(--store-muted);
   font-weight: 600;
-  border-bottom: 1px solid rgba(58, 91, 160, 0.1);
+  border-bottom: 1px solid rgba(var(--store-brand-rgb), 0.1);
 }
 
 .header-select,
@@ -1217,7 +1217,7 @@ export default {
 
 .select-text {
   font-weight: 600;
-  color: #64748b;
+  color: var(--store-muted);
 }
 
 /* 商品项样式 */
@@ -1226,7 +1226,7 @@ export default {
   grid-template-columns: 80px 3fr 1fr 1fr 1fr 1fr;
   align-items: center;
   padding: 24px 32px;
-  border-bottom: 1px solid rgba(58, 91, 160, 0.1);
+  border-bottom: 1px solid rgba(var(--store-brand-rgb), 0.1);
   transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
   position: relative;
   animation: fadeInUp 0.6s ease forwards;
@@ -1235,9 +1235,9 @@ export default {
 }
 
 .cart-item:hover {
-  background: linear-gradient(135deg, rgba(58, 91, 160, 0.04), rgba(255, 255, 255, 0.5));
+  background: linear-gradient(135deg, rgba(var(--store-brand-rgb), 0.04), rgba(255, 255, 255, 0.5));
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(58, 91, 160, 0.12);
+  box-shadow: 0 8px 25px rgba(var(--store-brand-rgb), 0.12);
 }
 
 @keyframes fadeInUp {
@@ -1281,7 +1281,7 @@ export default {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(58, 91, 160, 0.8);
+  background: rgba(var(--store-brand-rgb), 0.8);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1305,7 +1305,7 @@ export default {
 
 .product-name {
   font-size: 16px;
-  color: #1a202c;
+  color: var(--store-ink);
   margin-bottom: 8px;
   cursor: pointer;
   font-weight: 600;
@@ -1329,9 +1329,9 @@ export default {
   align-items: center;
   gap: 6px;
   font-size: 13px;
-  color: #64748b;
+  color: var(--store-muted);
   padding: 4px 8px;
-  background: rgba(58, 91, 160, 0.08);
+  background: rgba(var(--store-brand-rgb), 0.08);
   border-radius: 8px;
   width: fit-content;
 }
@@ -1396,15 +1396,15 @@ export default {
   align-items: center;
   gap: 8px;
   background: rgba(255, 255, 255, 0.8);
-  border: 2px solid rgba(58, 91, 160, 0.2);
+  border: 2px solid rgba(var(--store-brand-rgb), 0.2);
   border-radius: 16px;
   padding: 4px;
   transition: all 0.3s ease;
 }
 
 .quantity-control:hover {
-  border-color: rgba(58, 91, 160, 0.4);
-  box-shadow: 0 4px 12px rgba(58, 91, 160, 0.12);
+  border-color: rgba(var(--store-brand-rgb), 0.4);
+  box-shadow: 0 4px 12px rgba(var(--store-brand-rgb), 0.12);
 }
 
 .quantity-btn {
@@ -1419,11 +1419,11 @@ export default {
 
 .quantity-btn:hover {
   transform: scale(1.1);
-  box-shadow: 0 4px 12px rgba(58, 91, 160, 0.3);
+  box-shadow: 0 4px 12px rgba(var(--store-brand-rgb), 0.3);
 }
 
 .quantity-btn:disabled {
-  background: #e5e7eb;
+  background: var(--store-border-light);
   color: #9ca3af;
   transform: none;
   box-shadow: none;
@@ -1440,7 +1440,7 @@ export default {
   background: transparent;
   font-weight: 600;
   font-size: 16px;
-  color: #1a202c;
+  color: var(--store-ink);
 }
 
 .quantity-input :deep(.el-input__inner) {
@@ -1452,7 +1452,7 @@ export default {
   text-align: center;
   font-weight: 600;
   font-size: 16px;
-  color: #1a202c;
+  color: var(--store-ink);
 }
 
 /* 小计样式 */
@@ -1506,12 +1506,12 @@ export default {
 }
 
 .favorite-btn {
-  color: #64748b;
-  background: rgba(100, 116, 139, 0.1);
+  color: var(--store-muted);
+  background: rgba(var(--store-muted-rgb), 0.1);
 }
 
 .favorite-btn:hover {
-  background: rgba(100, 116, 139, 0.2);
+  background: rgba(var(--store-muted-rgb), 0.2);
   transform: translateY(-1px);
 }
 
@@ -1537,8 +1537,8 @@ export default {
 /* 收货地址区域样式 */
 .address-section {
   padding: 24px 32px;
-  border-bottom: 1px solid rgba(58, 91, 160, 0.1);
-  background: linear-gradient(135deg, rgba(58, 91, 160, 0.04), rgba(255, 255, 255, 0.8));
+  border-bottom: 1px solid rgba(var(--store-brand-rgb), 0.1);
+  background: linear-gradient(135deg, rgba(var(--store-brand-rgb), 0.04), rgba(255, 255, 255, 0.8));
   animation: slideInFromLeft 0.8s ease-out 0.4s both;
 }
 
@@ -1565,7 +1565,7 @@ export default {
   align-items: center;
   gap: 12px;
   font-size: 18px;
-  color: #1a202c;
+  color: var(--store-ink);
   font-weight: 600;
 }
 
@@ -1603,17 +1603,17 @@ export default {
 }
 
 .address-select :deep(.el-input__inner) {
-  border: 1.5px solid rgba(58, 91, 160, 0.2);
+  border: 1.5px solid rgba(var(--store-brand-rgb), 0.2);
   border-radius: 16px;
   padding: 12px 20px;
   font-size: 15px;
   transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(58, 91, 160, 0.08);
+  box-shadow: 0 2px 8px rgba(var(--store-brand-rgb), 0.08);
 }
 
 .address-select :deep(.el-input__inner:focus) {
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(58, 91, 160, 0.12), 0 4px 16px rgba(58, 91, 160, 0.15);
+  box-shadow: 0 0 0 3px rgba(var(--store-brand-rgb), 0.12), 0 4px 16px rgba(var(--store-brand-rgb), 0.15);
 }
 
 /* 优化地址下拉选项的显示 */
@@ -1628,7 +1628,7 @@ export default {
 }
 
 .address-select :deep(.el-select-dropdown__item:hover) {
-  background-color: rgba(58, 91, 160, 0.08) !important;
+  background-color: rgba(var(--store-brand-rgb), 0.08) !important;
 }
 
 .address-select :deep(.el-select-dropdown) {
@@ -1664,7 +1664,7 @@ export default {
 }
 
 .receiver-name {
-  color: #1a202c;
+  color: var(--store-ink);
   font-weight: 600;
   font-size: 15px;
   white-space: nowrap;
@@ -1673,9 +1673,9 @@ export default {
 }
 
 .receiver-phone {
-  color: #64748b;
+  color: var(--store-muted);
   font-size: 14px;
-  background: rgba(58, 91, 160, 0.1);
+  background: rgba(var(--store-brand-rgb), 0.1);
   padding: 6px 12px;
   border-radius: 8px;
   white-space: nowrap;
@@ -1684,7 +1684,7 @@ export default {
 }
 
 .address-detail {
-  color: #64748b;
+  color: var(--store-muted);
   font-size: 14px;
   line-height: 1.5;
   word-break: break-word;
@@ -1695,7 +1695,7 @@ export default {
 }
 
 .add-address-btn {
-  border: 1.5px solid rgba(58, 91, 160, 0.3);
+  border: 1.5px solid rgba(var(--store-brand-rgb), 0.3);
   color: var(--primary-color);
   border-radius: 16px;
   padding: 12px 20px;
@@ -1705,7 +1705,7 @@ export default {
 }
 
 .add-address-btn:hover {
-  background: rgba(58, 91, 160, 0.1);
+  background: rgba(var(--store-brand-rgb), 0.1);
   border-color: var(--primary-color);
   transform: translateY(-2px);
 }
@@ -1713,9 +1713,9 @@ export default {
 /* 底部样式 */
 .cart-footer {
   padding: 24px 32px;
-  background: linear-gradient(135deg, rgba(58, 91, 160, 0.06), rgba(255, 255, 255, 0.9));
+  background: linear-gradient(135deg, rgba(var(--store-brand-rgb), 0.06), rgba(255, 255, 255, 0.9));
   border-radius: 0 0 24px 24px;
-  border-top: 1px solid rgba(58, 91, 160, 0.1);
+  border-top: 1px solid rgba(var(--store-brand-rgb), 0.1);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1735,7 +1735,7 @@ export default {
 
 .footer-select-all .select-all-text {
   font-weight: 600;
-  color: #64748b;
+  color: var(--store-muted);
   margin-left: 8px;
 }
 
@@ -1790,13 +1790,13 @@ export default {
 
 .summary-label {
   font-size: 14px;
-  color: #64748b;
+  color: var(--store-muted);
   font-weight: 500;
 }
 
 .summary-value {
   font-size: 14px;
-  color: #1a202c;
+  color: var(--store-ink);
   font-weight: 600;
 }
 
@@ -1829,7 +1829,7 @@ export default {
   padding: 16px 32px;
   font-size: 16px;
   border-radius: 20px;
-  background: linear-gradient(135deg, #409EFF, #66b1ff);
+  background: linear-gradient(135deg, var(--store-brand), var(--store-brand-light));
   border: none;
   font-weight: 600;
   transition: all 0.3s ease;
@@ -1850,7 +1850,7 @@ export default {
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(135deg, #66b1ff, #409EFF);
+  background: linear-gradient(135deg, var(--store-brand-light), var(--store-brand));
   opacity: 0;
   transition: opacity 0.3s ease;
 }
@@ -1860,16 +1860,16 @@ export default {
 }
 
 .checkout-btn.balance-btn:hover:not(:disabled) {
-  box-shadow: 0 8px 25px rgba(58, 91, 160, 0.3);
+  box-shadow: 0 8px 25px rgba(var(--store-brand-rgb), 0.3);
 }
 
 .checkout-btn:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(64, 158, 255, 0.3);
+  box-shadow: 0 8px 25px rgba(var(--store-brand-rgb), 0.3);
 }
 
 .checkout-btn.balance-btn:hover:not(:disabled) {
-  box-shadow: 0 8px 25px rgba(58, 91, 160, 0.3);
+  box-shadow: 0 8px 25px rgba(var(--store-brand-rgb), 0.3);
 }
 
 .checkout-btn:hover:not(:disabled)::before {
@@ -1909,7 +1909,7 @@ export default {
 }
 
 :deep(.el-checkbox__label) {
-  color: #64748b;
+  color: var(--store-muted);
   font-weight: 500;
 }
 
@@ -2192,7 +2192,7 @@ export default {
 }
 
 .el-select-dropdown .el-select-dropdown__item.selected {
-  background-color: rgba(58, 91, 160, 0.1) !important;
+  background-color: rgba(var(--store-brand-rgb), 0.1) !important;
 }
 
 /* 确保地址选项容器完整显示 */
@@ -2214,7 +2214,7 @@ export default {
 }
 
 .el-select-dropdown .el-select-dropdown__item.selected {
-  background-color: rgba(58, 91, 160, 0.1) !important;
+  background-color: rgba(var(--store-brand-rgb), 0.1) !important;
 }
 
 /* 确保地址选项容器完整显示 */

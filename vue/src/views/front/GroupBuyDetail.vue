@@ -704,7 +704,7 @@ export default {
       const percent = team.currentPeople / team.requiredPeople * 100
       if (percent >= 100) return '#67c23a'
       if (percent >= 80) return '#e6a23c'
-      return '#409eff'
+      return '#315749'
     }
   }
 }
@@ -811,7 +811,7 @@ export default {
 
 .rule-item i {
   font-size: 18px;
-  color: #409eff;
+  color: var(--store-brand);
 }
 
 .description {
@@ -860,8 +860,8 @@ export default {
 }
 
 .team-item:hover {
-  border-color: #409eff;
-  box-shadow: 0 2px 12px rgba(64, 158, 255, 0.1);
+  border-color: var(--store-brand);
+  box-shadow: 0 2px 12px rgba(var(--store-brand-rgb), 0.1);
 }
 
 .team-item.almost-full {
@@ -929,7 +929,7 @@ export default {
 .progress-text .current {
   font-size: 18px;
   font-weight: bold;
-  color: #409eff;
+  color: var(--store-brand);
 }
 
 .progress-text .required {
@@ -983,16 +983,16 @@ export default {
 }
 
 .address-card:hover {
-  border-color: #409eff;
-  background: #f0f9ff;
+  border-color: var(--store-brand);
+  background: var(--store-surface);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.15);
+  box-shadow: 0 4px 12px rgba(var(--store-brand-rgb), 0.15);
 }
 
 .address-card.selected {
-  border-color: #409eff;
-  background: #f0f9ff;
-  box-shadow: 0 0 0 3px rgba(64, 158, 255, 0.1);
+  border-color: var(--store-brand);
+  background: var(--store-surface);
+  box-shadow: 0 0 0 3px rgba(var(--store-brand-rgb), 0.1);
 }
 
 .radio-icon {
@@ -1008,11 +1008,11 @@ export default {
 
 .radio-icon i {
   font-size: 20px;
-  color: #409eff;
+  color: var(--store-brand);
 }
 
 .address-card:not(.selected) .radio-icon i {
-  color: #dcdfe6;
+  color: var(--store-border);
 }
 
 .address-info {
@@ -1064,7 +1064,7 @@ export default {
 
 .section-title i {
   font-size: 18px;
-  color: #409eff;
+  color: var(--store-brand);
 }
 
 .payment-methods {
@@ -1085,16 +1085,16 @@ export default {
 }
 
 .payment-card:hover {
-  border-color: #409eff;
-  background: #f0f9ff;
+  border-color: var(--store-brand);
+  background: var(--store-surface);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.15);
+  box-shadow: 0 4px 12px rgba(var(--store-brand-rgb), 0.15);
 }
 
 .payment-card.selected {
-  border-color: #409eff;
-  background: #f0f9ff;
-  box-shadow: 0 0 0 3px rgba(64, 158, 255, 0.1);
+  border-color: var(--store-brand);
+  background: var(--store-surface);
+  box-shadow: 0 0 0 3px rgba(var(--store-brand-rgb), 0.1);
 }
 
 .payment-info {
@@ -1115,7 +1115,7 @@ export default {
 }
 
 .payment-icon.alipay-icon {
-  color: #1677ff;
+  color: var(--store-brand);
 }
 
 .payment-name {

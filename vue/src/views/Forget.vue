@@ -238,7 +238,7 @@ beforeUnmount() {
     position: absolute;
     width: 80px;
     height: 40px;
-    background: radial-gradient(ellipse at center, rgba(58, 91, 160, 0.06) 0%, transparent 70%);
+    background: radial-gradient(ellipse at center, rgba(var(--store-brand-rgb), 0.06) 0%, transparent 70%);
     border-radius: 50%;
     animation: floatCloud 15s ease-in-out infinite;
 }
@@ -292,7 +292,7 @@ beforeUnmount() {
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 8px 24px rgba(58, 91, 160, 0.25);
+    box-shadow: 0 8px 24px rgba(var(--store-brand-rgb), 0.25);
     border: 3px dashed rgba(201, 160, 99, 0.4);
     animation: float 3s ease-in-out infinite, rotate360 20s linear infinite;
     position: relative;
@@ -519,8 +519,8 @@ beforeUnmount() {
 :deep(.el-input__inner:focus) {
     border-color: var(--primary-color);
     background: white;
-    box-shadow: 0 0 0 3px rgba(58, 91, 160, 0.1),
-                0 4px 12px rgba(58, 91, 160, 0.15);
+    box-shadow: 0 0 0 3px rgba(var(--store-brand-rgb), 0.1),
+                0 4px 12px rgba(var(--store-brand-rgb), 0.15);
     transform: translateY(-1px);
 }
 

@@ -100,14 +100,14 @@
   position: absolute;
   width: 60px;
   height: 60px;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 60'%3E%3Cpath d='M0,0 L60,0 L60,60' fill='none' stroke='%233498DB' stroke-width='2' opacity='0.3'/%3E%3Cpath d='M10,10 Q30,5 50,10' fill='none' stroke='%23F39C12' stroke-width='1.5' opacity='0.5'/%3E%3C/svg%3E");
+  background-image: var(--store-pattern-theme-corner, url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 60'%3E%3Cpath d='M0,0 L60,0 L60,60' fill='none' stroke='%233498DB' stroke-width='2' opacity='0.3'/%3E%3Cpath d='M10,10 Q30,5 50,10' fill='none' stroke='%23F39C12' stroke-width='1.5' opacity='0.5'/%3E%3C/svg%3E"));
 }
 
 .chinese-pattern-bg {
   background-color: var(--bg-paper);
   background-image: 
-    repeating-linear-gradient(90deg, rgba(52, 152, 219, 0.03) 0px, transparent 1px, transparent 40px, rgba(52, 152, 219, 0.03) 41px),
-    repeating-linear-gradient(0deg, rgba(52, 152, 219, 0.03) 0px, transparent 1px, transparent 40px, rgba(52, 152, 219, 0.03) 41px);
+    repeating-linear-gradient(90deg, rgba(var(--store-brand-rgb, 52, 152, 219), 0.03) 0px, transparent 1px, transparent 40px, rgba(var(--store-brand-rgb, 52, 152, 219), 0.03) 41px),
+    repeating-linear-gradient(0deg, rgba(var(--store-brand-rgb, 52, 152, 219), 0.03) 0px, transparent 1px, transparent 40px, rgba(var(--store-brand-rgb, 52, 152, 219), 0.03) 41px);
 }
 
 .ink-brush-effect {
@@ -122,7 +122,7 @@
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(52, 152, 219, 0.1), transparent);
+  background: linear-gradient(90deg, transparent, rgba(var(--store-brand-rgb, 52, 152, 219), 0.1), transparent);
   transition: left 0.6s ease;
 }
 
@@ -154,10 +154,10 @@
 
 /* 青花瓷纹理 */
 .blue-white-porcelain {
-  background: linear-gradient(135deg, #FFFFFF 0%, #F0F8FF 100%);
+  background: linear-gradient(135deg, #FFFFFF 0%, var(--store-page, #F0F8FF) 100%);
   box-shadow: 
-    inset 0 1px 3px rgba(52, 152, 219, 0.1),
-    0 2px 8px rgba(52, 152, 219, 0.08);
+    inset 0 1px 3px rgba(var(--store-brand-rgb, 52, 152, 219), 0.1),
+    0 2px 8px rgba(var(--store-brand-rgb, 52, 152, 219), 0.08);
 }
 
 /* 山水渐变背景 */
@@ -165,8 +165,8 @@
   background: linear-gradient(
     to bottom,
     rgba(39, 174, 96, 0.05) 0%,
-    rgba(52, 152, 219, 0.03) 50%,
-    rgba(248, 249, 250, 1) 100%
+    rgba(var(--store-brand-rgb, 52, 152, 219), 0.03) 50%,
+    rgba(var(--store-page-rgb, 248, 249, 250), 1) 100%
   );
 }
 

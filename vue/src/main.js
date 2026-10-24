@@ -13,6 +13,7 @@ import '../src/assets/iconfont.css'
 import '../src/assets/styles/design-system.css'
 import '../src/assets/styles/chinese-theme.css'
 import '../src/assets/styles/chinese-patterns.css'
+import '../src/assets/styles/storefront-theme.css'
 
 const app = createApp(App);
 

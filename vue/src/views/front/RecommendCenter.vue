@@ -396,8 +396,8 @@ export default {
           data: [{
             value: values,
             name: '算法得分',
-            areaStyle: { color: 'rgba(64,158,255,0.2)' },
-            lineStyle: { color: '#409eff' }
+            areaStyle: { color: 'rgba(49, 87, 73,0.2)' },
+            lineStyle: { color: '#315749' }
           }]
         }]
       }
@@ -596,7 +596,7 @@ export default {
 <style scoped lang="less">
 .recommend-center-page {
   min-height: 100vh;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  background: linear-gradient(135deg, var(--store-surface) 0%, var(--store-border-strong) 100%);
   
   .main-content {
     max-width: 1400px;
@@ -610,9 +610,9 @@ export default {
     align-items: center;
     margin-bottom: 24px;
     padding: 32px 28px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, var(--store-brand-light) 0%, var(--store-olive) 100%);
     border-radius: 16px;
-    box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 8px 24px rgba(var(--store-brand-light-rgb), 0.3);
     color: white;
     
     .header-left {
@@ -667,7 +667,7 @@ export default {
         .stat-value {
           font-size: 28px;
           font-weight: bold;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          background: linear-gradient(135deg, var(--store-brand-light) 0%, var(--store-olive) 100%);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
           background-clip: text;
@@ -730,7 +730,7 @@ export default {
           height: 200px;
           flex-shrink: 0;
           overflow: hidden;
-          background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+          background: linear-gradient(135deg, var(--store-surface) 0%, var(--store-border-strong) 100%);
           
           img {
             width: 100%;
@@ -758,13 +758,13 @@ export default {
           .product-name {
             font-size: 20px;
             font-weight: 700;
-            color: #2c3e50;
+            color: var(--store-ink);
             margin: 0 0 12px 0;
             cursor: pointer;
             transition: color 0.3s;
             
             &:hover {
-              color: #667eea;
+              color: var(--store-brand-light);
             }
           }
           
@@ -792,7 +792,7 @@ export default {
               border: none;
               
               .el-collapse-item__header {
-                background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+                background: linear-gradient(135deg, var(--store-page) 0%, var(--store-border-light) 100%);
                 border-radius: 8px;
                 padding: 12px 16px;
                 font-weight: 600;
@@ -800,7 +800,7 @@ export default {
                 border: none;
                 
                 &:hover {
-                  background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
+                  background: linear-gradient(135deg, var(--store-border-light) 0%, var(--store-border) 100%);
                 }
               }
               
@@ -818,7 +818,7 @@ export default {
             
             .explanation-content {
               padding: 16px;
-              background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+              background: linear-gradient(135deg, var(--store-page) 0%, #ffffff 100%);
               border-radius: 4px;
               
               .explanation-item {
@@ -831,7 +831,7 @@ export default {
                 strong {
                   display: block;
                   margin-bottom: 10px;
-                  color: #2c3e50;
+                  color: var(--store-ink);
                   font-size: 14px;
                   font-weight: 600;
                 }
@@ -858,14 +858,14 @@ export default {
                   width: 260px;
                   height: 220px;
                   background: #fff;
-                  border: 1px solid #ebeef5;
+                  border: 1px solid var(--store-border-light);
                   border-radius: 8px;
                   padding: 8px;
                 }
 
                 .timeline {
                   margin-top: 12px;
-                  border-left: 3px solid #667eea;
+                  border-left: 3px solid var(--store-brand-light);
                   padding-left: 16px;
                   display: flex;
                   flex-direction: column;
@@ -883,10 +883,10 @@ export default {
                   top: 6px;
                   width: 12px;
                   height: 12px;
-                  background: #667eea;
+                  background: var(--store-brand-light);
                   border-radius: 50%;
                   border: 3px solid #fff;
-                  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+                  box-shadow: 0 0 0 3px rgba(var(--store-brand-light-rgb), 0.2);
                 }
 
                 .timeline-content {
@@ -900,7 +900,7 @@ export default {
 
                 .factor-type {
                   padding: 4px 10px;
-                  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                  background: linear-gradient(135deg, var(--store-brand-light) 0%, var(--store-olive) 100%);
                   color: white;
                   border-radius: 12px;
                   font-weight: 600;
@@ -980,7 +980,7 @@ export default {
   
   .title {
     font-weight: 700;
-    color: #2c3e50;
+    color: var(--store-ink);
     font-size: 16px;
   }
   
@@ -994,7 +994,7 @@ export default {
   font-size: 14px;
   text-align: center;
   padding: 40px 20px;
-  background: #f8f9fa;
+  background: var(--store-page);
   border-radius: 8px;
 }
 
@@ -1026,13 +1026,13 @@ export default {
 
 .feedback-item {
   padding: 12px;
-  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+  background: linear-gradient(135deg, var(--store-page) 0%, #ffffff 100%);
   border-radius: 8px;
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--store-border-light);
   transition: all 0.3s;
   
   &:hover {
-    background: linear-gradient(135deg, #e9ecef 0%, #f8f9fa 100%);
+    background: linear-gradient(135deg, var(--store-border-light) 0%, var(--store-page) 100%);
     transform: translateX(4px);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   }
@@ -1043,7 +1043,7 @@ export default {
   justify-content: space-between;
   align-items: center;
   font-size: 14px;
-  color: #2c3e50;
+  color: var(--store-ink);
   margin-bottom: 8px;
   font-weight: 500;
 }
@@ -1057,10 +1057,10 @@ export default {
 }
 
 .feedback-type {
-  color: #667eea;
+  color: var(--store-brand-light);
   font-weight: 600;
   padding: 2px 8px;
-  background: rgba(102, 126, 234, 0.1);
+  background: rgba(var(--store-brand-light-rgb), 0.1);
   border-radius: 4px;
 }
 

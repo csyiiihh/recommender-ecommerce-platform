@@ -493,7 +493,7 @@ export default {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: #f5f7fa;
+  background: var(--store-surface);
 }
 
 .main-content {
@@ -643,7 +643,7 @@ export default {
 .divider {
   position: relative;
   height: 1px;
-  background: #ebeef5;
+  background: var(--store-border-light);
   margin: 24px 0;
 }
 
@@ -731,7 +731,7 @@ export default {
 }
 
 .review-item {
-  background: #f8f9fa;
+  background: var(--store-page);
   border-radius: 8px;
   padding: 20px;
 }
@@ -770,7 +770,7 @@ export default {
   display: flex;
   gap: 16px;
   padding: 16px;
-  background: #f8f9fa;
+  background: var(--store-page);
   border-radius: 8px;
   margin-bottom: 24px;
 }
@@ -847,7 +847,7 @@ export default {
 .order-total {
   text-align: right;
   padding: 16px;
-  border-top: 1px solid #ebeef5;
+  border-top: 1px solid var(--store-border-light);
   font-size: 14px;
   color: #606266;
 }
@@ -901,8 +901,8 @@ export default {
 :deep(.rich-text-content blockquote) {
   margin: 1em 0;
   padding: 0.5em 1em;
-  border-left: 4px solid #409eff;
-  background-color: #ecf5ff;
+  border-left: 4px solid var(--store-brand);
+  background-color: var(--store-surface-active);
   color: #606266;
 }
 
@@ -910,13 +910,13 @@ export default {
 :deep(.rich-text-content pre) {
   margin: 1em 0;
   padding: 1em;
-  background-color: #f6f8fa;
+  background-color: var(--store-page);
   border-radius: 4px;
   overflow-x: auto;
 }
 
 :deep(.rich-text-content code) {
-  background-color: #f6f8fa;
+  background-color: var(--store-page);
   padding: 0.2em 0.4em;
   border-radius: 3px;
   font-family: Consolas, Monaco, 'Andale Mono', monospace;
@@ -927,18 +927,18 @@ export default {
   width: 100%;
   margin: 1em 0;
   border-collapse: collapse;
-  border: 1px solid #dcdfe6;
+  border: 1px solid var(--store-border);
 }
 
 :deep(.rich-text-content th),
 :deep(.rich-text-content td) {
   padding: 12px;
-  border: 1px solid #dcdfe6;
+  border: 1px solid var(--store-border);
   text-align: left;
 }
 
 :deep(.rich-text-content th) {
-  background-color: #f5f7fa;
+  background-color: var(--store-surface);
   font-weight: 600;
   color: #303133;
 }
@@ -948,7 +948,7 @@ export default {
 }
 
 :deep(.rich-text-content tr:hover) {
-  background-color: #f5f7fa;
+  background-color: var(--store-surface);
 }
 
 /* 图片样式 */
@@ -962,13 +962,13 @@ export default {
 
 /* 链接样式 */
 :deep(.rich-text-content a) {
-  color: #409eff;
+  color: var(--store-brand);
   text-decoration: none;
   transition: color 0.3s;
 }
 
 :deep(.rich-text-content a:hover) {
-  color: #66b1ff;
+  color: var(--store-brand-light);
   text-decoration: underline;
 }
 
@@ -976,7 +976,7 @@ export default {
 :deep(.rich-text-content hr) {
   margin: 1.5em 0;
   border: none;
-  border-top: 1px solid #dcdfe6;
+  border-top: 1px solid var(--store-border);
 }
 
 /* 文本对齐 */

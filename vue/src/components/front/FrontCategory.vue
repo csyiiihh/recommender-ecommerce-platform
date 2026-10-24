@@ -221,7 +221,7 @@ export default {
 .section-title {
   font-size: 20px;
   font-weight: 600;
-  color: #2c3e50;
+  color: var(--store-ink);
   margin: 0;
   display: flex;
   align-items: center;
@@ -231,11 +231,11 @@ export default {
 .algo-tag {
   font-size: 11px;
   padding: 2px 8px;
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.15), rgba(118, 75, 162, 0.15));
-  color: #667eea;
+  background: linear-gradient(135deg, rgba(var(--store-brand-light-rgb), 0.15), rgba(var(--store-olive-rgb), 0.15));
+  color: var(--store-brand-light);
   border-radius: 10px;
   font-weight: 500;
-  border: 1px solid rgba(102, 126, 234, 0.2);
+  border: 1px solid rgba(var(--store-brand-light-rgb), 0.2);
 }
 
 .category-container::before {
@@ -243,8 +243,8 @@ export default {
   position: absolute;
   inset: 0;
   background-image: 
-    radial-gradient(circle at 0% 0%, rgba(58, 91, 160, 0.05) 0%, transparent 50%),
-    radial-gradient(circle at 100% 0%, rgba(58, 91, 160, 0.05) 0%, transparent 50%);
+    radial-gradient(circle at 0% 0%, rgba(var(--store-brand-rgb), 0.05) 0%, transparent 50%),
+    radial-gradient(circle at 100% 0%, rgba(var(--store-brand-rgb), 0.05) 0%, transparent 50%);
   opacity: 0.9;
   z-index: 0;
 }
@@ -375,7 +375,7 @@ export default {
   left: 0;
   right: 0;
   bottom: 0;
-  background: radial-gradient(circle at center, rgba(58, 91, 160, 0.1) 0%, transparent 70%);
+  background: radial-gradient(circle at center, rgba(var(--store-brand-rgb), 0.1) 0%, transparent 70%);
   opacity: 0;
   transform: scale(0.8);
   transition: all 0.5s cubic-bezier(0.25, 1, 0.5, 1);
@@ -385,10 +385,10 @@ export default {
   background: rgba(255, 255, 255, 0.95);
   transform: translateY(-6px) scale(1.03);
   box-shadow: 
-    0 12px 28px rgba(58, 91, 160, 0.15),
+    0 12px 28px rgba(var(--store-brand-rgb), 0.15),
     0 4px 8px rgba(0, 0, 0, 0.06),
-    0 0 0 1px rgba(58, 91, 160, 0.1);
-  border-color: rgba(58, 91, 160, 0.2);
+    0 0 0 1px rgba(var(--store-brand-rgb), 0.1);
+  border-color: rgba(var(--store-brand-rgb), 0.2);
 }
 
 .category-item:hover::before {
@@ -441,8 +441,8 @@ export default {
   position: absolute;
   inset: 0;
   background: linear-gradient(135deg, 
-    rgba(58, 91, 160, 0.12),
-    rgba(58, 91, 160, 0.18)
+    rgba(var(--store-brand-rgb), 0.12),
+    rgba(var(--store-brand-rgb), 0.18)
   );
   border-radius: 50%;
   transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
@@ -451,28 +451,28 @@ export default {
 .category-item:hover .icon-bg {
   transform: scale(1.15);
   background: linear-gradient(135deg, 
-    rgba(58, 91, 160, 0.18),
-    rgba(58, 91, 160, 0.25)
+    rgba(var(--store-brand-rgb), 0.18),
+    rgba(var(--store-brand-rgb), 0.25)
   );
-  box-shadow: 0 6px 15px rgba(58, 91, 160, 0.15);
+  box-shadow: 0 6px 15px rgba(var(--store-brand-rgb), 0.15);
   animation: pulse 2s infinite;
 }
 
 @keyframes pulse {
   0% {
-    box-shadow: 0 0 0 0 rgba(58, 91, 160, 0.4);
+    box-shadow: 0 0 0 0 rgba(var(--store-brand-rgb), 0.4);
   }
   70% {
-    box-shadow: 0 0 0 10px rgba(58, 91, 160, 0);
+    box-shadow: 0 0 0 10px rgba(var(--store-brand-rgb), 0);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(58, 91, 160, 0);
+    box-shadow: 0 0 0 0 rgba(var(--store-brand-rgb), 0);
   }
 }
 
 .category-name {
   font-size: 15px;
-  color: #2c3e50;
+  color: var(--store-ink);
   font-weight: 600;
   transition: all 0.3s ease;
   position: relative;
@@ -531,19 +531,19 @@ export default {
 }
 
 .algorithm-card {
-  border: 1px solid rgba(102, 126, 234, 0.2);
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.05), rgba(118, 75, 162, 0.05));
+  border: 1px solid rgba(var(--store-brand-light-rgb), 0.2);
+  background: linear-gradient(135deg, rgba(var(--store-brand-light-rgb), 0.05), rgba(var(--store-olive-rgb), 0.05));
 }
 
 .algorithm-card:hover {
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
-  border-color: rgba(102, 126, 234, 0.4);
+  background: linear-gradient(135deg, rgba(var(--store-brand-light-rgb), 0.1), rgba(var(--store-olive-rgb), 0.1));
+  border-color: rgba(var(--store-brand-light-rgb), 0.4);
 }
 
 .btn-surprise {
   margin-top: 8px;
   padding: 4px 12px;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: linear-gradient(135deg, var(--store-brand-light), var(--store-olive));
   color: white;
   border: none;
   border-radius: 12px;
@@ -557,7 +557,7 @@ export default {
 
 .btn-surprise:hover {
   transform: scale(1.05);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 4px 12px rgba(var(--store-brand-light-rgb), 0.3);
 }
 
 .category-item:hover .category-name {

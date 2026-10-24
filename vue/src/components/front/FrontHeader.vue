@@ -445,9 +445,9 @@ export default {
   bottom: 0;
   background: linear-gradient(
     135deg,
-    rgba(58, 91, 160, 0.02) 0%,
+    rgba(var(--store-brand-rgb), 0.02) 0%,
     rgba(95, 124, 110, 0.02) 50%,
-    rgba(58, 91, 160, 0.03) 100%
+    rgba(var(--store-brand-rgb), 0.03) 100%
   );
   z-index: -1;
   overflow: hidden;
@@ -510,7 +510,7 @@ export default {
 
 .particle {
   position: absolute;
-  background: rgba(58, 91, 160, 0.1);
+  background: rgba(var(--store-brand-rgb), 0.1);
   border-radius: 50%;
   animation: particleFloat infinite linear;
 }
@@ -546,8 +546,8 @@ export default {
   gap: 16px;
   padding: 8px 16px;
   border-radius: 20px;
-  background: rgba(58, 91, 160, 0.08);
-  border: 1px solid rgba(58, 91, 160, 0.1);
+  background: rgba(var(--store-brand-rgb), 0.08);
+  border: 1px solid rgba(var(--store-brand-rgb), 0.1);
   transition: all 0.4s ease;
   position: relative;
   overflow: hidden;
@@ -566,8 +566,8 @@ export default {
 }
 
 .logo-area:hover .logo-wrapper {
-  background: rgba(58, 91, 160, 0.15);
-  box-shadow: 0 8px 25px rgba(58, 91, 160, 0.2);
+  background: rgba(var(--store-brand-rgb), 0.15);
+  box-shadow: 0 8px 25px rgba(var(--store-brand-rgb), 0.2);
 }
 
 .logo-area:hover .logo-wrapper::before {
@@ -668,14 +668,14 @@ export default {
 }
 
 .nav-item:hover .nav-content {
-  background: rgba(58, 91, 160, 0.1);
+  background: rgba(var(--store-brand-rgb), 0.1);
   transform: translateY(-2px);
 }
 
 .nav-item.active .nav-content {
   background: var(--gradient-primary);
   color: white;
-  box-shadow: 0 4px 15px rgba(58, 91, 160, 0.3);
+  box-shadow: 0 4px 15px rgba(var(--store-brand-rgb), 0.3);
 }
 
 .nav-content i {
@@ -752,7 +752,7 @@ export default {
 .search-input:focus {
   border-color: var(--primary-color);
   background: rgba(255, 255, 255, 0.95);
-  box-shadow: 0 0 0 4px rgba(58, 91, 160, 0.1);
+  box-shadow: 0 0 0 4px rgba(var(--store-brand-rgb), 0.1);
 }
 
 .search-icon {
@@ -787,7 +787,7 @@ export default {
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(58, 91, 160, 0.3), transparent);
+  background: linear-gradient(90deg, transparent, rgba(var(--store-brand-rgb), 0.3), transparent);
   transition: left 0.6s ease;
 }
 
@@ -813,7 +813,7 @@ export default {
 
 .suggestions-header {
   padding: 12px 20px;
-  background: rgba(58, 91, 160, 0.08);
+  background: rgba(var(--store-brand-rgb), 0.08);
   border-bottom: 1px solid rgba(255, 255, 255, 0.2);
   display: flex;
   align-items: center;
@@ -835,7 +835,7 @@ export default {
 }
 
 .suggestion-item:hover {
-  background: rgba(58, 91, 160, 0.08);
+  background: rgba(var(--store-brand-rgb), 0.08);
   color: var(--primary-color);
 }
 
@@ -859,12 +859,12 @@ export default {
 }
 
 .service-quick {
-  background: rgba(58, 91, 160, 0.1);
+  background: rgba(var(--store-brand-rgb), 0.1);
   color: var(--primary-color);
 }
 
 .service-quick:hover {
-  background: rgba(58, 91, 160, 0.2);
+  background: rgba(var(--store-brand-rgb), 0.2);
   transform: translateY(-2px);
 }
 
@@ -889,22 +889,22 @@ export default {
 }
 
 .algorithm-quick {
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
-  color: #667eea;
+  background: linear-gradient(135deg, rgba(var(--store-brand-light-rgb), 0.1), rgba(var(--store-olive-rgb), 0.1));
+  color: var(--store-brand-light);
 }
 
 .algorithm-quick:hover {
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.2), rgba(118, 75, 162, 0.2));
+  background: linear-gradient(135deg, rgba(var(--store-brand-light-rgb), 0.2), rgba(var(--store-olive-rgb), 0.2));
   transform: translateY(-2px);
 }
 
 .personalize-quick {
-  background: linear-gradient(135deg, rgba(52, 152, 219, 0.1), rgba(52, 152, 219, 0.1));
+  background: linear-gradient(135deg, rgba(var(--store-brand-rgb), 0.1), rgba(var(--store-brand-rgb), 0.1));
   color: var(--primary-color);
 }
 
 .personalize-quick:hover {
-  background: linear-gradient(135deg, rgba(52, 152, 219, 0.2), rgba(52, 152, 219, 0.2));
+  background: linear-gradient(135deg, rgba(var(--store-brand-rgb), 0.2), rgba(var(--store-brand-rgb), 0.2));
   transform: translateY(-2px);
 }
 
@@ -964,7 +964,7 @@ export default {
 
 .login-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(58, 91, 160, 0.3);
+  box-shadow: 0 8px 25px rgba(var(--store-brand-rgb), 0.3);
   background: linear-gradient(135deg, var(--primary-dark), var(--primary-light));
 }
 
@@ -993,16 +993,16 @@ export default {
   gap: 12px;
   padding: 8px 16px;
   border-radius: 25px;
-  background: rgba(58, 91, 160, 0.08);
+  background: rgba(var(--store-brand-rgb), 0.08);
   cursor: pointer;
   transition: all 0.3s ease;
-  border: 1px solid rgba(58, 91, 160, 0.1);
+  border: 1px solid rgba(var(--store-brand-rgb), 0.1);
 }
 
 .user-profile:hover {
-  background: rgba(58, 91, 160, 0.15);
+  background: rgba(var(--store-brand-rgb), 0.15);
   transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(58, 91, 160, 0.2);
+  box-shadow: 0 4px 15px rgba(var(--store-brand-rgb), 0.2);
 }
 
 .avatar-wrapper {
@@ -1049,7 +1049,7 @@ export default {
 .username {
   font-size: 14px;
   font-weight: 600;
-  color: #2c3e50;
+  color: var(--store-ink);
 }
 
 .user-role {
@@ -1087,7 +1087,7 @@ export default {
 }
 
 :deep(.menu-item:hover) {
-  background: rgba(58, 91, 160, 0.08);
+  background: rgba(var(--store-brand-rgb), 0.08);
 }
 
 :deep(.logout-item:hover) {
@@ -1112,7 +1112,7 @@ export default {
   flex: 1;
   margin-left: 12px;
   font-size: 14px;
-  color: #2c3e50;
+  color: var(--store-ink);
 }
 
 .item-arrow {
@@ -1149,15 +1149,15 @@ export default {
   width: 42px;
   height: 42px;
   border-radius: 50%;
-  background: rgba(58, 91, 160, 0.08);
+  background: rgba(var(--store-brand-rgb), 0.08);
   color: var(--primary-color);
   cursor: pointer;
   transition: all 0.3s ease;
-  border: 1px solid rgba(58, 91, 160, 0.1);
+  border: 1px solid rgba(var(--store-brand-rgb), 0.1);
 }
 
 .mobile-nav-btn:hover {
-  background: rgba(58, 91, 160, 0.15);
+  background: rgba(var(--store-brand-rgb), 0.15);
   transform: translateY(-2px);
 }
 
@@ -1197,13 +1197,13 @@ export default {
   align-items: center;
   padding: 20px 24px;
   border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-  background: rgba(58, 91, 160, 0.08);
+  background: rgba(var(--store-brand-rgb), 0.08);
 }
 
 .mobile-nav-header span {
   font-size: 18px;
   font-weight: 600;
-  color: #2c3e50;
+  color: var(--store-ink);
 }
 
 .mobile-nav-header i {
@@ -1235,12 +1235,12 @@ export default {
 }
 
 .mobile-nav-item:hover {
-  background: rgba(58, 91, 160, 0.08);
+  background: rgba(var(--store-brand-rgb), 0.08);
   border-left-color: var(--primary-color);
 }
 
 .mobile-nav-item.active {
-  background: rgba(58, 91, 160, 0.12);
+  background: rgba(var(--store-brand-rgb), 0.12);
   border-left-color: var(--primary-color);
   color: var(--primary-color);
 }

@@ -174,7 +174,7 @@ export default {
 <style scoped>
 .group-buy-list {
   min-height: 100vh;
-  background: linear-gradient(to bottom, #ecf5ff 0%, #ffffff 100%);
+  background: linear-gradient(to bottom, var(--store-surface-active) 0%, #ffffff 100%);
 }
 
 .main-content {
@@ -207,7 +207,7 @@ export default {
   justify-content: center;
   background: var(--gradient-primary);
   border-radius: 16px;
-  box-shadow: 0 8px 20px rgba(58, 91, 160, 0.3);
+  box-shadow: 0 8px 20px rgba(var(--store-brand-rgb), 0.3);
 }
 
 .title-icon-wrapper i {
@@ -244,7 +244,7 @@ export default {
   margin: 0;
   font-size: 32px;
   font-weight: 700;
-  color: #2c3e50;
+  color: var(--store-ink);
   position: relative;
   display: inline-block;
 }
@@ -290,7 +290,7 @@ export default {
   color: white;
   font-size: 14px;
   font-weight: 600;
-  box-shadow: 0 2px 8px rgba(58, 91, 160, 0.3);
+  box-shadow: 0 2px 8px rgba(var(--store-brand-rgb), 0.3);
 }
 
 .products-count i {

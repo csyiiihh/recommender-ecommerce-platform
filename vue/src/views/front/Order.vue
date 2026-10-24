@@ -381,7 +381,7 @@
 
       <el-form :model="reviewForm" :rules="reviewRules" ref="reviewForm" label-width="80px" class="review-form" v-if="currentOrder">
         <el-form-item label="评分" prop="rating">
-          <el-rate v-model="reviewForm.rating" :colors="['#99A9BF', '#F7BA2A', '#FF9900']" show-text :texts="['很差', '较差', '一般', '较好', '很好']">
+          <el-rate v-model="reviewForm.rating" :colors="['#9aaa92', '#F7BA2A', '#FF9900']" show-text :texts="['很差', '较差', '一般', '较好', '很好']">
           </el-rate>
         </el-form-item>
         <el-form-item label="评价内容" prop="content">
@@ -1026,7 +1026,7 @@ export default {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(135deg, #ffffff 0%, #f5f7fa 50%, #ecf5ff 100%);
+  background: linear-gradient(135deg, #ffffff 0%, var(--store-surface) 50%, var(--store-surface-active) 100%);
   position: relative;
   overflow-x: hidden;
 }
@@ -1038,8 +1038,8 @@ export default {
   left: -50%;
   width: 200%;
   height: 200%;
-  background: radial-gradient(circle at 25% 25%, rgba(58, 91, 160, 0.02) 0%, transparent 50%),
-              radial-gradient(circle at 75% 75%, rgba(91, 124, 189, 0.02) 0%, transparent 50%);
+  background: radial-gradient(circle at 25% 25%, rgba(var(--store-brand-rgb), 0.02) 0%, transparent 50%),
+              radial-gradient(circle at 75% 75%, rgba(var(--store-brand-rgb), 0.02) 0%, transparent 50%);
   z-index: -1;
   animation: backgroundFloat 25s ease-in-out infinite;
 }
@@ -1131,12 +1131,12 @@ export default {
 
 .title-icon:hover {
   transform: translateY(-2px) scale(1.05);
-  box-shadow: 0 12px 30px rgba(58, 91, 160, 0.3);
+  box-shadow: 0 12px 30px rgba(var(--store-brand-rgb), 0.3);
 }
 
 @keyframes iconPulse {
-  0%, 100% { box-shadow: 0 8px 20px rgba(58, 91, 160, 0.2); }
-  50% { box-shadow: 0 8px 20px rgba(58, 91, 160, 0.4), 0 0 30px rgba(58, 91, 160, 0.1); }
+  0%, 100% { box-shadow: 0 8px 20px rgba(var(--store-brand-rgb), 0.2); }
+  50% { box-shadow: 0 8px 20px rgba(var(--store-brand-rgb), 0.4), 0 0 30px rgba(var(--store-brand-rgb), 0.1); }
 }
 
 .title-icon i {
@@ -1151,7 +1151,7 @@ export default {
   right: -3px;
   bottom: -3px;
   border-radius: 23px;
-  background: linear-gradient(135deg, rgba(58, 91, 160, 0.3), rgba(91, 124, 189, 0.3));
+  background: linear-gradient(135deg, rgba(var(--store-brand-rgb), 0.3), rgba(var(--store-brand-rgb), 0.3));
   opacity: 0;
   transition: opacity 0.3s ease;
   z-index: -1;
@@ -1170,13 +1170,13 @@ export default {
 .title-content h2 {
   font-size: 28px;
   font-weight: 700;
-  color: #1a202c;
+  color: var(--store-ink);
   margin: 0 0 8px 0;
 }
 
 .header-subtitle {
   font-size: 16px;
-  color: #64748b;
+  color: var(--store-muted);
   font-weight: 400;
   margin: 0;
 }
@@ -1198,7 +1198,7 @@ export default {
   align-items: center;
   gap: 8px;
   padding: 16px 20px;
-  background: rgba(58, 91, 160, 0.1);
+  background: rgba(var(--store-brand-rgb), 0.1);
   border-radius: 16px;
   transition: all 0.3s ease;
   position: relative;
@@ -1206,19 +1206,19 @@ export default {
 
 .stats-item:hover {
   transform: translateY(-2px);
-  background: rgba(58, 91, 160, 0.15);
+  background: rgba(var(--store-brand-rgb), 0.15);
 }
 
 /* 未支付订单统计项样式 - 使用一致的蓝色主题，稍微加强视觉效果 */
 .stats-item.unpaid-stats {
-  background: rgba(58, 91, 160, 0.12);
-  border: 1px solid rgba(58, 91, 160, 0.25);
+  background: rgba(var(--store-brand-rgb), 0.12);
+  border: 1px solid rgba(var(--store-brand-rgb), 0.25);
 }
 
 .stats-item.unpaid-stats:hover {
-  background: rgba(58, 91, 160, 0.18);
-  border-color: rgba(58, 91, 160, 0.35);
-  box-shadow: 0 6px 16px rgba(58, 91, 160, 0.25);
+  background: rgba(var(--store-brand-rgb), 0.18);
+  border-color: rgba(var(--store-brand-rgb), 0.35);
+  box-shadow: 0 6px 16px rgba(var(--store-brand-rgb), 0.25);
 }
 
 .stats-item.unpaid-stats i {
@@ -1244,7 +1244,7 @@ export default {
 
 .stats-label {
   font-size: 12px;
-  color: #64748b;
+  color: var(--store-muted);
   font-weight: 500;
 }
 
@@ -1299,7 +1299,7 @@ export default {
   width: 120px;
   height: 120px;
   border-radius: 50%;
-  background: linear-gradient(135deg, rgba(58, 91, 160, 0.1), rgba(58, 91, 160, 0.05));
+  background: linear-gradient(135deg, rgba(var(--store-brand-rgb), 0.1), rgba(var(--store-brand-rgb), 0.05));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1309,7 +1309,7 @@ export default {
 
 .empty-icon i {
   font-size: 48px;
-  color: rgba(58, 91, 160, 0.6);
+  color: rgba(var(--store-brand-rgb), 0.6);
 }
 
 .empty-particles {
@@ -1324,7 +1324,7 @@ export default {
   position: absolute;
   width: 8px;
   height: 8px;
-  background: rgba(58, 91, 160, 0.4);
+  background: rgba(var(--store-brand-rgb), 0.4);
   border-radius: 50%;
   animation: particleFloat 2s ease-in-out infinite;
 }
@@ -1347,7 +1347,7 @@ export default {
 .empty-content h3 {
   font-size: 24px;
   font-weight: 600;
-  color: #374151;
+  color: var(--store-text);
   margin: 0 0 12px 0;
 }
 
@@ -1384,7 +1384,7 @@ export default {
 
 .empty-actions .el-button:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(58, 91, 160, 0.3);
+  box-shadow: 0 8px 20px rgba(var(--store-brand-rgb), 0.3);
 }
 
 /* 订单列表样式 */
@@ -1410,7 +1410,7 @@ export default {
 
 .order-item:hover {
   transform: translateY(-4px);
-  box-shadow: 0 20px 50px rgba(58, 91, 160, 0.15);
+  box-shadow: 0 20px 50px rgba(var(--store-brand-rgb), 0.15);
 }
 
 @keyframes slideInUp {
@@ -1425,7 +1425,7 @@ export default {
   justify-content: space-between;
   align-items: center;
   padding: 24px 32px 20px;
-  border-bottom: 1px solid rgba(58, 91, 160, 0.1);
+  border-bottom: 1px solid rgba(var(--store-brand-rgb), 0.1);
 }
 
 .order-info {
@@ -1449,7 +1449,7 @@ export default {
 
 .order-id,
 .order-time {
-  color: #64748b;
+  color: var(--store-muted);
   font-size: 14px;
   font-weight: 500;
 }
@@ -1509,8 +1509,8 @@ export default {
 }
 
 .order-status.paid {
-  color: #3b82f6;
-  background: rgba(59, 130, 246, 0.1);
+  color: var(--store-brand);
+  background: rgba(var(--store-brand-rgb), 0.1);
 }
 
 .order-status.shipped {
@@ -1585,7 +1585,7 @@ export default {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(58, 91, 160, 0.8);
+  background: rgba(var(--store-brand-rgb), 0.8);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1604,7 +1604,7 @@ export default {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(58, 91, 160, 0.8);
+  background: rgba(var(--store-brand-rgb), 0.8);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1627,7 +1627,7 @@ export default {
 
 .product-name {
   font-size: 18px;
-  color: #1a202c;
+  color: var(--store-ink);
   margin: 0;
   font-weight: 600;
   line-height: 1.4;
@@ -1662,16 +1662,16 @@ export default {
 }
 
 .quantity-label {
-  color: #64748b;
+  color: var(--store-muted);
   font-size: 14px;
   font-weight: 500;
 }
 
 .quantity-value {
-  color: #1a202c;
+  color: var(--store-ink);
   font-size: 16px;
   font-weight: 600;
-  background: rgba(58, 91, 160, 0.1);
+  background: rgba(var(--store-brand-rgb), 0.1);
   padding: 4px 12px;
   border-radius: 8px;
 }
@@ -1686,11 +1686,11 @@ export default {
   display: flex;
   align-items: center;
   gap: 6px;
-  background: rgba(58, 91, 160, 0.08);
+  background: rgba(var(--store-brand-rgb), 0.08);
   padding: 6px 12px;
   border-radius: 8px;
   font-size: 13px;
-  color: #64748b;
+  color: var(--store-muted);
 }
 
 .meta-item i {
@@ -1700,17 +1700,17 @@ export default {
 
 .order-purchase-note {
   margin: 10px 0 0;
-  color: #64748b;
+  color: var(--store-muted);
   font-size: 13px;
   line-height: 1.6;
 }
 
 /* 收货信息样式 */
 .delivery-section {
-  background: linear-gradient(135deg, rgba(58, 91, 160, 0.04), rgba(255, 255, 255, 0.8));
+  background: linear-gradient(135deg, rgba(var(--store-brand-rgb), 0.04), rgba(255, 255, 255, 0.8));
   border-radius: 16px;
   padding: 20px;
-  border: 1px solid rgba(58, 91, 160, 0.1);
+  border: 1px solid rgba(var(--store-brand-rgb), 0.1);
 }
 
 .section-header {
@@ -1720,7 +1720,7 @@ export default {
   margin-bottom: 16px;
   font-size: 16px;
   font-weight: 600;
-  color: #1a202c;
+  color: var(--store-ink);
 }
 
 .section-header i {
@@ -1759,14 +1759,14 @@ export default {
 }
 
 .info-label {
-  color: #64748b;
+  color: var(--store-muted);
   font-size: 14px;
   font-weight: 500;
   flex-shrink: 0;
 }
 
 .info-value {
-  color: #1a202c;
+  color: var(--store-ink);
   font-size: 14px;
   font-weight: 500;
   min-width: 0;
@@ -1779,9 +1779,9 @@ export default {
   justify-content: space-between;
   align-items: center;
   padding: 20px 32px;
-  background: linear-gradient(135deg, rgba(58, 91, 160, 0.04), rgba(255, 255, 255, 0.8));
+  background: linear-gradient(135deg, rgba(var(--store-brand-rgb), 0.04), rgba(255, 255, 255, 0.8));
   border-radius: 0 0 24px 24px;
-  border-top: 1px solid rgba(58, 91, 160, 0.1);
+  border-top: 1px solid rgba(var(--store-brand-rgb), 0.1);
 }
 
 .footer-left {
@@ -1796,7 +1796,7 @@ export default {
 }
 
 .total-label {
-  color: #64748b;
+  color: var(--store-muted);
   font-size: 16px;
   font-weight: 500;
 }
@@ -1888,7 +1888,7 @@ export default {
 }
 
 .pay-btn {
-  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  background: linear-gradient(135deg, var(--store-brand), var(--store-brand-hover));
   color: white;
 }
 
@@ -1903,7 +1903,7 @@ export default {
 }
 
 .text-btn {
-  color: #64748b;
+  color: var(--store-muted);
   font-size: 13px;
   padding: 6px 12px;
   border-radius: 8px;
@@ -1913,8 +1913,8 @@ export default {
 }
 
 .text-btn:hover {
-  background: rgba(58, 91, 160, 0.08);
-  border-color: rgba(58, 91, 160, 0.2);
+  background: rgba(var(--store-brand-rgb), 0.08);
+  border-color: rgba(var(--store-brand-rgb), 0.2);
   transform: translateY(-1px);
 }
 
@@ -1931,15 +1931,15 @@ export default {
 }
 
 .address-btn:hover {
-  color: #8b5cf6;
-  background: rgba(139, 92, 246, 0.1);
-  border-color: rgba(139, 92, 246, 0.2);
+  color: var(--store-olive);
+  background: rgba(var(--store-olive-rgb), 0.1);
+  border-color: rgba(var(--store-olive-rgb), 0.2);
 }
 
 .logistics-btn:hover {
-  color: #06b6d4;
-  background: rgba(6, 182, 212, 0.1);
-  border-color: rgba(6, 182, 212, 0.2);
+  color: var(--store-brand-light);
+  background: rgba(var(--store-brand-light-rgb), 0.1);
+  border-color: rgba(var(--store-brand-light-rgb), 0.2);
 }
 
 
@@ -1953,7 +1953,7 @@ export default {
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(20px);
   border-radius: 20px;
-  box-shadow: 0 8px 25px rgba(58, 91, 160, 0.1);
+  box-shadow: 0 8px 25px rgba(var(--store-brand-rgb), 0.1);
 }
 
 :deep(.el-pagination.is-background .el-pager li:not(.disabled).active) {
@@ -2008,15 +2008,15 @@ export default {
 
 :deep(.el-dialog__header) {
   padding: 24px 32px;
-  border-bottom: 1px solid rgba(58, 91, 160, 0.1);
-  background: linear-gradient(135deg, rgba(58, 91, 160, 0.06), rgba(255, 255, 255, 0.9));
+  border-bottom: 1px solid rgba(var(--store-brand-rgb), 0.1);
+  background: linear-gradient(135deg, rgba(var(--store-brand-rgb), 0.06), rgba(255, 255, 255, 0.9));
   margin: 0;
 }
 
 :deep(.el-dialog__title) {
   font-size: 20px;
   font-weight: 600;
-  color: #1a202c;
+  color: var(--store-ink);
 }
 
 :deep(.el-dialog__body) {
@@ -2027,8 +2027,8 @@ export default {
 
 :deep(.el-dialog__footer) {
   padding: 20px 32px;
-  border-top: 1px solid rgba(58, 91, 160, 0.1);
-  background: rgba(236, 245, 255, 0.5);
+  border-top: 1px solid rgba(var(--store-brand-rgb), 0.1);
+  background: rgba(var(--store-surface-active-rgb), 0.5);
   margin-top: 0;
 }
 
@@ -2037,7 +2037,7 @@ export default {
 }
 
 :deep(.el-dialog__body::-webkit-scrollbar-thumb) {
-  background: rgba(58, 91, 160, 0.3);
+  background: rgba(var(--store-brand-rgb), 0.3);
   border-radius: 4px;
 }
 
@@ -2063,7 +2063,7 @@ export default {
   gap: 12px;
   font-size: 18px;
   font-weight: 600;
-  color: #1a202c;
+  color: var(--store-ink);
 }
 
 .section-title i {
@@ -2087,24 +2087,24 @@ export default {
   width: 100%;
   margin: 0;
   padding: 20px;
-  border: 1.5px solid rgba(58, 91, 160, 0.15);
+  border: 1.5px solid rgba(var(--store-brand-rgb), 0.15);
   border-radius: 16px;
   transition: all 0.3s ease;
   background: rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(10px);
-  box-shadow: 0 2px 8px rgba(58, 91, 160, 0.08);
+  box-shadow: 0 2px 8px rgba(var(--store-brand-rgb), 0.08);
 }
 
 .address-radio-item:hover {
-  border-color: rgba(58, 91, 160, 0.3);
-  box-shadow: 0 8px 25px rgba(58, 91, 160, 0.12);
+  border-color: rgba(var(--store-brand-rgb), 0.3);
+  box-shadow: 0 8px 25px rgba(var(--store-brand-rgb), 0.12);
   transform: translateY(-2px);
 }
 
 .address-radio-item.is-checked {
   border-color: var(--primary-color);
-  background: rgba(58, 91, 160, 0.06);
-  box-shadow: 0 8px 25px rgba(58, 91, 160, 0.18);
+  background: rgba(var(--store-brand-rgb), 0.06);
+  box-shadow: 0 8px 25px rgba(var(--store-brand-rgb), 0.18);
 }
 
 .address-content {
@@ -2128,21 +2128,21 @@ export default {
 
 .receiver {
   font-weight: 600;
-  color: #1a202c;
+  color: var(--store-ink);
   font-size: 16px;
 }
 
 .phone {
-  color: #64748b;
+  color: var(--store-muted);
   font-size: 14px;
-  background: rgba(58, 91, 160, 0.1);
+  background: rgba(var(--store-brand-rgb), 0.1);
   padding: 4px 12px;
   border-radius: 8px;
   font-weight: 500;
 }
 
 .address-detail {
-  color: #64748b;
+  color: var(--store-muted);
   font-size: 14px;
   line-height: 1.6;
   word-break: break-all;
@@ -2173,7 +2173,7 @@ export default {
   align-items: center;
   margin-bottom: 24px;
   padding-bottom: 16px;
-  border-bottom: 1px solid rgba(58, 91, 160, 0.1);
+  border-bottom: 1px solid rgba(var(--store-brand-rgb), 0.1);
 }
 
 .address-form {
@@ -2182,7 +2182,7 @@ export default {
 
 :deep(.el-form-item__label) {
   font-weight: 600;
-  color: #1a202c;
+  color: var(--store-ink);
 }
 
 :deep(.el-input__prefix) {
@@ -2191,23 +2191,23 @@ export default {
 
 :deep(.el-input__inner),
 :deep(.el-textarea__inner) {
-  border: 1.5px solid rgba(58, 91, 160, 0.15);
+  border: 1.5px solid rgba(var(--store-brand-rgb), 0.15);
   border-radius: 12px;
   transition: all 0.3s ease;
   font-size: 14px;
-  box-shadow: 0 2px 8px rgba(58, 91, 160, 0.08);
+  box-shadow: 0 2px 8px rgba(var(--store-brand-rgb), 0.08);
 }
 
 :deep(.el-input__inner:hover),
 :deep(.el-textarea__inner:hover) {
-  border-color: rgba(58, 91, 160, 0.3);
-  box-shadow: 0 3px 10px rgba(58, 91, 160, 0.12);
+  border-color: rgba(var(--store-brand-rgb), 0.3);
+  box-shadow: 0 3px 10px rgba(var(--store-brand-rgb), 0.12);
 }
 
 :deep(.el-input__inner:focus),
 :deep(.el-textarea__inner:focus) {
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(58, 91, 160, 0.12), 0 4px 16px rgba(58, 91, 160, 0.15);
+  box-shadow: 0 0 0 3px rgba(var(--store-brand-rgb), 0.12), 0 4px 16px rgba(var(--store-brand-rgb), 0.15);
 }
 
 :deep(.el-checkbox__input.is-checked .el-checkbox__inner) {
@@ -2225,11 +2225,11 @@ export default {
 }
 
 .logistics-header {
-  background: linear-gradient(135deg, rgba(58, 91, 160, 0.06), rgba(255, 255, 255, 0.8));
+  background: linear-gradient(135deg, rgba(var(--store-brand-rgb), 0.06), rgba(255, 255, 255, 0.8));
   padding: 24px;
   border-radius: 16px;
   margin-bottom: 24px;
-  border: 1px solid rgba(58, 91, 160, 0.1);
+  border: 1px solid rgba(var(--store-brand-rgb), 0.1);
 }
 
 .logistics-header > div {
@@ -2244,7 +2244,7 @@ export default {
 }
 
 .logistics-header .label {
-  color: #64748b;
+  color: var(--store-muted);
   font-weight: 500;
   min-width: 80px;
 }
@@ -2253,12 +2253,12 @@ export default {
   background: rgba(255, 255, 255, 0.8);
   border-radius: 16px;
   padding: 24px;
-  border: 1px solid rgba(58, 91, 160, 0.1);
+  border: 1px solid rgba(var(--store-brand-rgb), 0.1);
 }
 
 .logistics-address h4 {
   font-size: 18px;
-  color: #1a202c;
+  color: var(--store-ink);
   margin: 0 0 16px 0;
   font-weight: 600;
 }
@@ -2271,7 +2271,7 @@ export default {
 }
 
 .logistics-info-item .label {
-  color: #64748b;
+  color: var(--store-muted);
   font-weight: 500;
   min-width: 100px;
 }
@@ -2283,12 +2283,12 @@ export default {
 }
 
 :deep(.payment-confirm-dialog .el-message-box__header) {
-  background: linear-gradient(135deg, rgba(58, 91, 160, 0.06), rgba(255, 255, 255, 0.9));
+  background: linear-gradient(135deg, rgba(var(--store-brand-rgb), 0.06), rgba(255, 255, 255, 0.9));
   padding: 20px 24px;
 }
 
 :deep(.payment-confirm-dialog .el-message-box__title) {
-  color: #1a202c;
+  color: var(--store-ink);
   font-size: 20px;
   font-weight: 600;
 }
@@ -2300,8 +2300,8 @@ export default {
 
 :deep(.payment-confirm-dialog .el-message-box__btns) {
   padding: 16px 24px;
-  border-top: 1px solid rgba(58, 91, 160, 0.1);
-  background: rgba(236, 245, 255, 0.5);
+  border-top: 1px solid rgba(var(--store-brand-rgb), 0.1);
+  background: rgba(var(--store-surface-active-rgb), 0.5);
 }
 
 :deep(.payment-confirm-dialog .el-button--primary) {
@@ -2310,13 +2310,13 @@ export default {
   border-radius: 12px;
   padding: 12px 24px;
   font-weight: 600;
-  box-shadow: 0 4px 12px rgba(58, 91, 160, 0.25);
+  box-shadow: 0 4px 12px rgba(var(--store-brand-rgb), 0.25);
 }
 
 :deep(.payment-confirm-dialog .el-button--primary:hover) {
-  background: linear-gradient(135deg, #4A6FA8, #3A5BA0);
+  background: linear-gradient(135deg, var(--store-brand), var(--store-brand));
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(58, 91, 160, 0.35);
+  box-shadow: 0 8px 20px rgba(var(--store-brand-rgb), 0.35);
 }
 
 .payment-confirm {
@@ -2324,22 +2324,22 @@ export default {
 }
 
 .payment-info {
-  background: linear-gradient(135deg, rgba(58, 91, 160, 0.06), rgba(255, 255, 255, 0.8));
+  background: linear-gradient(135deg, rgba(var(--store-brand-rgb), 0.06), rgba(255, 255, 255, 0.8));
   border-radius: 16px;
   padding: 20px;
-  border: 1px solid rgba(58, 91, 160, 0.2);
+  border: 1px solid rgba(var(--store-brand-rgb), 0.2);
 }
 
 .payment-info .product-name {
   font-size: 18px;
   font-weight: 600;
-  color: #1a202c;
+  color: var(--store-ink);
   margin: 0 0 12px 0;
 }
 
 .payment-info .order-info {
   font-size: 14px;
-  color: #64748b;
+  color: var(--store-muted);
   margin: 8px 0;
   font-weight: 500;
 }
@@ -2350,7 +2350,7 @@ export default {
   align-items: center;
   margin-top: 20px;
   padding-top: 20px;
-  border-top: 1px solid rgba(58, 91, 160, 0.2);
+  border-top: 1px solid rgba(var(--store-brand-rgb), 0.2);
 }
 
 .payment-amount .amount {

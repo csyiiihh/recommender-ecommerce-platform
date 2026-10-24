@@ -45,8 +45,8 @@
         <div class="search-wrapper">
           <div class="search-box">
             <i class="fas fa-search search-icon"></i>
-            <input 
-              v-model="searchKeyword" 
+            <input
+              v-model="searchKeyword"
               @input="handleSearch"
               @focus="showSuggestions = true"
               @blur="hideSuggestions"
@@ -54,8 +54,8 @@
               class="search-input"
             />
             <div class="search-suggestions" v-if="showSuggestions && searchSuggestions.length > 0">
-              <div 
-                v-for="suggestion in searchSuggestions" 
+              <div
+                v-for="suggestion in searchSuggestions"
                 :key="suggestion"
                 @click="selectSuggestion(suggestion)"
                 class="suggestion-item"
@@ -66,7 +66,7 @@
             </div>
           </div>
         </div>
-        
+
         <div class="filter-controls">
           <div class="sort-wrapper">
             <el-dropdown @command="handleSortChange" trigger="click">
@@ -84,18 +84,18 @@
               </template>
             </el-dropdown>
           </div>
-          
+
           <div class="view-toggle">
             <el-button-group>
-              <el-button 
-                :type="viewMode === 'grid' ? 'primary' : 'default'" 
+              <el-button
+                :type="viewMode === 'grid' ? 'primary' : 'default'"
                 @click="viewMode = 'grid'"
                 class="view-btn"
               >
                 <i class="fas fa-th-large"></i>
               </el-button>
-              <el-button 
-                :type="viewMode === 'list' ? 'primary' : 'default'" 
+              <el-button
+                :type="viewMode === 'list' ? 'primary' : 'default'"
                 @click="viewMode = 'list'"
                 class="view-btn"
               >
@@ -127,22 +127,22 @@
         </div>
 
         <!-- 文章列表 -->
-        <transition-group 
-          v-else 
-          name="article-item" 
-          tag="div" 
+        <transition-group
+          v-else
+          name="article-item"
+          tag="div"
           :class="['article-list', viewMode + '-view']"
         >
-          <div 
-            v-for="(article, index) in articles" 
-            :key="article.id" 
-            class="article-item" 
+          <div
+            v-for="(article, index) in articles"
+            :key="article.id"
+            class="article-item"
             :style="{ 'animation-delay': (index * 0.1) + 's' }"
             @click="viewArticle(article)"
           >
             <div class="article-image-wrapper">
-              <el-image 
-                :src="article.coverImage?.startsWith('http') ? article.coverImage : `api${article.coverImage}`" 
+              <el-image
+                :src="article.coverImage?.startsWith('http') ? article.coverImage : `api${article.coverImage}`"
                 fit="cover"
                 :lazy="true"
                 class="article-image">
@@ -172,7 +172,7 @@
                 </span>
               </div>
             </div>
-            
+
             <div class="article-details">
               <div class="article-header">
                 <h3 class="article-title">{{ article.title }}</h3>
@@ -183,9 +183,9 @@
                   </span>
                 </div>
               </div>
-              
+
               <p class="article-summary">{{ article.summary }}</p>
-              
+
               <div class="article-footer">
                 <div class="article-meta">
                   <span class="view-count">
@@ -283,7 +283,7 @@ export default {
   },
   methods: {
     formatTime,
-    
+
     // 获取随机位置用于背景元素
     getRandomPosition() {
       return {
@@ -316,13 +316,13 @@ export default {
             createdAt: article.createdAt,
             updatedAt: article.updatedAt
           }))
-          
+
           // 根据排序方式排序
           articles = this.sortArticles(articles)
-          
+
           this.articles = articles
           this.total = res.data.total
-          
+
           // 计算总阅读数
           this.viewStats.totalViews = articles.reduce((sum, article) => sum + article.viewCount, 0)
         }
@@ -333,7 +333,7 @@ export default {
         this.loading = false
       }
     },
-    
+
     // 排序文章
     sortArticles(articles) {
       switch (this.sortBy) {
@@ -366,7 +366,7 @@ export default {
       } else {
         this.searchSuggestions = []
       }
-      
+
       // 防抖处理
       clearTimeout(this.searchTimer)
       this.searchTimer = setTimeout(() => {
@@ -480,7 +480,7 @@ export default {
       return num.toString()
     }
   },
-  
+
   beforeUnmount() {
     if (this.searchTimer) {
       clearTimeout(this.searchTimer)
@@ -496,7 +496,7 @@ export default {
   display: flex;
   flex-direction: column;
   position: relative;
-  background: #f5f7fa;
+  background: var(--store-surface);
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
@@ -519,11 +519,11 @@ export default {
   height: 100%;
   background: linear-gradient(
     45deg,
-    rgba(58, 91, 160, 0.02) 0%,
-    rgba(91, 124, 189, 0.02) 25%,
-    rgba(139, 163, 217, 0.02) 50%,
-    rgba(58, 91, 160, 0.02) 75%,
-    rgba(45, 72, 128, 0.02) 100%
+    rgba(var(--store-brand-rgb), 0.02) 0%,
+    rgba(var(--store-brand-rgb), 0.02) 25%,
+    rgba(var(--store-brand-rgb), 0.02) 50%,
+    rgba(var(--store-brand-rgb), 0.02) 75%,
+    rgba(var(--store-brand-rgb), 0.02) 100%
   );
   animation: backgroundFloat 20s ease-in-out infinite;
 }
@@ -624,7 +624,7 @@ export default {
 .title-content h2 {
   font-size: 28px;
   font-weight: 600;
-  color: #2c3e50;
+  color: var(--store-ink);
   margin: 0 0 4px 0;
   background: linear-gradient(135deg, var(--ink-darkest), var(--primary-color));
   -webkit-background-clip: text;
@@ -655,16 +655,16 @@ export default {
   align-items: center;
   gap: 8px;
   padding: 16px 20px;
-  background: rgba(58, 91, 160, 0.08);
+  background: rgba(var(--store-brand-rgb), 0.08);
   border-radius: 16px;
-  border: 1px solid rgba(58, 91, 160, 0.1);
+  border: 1px solid rgba(var(--store-brand-rgb), 0.1);
   min-width: 120px;
   text-align: center;
   transition: all 0.3s ease;
 }
 
 .stat-item:hover {
-  background: rgba(58, 91, 160, 0.12);
+  background: rgba(var(--store-brand-rgb), 0.12);
   transform: translateY(-2px);
 }
 
@@ -713,7 +713,7 @@ export default {
 .search-input {
   width: 100%;
   padding: 14px 20px 14px 50px;
-  border: 2px solid #e4e7ed;
+  border: 2px solid var(--store-border);
   border-radius: 25px;
   font-size: 14px;
   background: white;
@@ -723,7 +723,7 @@ export default {
 
 .search-input:focus {
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 4px rgba(58, 91, 160, 0.1);
+  box-shadow: 0 0 0 4px rgba(var(--store-brand-rgb), 0.1);
 }
 
 .search-icon {
@@ -748,7 +748,7 @@ export default {
   background: white;
   border-radius: 12px;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
-  border: 1px solid #e4e7ed;
+  border: 1px solid var(--store-border);
   margin-top: 8px;
   z-index: 100;
   overflow: hidden;
@@ -766,7 +766,7 @@ export default {
 }
 
 .suggestion-item:hover {
-  background: #f5f7fa;
+  background: var(--store-surface);
 }
 
 .suggestion-item i {
@@ -783,7 +783,7 @@ export default {
 .sort-btn {
   padding: 10px 20px;
   border-radius: 20px;
-  border: 1px solid #e4e7ed;
+  border: 1px solid var(--store-border);
   background: white;
   color: #606266;
   font-size: 14px;
@@ -952,13 +952,13 @@ export default {
   justify-content: center;
   width: 100%;
   height: 100%;
-  background: #f5f7fa;
+  background: var(--store-surface);
 }
 
 .loading-spinner {
   width: 30px;
   height: 30px;
-  border: 3px solid #e4e7ed;
+  border: 3px solid var(--store-border);
   border-top: 3px solid var(--primary-color);
   border-radius: 50%;
   animation: spin 1s linear infinite;
@@ -970,7 +970,7 @@ export default {
   justify-content: center;
   width: 100%;
   height: 100%;
-  background: #f5f7fa;
+  background: var(--store-surface);
   color: #c0c4cc;
   font-size: 24px;
 }
@@ -994,7 +994,7 @@ export default {
   flex: 1;
   font-size: 20px;
   font-weight: 600;
-  color: #2c3e50;
+  color: var(--store-ink);
   line-height: 1.4;
   margin: 0;
   display: -webkit-box;
@@ -1180,31 +1180,31 @@ export default {
 
 /* 动画 */
 @keyframes backgroundFloat {
-  0%, 100% { 
-    background-position: 0% 50%; 
+  0%, 100% {
+    background-position: 0% 50%;
   }
-  50% { 
-    background-position: 100% 50%; 
+  50% {
+    background-position: 100% 50%;
   }
 }
 
 @keyframes float {
-  0%, 100% { 
-    transform: translateY(0px) rotate(0deg); 
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
   }
-  50% { 
-    transform: translateY(-20px) rotate(180deg); 
+  50% {
+    transform: translateY(-20px) rotate(180deg);
   }
 }
 
 @keyframes iconPulse {
-  0%, 100% { 
-    transform: scale(1); 
-    box-shadow: 0 0 0 0 rgba(58, 91, 160, 0.4); 
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(var(--store-brand-rgb), 0.4);
   }
-  50% { 
-    transform: scale(1.05); 
-    box-shadow: 0 0 0 10px rgba(58, 91, 160, 0); 
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 10px rgba(var(--store-brand-rgb), 0);
   }
 }
 
@@ -1220,11 +1220,11 @@ export default {
 }
 
 @keyframes glowPulse {
-  0%, 100% { 
-    box-shadow: 0 0 5px rgba(255, 255, 255, 0.5); 
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
   }
-  50% { 
-    box-shadow: 0 0 20px rgba(255, 255, 255, 0.8); 
+  50% {
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.8);
   }
 }
 
@@ -1253,15 +1253,15 @@ export default {
     max-width: 1000px;
     padding: 24px;
   }
-  
+
   .article-list.grid-view {
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   }
-  
+
   .stats-wrapper {
     gap: 16px;
   }
-  
+
   .stat-item {
     min-width: 100px;
     padding: 12px 16px;
@@ -1274,30 +1274,30 @@ export default {
     align-items: flex-start;
     gap: 20px;
   }
-  
+
   .header-right {
     width: 100%;
   }
-  
+
   .stats-wrapper {
     justify-content: space-around;
     width: 100%;
   }
-  
+
   .filter-section {
     flex-direction: column;
     gap: 16px;
     align-items: stretch;
   }
-  
+
   .filter-controls {
     justify-content: space-between;
   }
-  
+
   .list-view .article-item {
     flex-direction: column;
   }
-  
+
   .list-view .article-item .article-image-wrapper {
     width: 100%;
     height: 200px;
@@ -1308,53 +1308,53 @@ export default {
   .main-content {
     padding: 16px;
   }
-  
+
   .page-header {
     padding: 20px;
     margin-bottom: 20px;
   }
-  
+
   .title-wrapper {
     gap: 12px;
   }
-  
+
   .title-icon-wrapper {
     width: 40px;
     height: 40px;
     font-size: 16px;
   }
-  
+
   .title-content h2 {
     font-size: 22px;
   }
-  
+
   .stats-wrapper {
     flex-direction: column;
     gap: 12px;
   }
-  
+
   .stat-item {
     padding: 12px 16px;
   }
-  
+
   .article-list.grid-view {
     grid-template-columns: 1fr;
   }
-  
+
   .article-details {
     padding: 20px;
   }
-  
+
   .article-title {
     font-size: 18px;
   }
-  
+
   .filter-controls {
     flex-direction: column;
     gap: 12px;
     align-items: stretch;
   }
-  
+
   .search-input {
     padding: 12px 16px 12px 45px;
   }
@@ -1374,28 +1374,28 @@ export default {
   .article-page {
     background: #1a1a1a;
   }
-  
+
   .page-header, .filter-section, .article-item {
     background: rgba(30, 30, 30, 0.95);
     border-color: rgba(255, 255, 255, 0.1);
   }
-  
+
   .title-content h2, .article-title {
     color: #e0e0e0;
   }
-  
+
   .title-subtitle, .article-summary {
     color: #b0b0b0;
   }
-  
+
   .search-input {
     background: rgba(40, 40, 40, 0.8);
     border-color: rgba(255, 255, 255, 0.1);
     color: #e0e0e0;
   }
-  
+
   .empty-articles {
     background: rgba(30, 30, 30, 0.95);
   }
 }
-</style> 
+</style>

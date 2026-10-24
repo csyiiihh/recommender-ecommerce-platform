@@ -336,19 +336,19 @@ export default {
   font-size: 24px;
   background: var(--gradient-primary);
   border: none;
-  box-shadow: 0 4px 12px rgba(58, 91, 160, 0.4);
+  box-shadow: 0 4px 12px rgba(var(--store-brand-rgb), 0.4);
   transition: all 0.3s ease;
 }
 
 .service-btn:hover {
   transform: translateY(-3px);
-  box-shadow: 0 6px 20px rgba(58, 91, 160, 0.5);
+  box-shadow: 0 6px 20px rgba(var(--store-brand-rgb), 0.5);
   background: var(--gradient-primary) !important;
 }
 
 .service-btn:active {
   transform: translateY(-1px);
-  box-shadow: 0 4px 15px rgba(58, 91, 160, 0.4);
+  box-shadow: 0 4px 15px rgba(var(--store-brand-rgb), 0.4);
 }
 
 /* 确保按钮颜色不变 */
@@ -369,8 +369,8 @@ export default {
   background: white;
   border-radius: 16px;
   box-shadow: 
-    0 8px 32px rgba(58, 91, 160, 0.15),
-    0 0 0 1px rgba(58, 91, 160, 0.1);
+    0 8px 32px rgba(var(--store-brand-rgb), 0.15),
+    0 0 0 1px rgba(var(--store-brand-rgb), 0.1);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -482,8 +482,8 @@ export default {
   background: var(--bg-paper);
   /* 宣纸纹理 */
   background-image: 
-    repeating-linear-gradient(90deg, transparent, transparent 40px, rgba(58, 91, 160, 0.01) 40px, rgba(58, 91, 160, 0.01) 41px),
-    repeating-linear-gradient(0deg, transparent, transparent 40px, rgba(58, 91, 160, 0.01) 40px, rgba(58, 91, 160, 0.01) 41px);
+    repeating-linear-gradient(90deg, transparent, transparent 40px, rgba(var(--store-brand-rgb), 0.01) 40px, rgba(var(--store-brand-rgb), 0.01) 41px),
+    repeating-linear-gradient(0deg, transparent, transparent 40px, rgba(var(--store-brand-rgb), 0.01) 40px, rgba(var(--store-brand-rgb), 0.01) 41px);
   position: relative;
 }
 
@@ -497,7 +497,7 @@ export default {
   bottom: 0;
   background: 
     radial-gradient(circle at 10% 20%, rgba(95, 124, 110, 0.02) 0%, transparent 50%),
-    radial-gradient(circle at 90% 80%, rgba(58, 91, 160, 0.02) 0%, transparent 50%);
+    radial-gradient(circle at 90% 80%, rgba(var(--store-brand-rgb), 0.02) 0%, transparent 50%);
   pointer-events: none;
 }
 
@@ -519,7 +519,7 @@ export default {
 .empty-message i {
   font-size: 48px;
   margin-bottom: 12px;
-  color: #dcdfe6;
+  color: var(--store-border);
 }
 
 .empty-message p {
@@ -570,7 +570,7 @@ export default {
 }
 
 .service-message .message-avatar {
-  background: #409eff;
+  background: var(--store-brand);
 }
 
 .message-content {
@@ -602,19 +602,19 @@ export default {
   word-wrap: break-word;
   line-height: 1.6;
   position: relative;
-  box-shadow: 0 2px 8px rgba(58, 91, 160, 0.12);
+  box-shadow: 0 2px 8px rgba(var(--store-brand-rgb), 0.12);
 }
 
 /* 客服消息 - 白色青花瓷纹理 */
 .service-message .message-text {
-  background: linear-gradient(135deg, #FFFFFF 0%, #F5F8FA 100%);
+  background: linear-gradient(135deg, #FFFFFF 0%, var(--store-page) 100%);
   color: #1a1a1a;
   font-weight: 500;
-  border: 1px solid rgba(58, 91, 160, 0.15);
+  border: 1px solid rgba(var(--store-brand-rgb), 0.15);
   /* 青花瓷纹理 */
   background-image: 
-    radial-gradient(circle at 20% 30%, rgba(58, 91, 160, 0.03) 0%, transparent 50%),
-    radial-gradient(circle at 80% 70%, rgba(58, 91, 160, 0.04) 0%, transparent 50%);
+    radial-gradient(circle at 20% 30%, rgba(var(--store-brand-rgb), 0.03) 0%, transparent 50%),
+    radial-gradient(circle at 80% 70%, rgba(var(--store-brand-rgb), 0.04) 0%, transparent 50%);
 }
 
 /* 客服气泡尾巴 - 左侧 */
@@ -627,7 +627,7 @@ export default {
   height: 0;
   border-style: solid;
   border-width: 8px 8px 8px 0;
-  border-color: transparent rgba(58, 91, 160, 0.15) transparent transparent;
+  border-color: transparent rgba(var(--store-brand-rgb), 0.15) transparent transparent;
 }
 
 .service-message .message-text::after {
@@ -644,15 +644,15 @@ export default {
 
 /* 用户消息 - 浅青花蓝背景 + 深黑色文字 */
 .user-message .message-text {
-  background: linear-gradient(135deg, #EDF2FA 0%, #DDE7F5 100%);
+  background: linear-gradient(135deg, var(--store-surface-active) 0%, var(--store-border) 100%);
   color: #1a1a1a;
   font-weight: 500;
-  border: 1px solid rgba(58, 91, 160, 0.25);
-  box-shadow: 0 4px 12px rgba(58, 91, 160, 0.15);
+  border: 1px solid rgba(var(--store-brand-rgb), 0.25);
+  box-shadow: 0 4px 12px rgba(var(--store-brand-rgb), 0.15);
   /* 青花瓷纹理 */
   background-image: 
-    radial-gradient(circle at 20% 30%, rgba(58, 91, 160, 0.06) 0%, transparent 50%),
-    radial-gradient(circle at 80% 70%, rgba(58, 91, 160, 0.04) 0%, transparent 50%);
+    radial-gradient(circle at 20% 30%, rgba(var(--store-brand-rgb), 0.06) 0%, transparent 50%),
+    radial-gradient(circle at 80% 70%, rgba(var(--store-brand-rgb), 0.04) 0%, transparent 50%);
 }
 
 /* 用户气泡尾巴 - 右侧（浅色） */
@@ -665,8 +665,8 @@ export default {
   height: 0;
   border-style: solid;
   border-width: 8px 0 8px 8px;
-  border-color: transparent transparent transparent #EDF2FA;
-  filter: drop-shadow(2px 2px 3px rgba(58, 91, 160, 0.1));
+  border-color: transparent transparent transparent var(--store-surface-active);
+  filter: drop-shadow(2px 2px 3px rgba(var(--store-brand-rgb), 0.1));
 }
 
 /* 气泡上的装饰点 */
@@ -687,7 +687,7 @@ export default {
 .input-area {
   padding: 12px 16px;
   background: var(--bg-paper);
-  border-top: 2px solid rgba(58, 91, 160, 0.1);
+  border-top: 2px solid rgba(var(--store-brand-rgb), 0.1);
   position: relative;
 }
 
@@ -724,13 +724,13 @@ export default {
 .send-btn-chinese {
   background: var(--gradient-primary) !important;
   border: none !important;
-  box-shadow: 0 2px 8px rgba(58, 91, 160, 0.25) !important;
+  box-shadow: 0 2px 8px rgba(var(--store-brand-rgb), 0.25) !important;
   transition: all 0.3s ease !important;
 }
 
 .send-btn-chinese:hover {
   transform: translateY(-2px) !important;
-  box-shadow: 0 4px 12px rgba(58, 91, 160, 0.35) !important;
+  box-shadow: 0 4px 12px rgba(var(--store-brand-rgb), 0.35) !important;
 }
 
 .send-btn-chinese:active {

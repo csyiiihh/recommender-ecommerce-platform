@@ -244,7 +244,7 @@ export default {
   right: -30px;
   width: 250px;
   height: 250px;
-  background: radial-gradient(circle, rgba(52, 152, 219, 0.03) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(var(--store-brand-rgb), 0.03) 0%, transparent 70%);
   border-radius: 50%;
   pointer-events: none;
   animation: floatCloud 25s ease-in-out infinite reverse;
@@ -269,7 +269,7 @@ export default {
   position: absolute;
   width: 120px;
   height: 40px;
-  background: radial-gradient(circle at 30% 50%, rgba(52, 152, 219, 0.08) 0%, transparent 70%);
+  background: radial-gradient(circle at 30% 50%, rgba(var(--store-brand-rgb), 0.08) 0%, transparent 70%);
   border-radius: 50%;
   filter: blur(8px);
   animation: driftCloud 25s ease-in-out infinite;
@@ -279,7 +279,7 @@ export default {
 .cloud::after {
   content: '';
   position: absolute;
-  background: radial-gradient(circle, rgba(52, 152, 219, 0.08) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(var(--store-brand-rgb), 0.08) 0%, transparent 70%);
   border-radius: 50%;
   filter: blur(6px);
 }
@@ -338,7 +338,7 @@ export default {
   left: 0;
   right: 0;
   height: 180px;
-  background: linear-gradient(to top, rgba(52, 152, 219, 0.03) 0%, transparent 100%);
+  background: linear-gradient(to top, rgba(var(--store-brand-rgb), 0.03) 0%, transparent 100%);
   opacity: 0.5;
 }
 
@@ -350,9 +350,9 @@ export default {
   right: 0;
   height: 100px;
   background: 
-    radial-gradient(ellipse at 20% 100%, rgba(52, 152, 219, 0.04) 0%, transparent 40%),
-    radial-gradient(ellipse at 50% 100%, rgba(52, 152, 219, 0.08) 0%, transparent 45%),
-    radial-gradient(ellipse at 80% 100%, rgba(52, 152, 219, 0.04) 0%, transparent 38%);
+    radial-gradient(ellipse at 20% 100%, rgba(var(--store-brand-rgb), 0.04) 0%, transparent 40%),
+    radial-gradient(ellipse at 50% 100%, rgba(var(--store-brand-rgb), 0.08) 0%, transparent 45%),
+    radial-gradient(ellipse at 80% 100%, rgba(var(--store-brand-rgb), 0.04) 0%, transparent 38%);
   filter: blur(2px);
 }
 
@@ -364,8 +364,8 @@ export default {
   right: 0;
   height: 60px;
   background: 
-    radial-gradient(ellipse at 30% 100%, rgba(52, 152, 219, 0.04) 0%, transparent 35%),
-    radial-gradient(ellipse at 70% 100%, rgba(52, 152, 219, 0.04) 0%, transparent 40%);
+    radial-gradient(ellipse at 30% 100%, rgba(var(--store-brand-rgb), 0.04) 0%, transparent 35%),
+    radial-gradient(ellipse at 70% 100%, rgba(var(--store-brand-rgb), 0.04) 0%, transparent 40%);
   filter: blur(3px);
 }
 
@@ -391,7 +391,7 @@ export default {
   border-radius: 50%;
   margin-bottom: 16px;
   box-shadow: 
-    0 8px 32px rgba(52, 152, 219, 0.2),
+    0 8px 32px rgba(var(--store-brand-rgb), 0.2),
     inset 0 2px 8px rgba(255, 255, 255, 0.2);
   animation: float 4s ease-in-out infinite;
   position: relative;
@@ -417,7 +417,7 @@ export default {
   position: absolute;
   inset: -8px;
   border-radius: 50%;
-  border: 2px dashed rgba(52, 152, 219, 0.2);
+  border: 2px dashed rgba(var(--store-brand-rgb), 0.2);
   animation: rotate 30s linear infinite;
 }
 
@@ -469,7 +469,7 @@ export default {
 .login-title:hover {
   color: var(--primary-color);
   transform: translateY(-2px);
-  text-shadow: 0 4px 12px rgba(52, 152, 219, 0.2);
+  text-shadow: 0 4px 12px rgba(var(--store-brand-rgb), 0.2);
 }
 
 .login-title:hover::after {
@@ -494,20 +494,20 @@ export default {
   backdrop-filter: blur(10px);
   font-size: 15px;
   color: var(--ink-darkest);
-  box-shadow: 0 1px 3px rgba(52, 152, 219, 0.06);
+  box-shadow: 0 1px 3px rgba(var(--store-brand-rgb), 0.06);
 }
 
 :deep(.el-input__inner:focus) {
   border-color: var(--primary-color);
   box-shadow: 
-    0 0 0 3px rgba(52, 152, 219, 0.1),
-    0 2px 8px rgba(52, 152, 219, 0.12);
+    0 0 0 3px rgba(var(--store-brand-rgb), 0.1),
+    0 2px 8px rgba(var(--store-brand-rgb), 0.12);
   background: white;
 }
 
 :deep(.el-input__inner:hover:not(:focus)) {
   border-color: var(--primary-light);
-  box-shadow: 0 1px 4px rgba(52, 152, 219, 0.08);
+  box-shadow: 0 1px 4px rgba(var(--store-brand-rgb), 0.08);
 }
 
 :deep(.el-input__prefix) {
@@ -555,7 +555,7 @@ export default {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, rgba(52, 152, 219, 0.05) 0%, rgba(141, 160, 217, 0.05) 100%);
+  background: linear-gradient(135deg, rgba(var(--store-brand-rgb), 0.05) 0%, rgba(var(--store-brand-rgb), 0.05) 100%);
   opacity: 0;
   transition: opacity 0.3s ease;
 }
@@ -563,8 +563,8 @@ export default {
 .validate-code:hover {
   border-color: var(--primary-color);
   box-shadow: 
-    0 0 0 3px rgba(52, 152, 219, 0.1),
-    0 4px 12px rgba(52, 152, 219, 0.15);
+    0 0 0 3px rgba(var(--store-brand-rgb), 0.1),
+    0 4px 12px rgba(var(--store-brand-rgb), 0.15);
   transform: translateY(-2px);
 }
 
@@ -625,7 +625,7 @@ export default {
 .forget-link:hover {
   transform: translateX(-2px);
   color: var(--primary-light);
-  text-shadow: 0 2px 8px rgba(52, 152, 219, 0.2);
+  text-shadow: 0 2px 8px rgba(var(--store-brand-rgb), 0.2);
 }
 
 .forget-link i {
@@ -658,11 +658,11 @@ export default {
   align-items: center;
   justify-content: center;
   padding: 0;
-  background: linear-gradient(135deg, #3498DB 0%, #2C3E50 100%) !important;
+  background: linear-gradient(135deg, var(--store-brand) 0%, var(--store-ink) 100%) !important;
   border: none !important;
   color: white !important;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-  box-shadow: 0 4px 16px rgba(52, 152, 219, 0.3);
+  box-shadow: 0 4px 16px rgba(var(--store-brand-rgb), 0.3);
   position: relative;
   overflow: hidden;
 }
@@ -684,16 +684,16 @@ export default {
 .submit-button:hover {
   transform: translateY(-3px);
   box-shadow: 
-    0 8px 24px rgba(52, 152, 219, 0.4),
-    0 0 0 4px rgba(52, 152, 219, 0.15) !important;
-  background: linear-gradient(135deg, #5DADE2 0%, #3498DB 100%) !important;
+    0 8px 24px rgba(var(--store-brand-rgb), 0.4),
+    0 0 0 4px rgba(var(--store-brand-rgb), 0.15) !important;
+  background: linear-gradient(135deg, var(--store-brand-light) 0%, var(--store-brand) 100%) !important;
   border-color: transparent !important;
   color: white !important;
 }
 
 .submit-button:active {
   transform: translateY(-1px);
-  background: linear-gradient(135deg, #2C3E50 0%, #1E3460 100%) !important;
+  background: linear-gradient(135deg, var(--store-ink) 0%, var(--store-brand-hover) 100%) !important;
   color: white !important;
   border-color: transparent !important;
 }
@@ -723,7 +723,7 @@ export default {
 
 .form-footer .register-link:hover {
   color: var(--primary-light);
-  text-shadow: 0 2px 8px rgba(52, 152, 219, 0.2);
+  text-shadow: 0 2px 8px rgba(var(--store-brand-rgb), 0.2);
 }
 
 
@@ -771,7 +771,7 @@ export default {
   position: absolute;
   inset: -12px;
   border-radius: 12px;
-  background: radial-gradient(circle, rgba(52, 152, 219, 0.05) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(var(--store-brand-rgb), 0.05) 0%, transparent 70%);
   opacity: 0;
   transition: opacity 0.3s ease;
 }
@@ -793,12 +793,12 @@ export default {
   position: relative;
   z-index: 1;
   /* 图标光晕效果 */
-  filter: drop-shadow(0 2px 8px rgba(52, 152, 219, 0.2));
+  filter: drop-shadow(0 2px 8px rgba(var(--store-brand-rgb), 0.2));
 }
 
 .feature-item:hover i {
   transform: scale(1.15) rotateY(15deg);
-  filter: drop-shadow(0 4px 12px rgba(52, 152, 219, 0.35));
+  filter: drop-shadow(0 4px 12px rgba(var(--store-brand-rgb), 0.35));
 }
 
 /* 响应式调整 */
@@ -977,7 +977,7 @@ export default {
 /* 焦点管理 - 中国风 */
 .submit-button:focus {
   outline: none !important;
-  box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.2) !important;
+  box-shadow: 0 0 0 4px rgba(var(--store-brand-rgb), 0.2) !important;
 }
 
 /* Element UI 全局覆盖 */

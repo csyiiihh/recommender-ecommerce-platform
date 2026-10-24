@@ -165,7 +165,7 @@ export default {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background-color: #f8f9fa;
+  background-color: var(--store-page);
 }
 
 .main-content {
@@ -192,7 +192,7 @@ export default {
 .page-header h2 {
   font-size: 28px;
   font-weight: 600;
-  color: #2c3e50;
+  color: var(--store-ink);
   margin: 0;
   position: relative;
   display: inline-block;
@@ -214,7 +214,7 @@ export default {
   color: #606266;
   font-size: 15px;
   font-weight: 500;
-  background: #f0f2f5;
+  background: var(--store-surface);
   padding: 8px 16px;
   border-radius: 20px;
 }
@@ -258,7 +258,7 @@ export default {
 }
 
 .sort-options :deep(.el-radio-button:not(:last-child) .el-radio-button__inner) {
-  border-right: 1px solid #dcdfe6;
+  border-right: 1px solid var(--store-border);
 }
 
 .sort-options
@@ -281,12 +281,12 @@ export default {
   line-height: 40px;
   font-size: 14px;
   border: 2px solid transparent;
-  background: #f5f7fa;
+  background: var(--store-surface);
   transition: all 0.3s ease;
 }
 
 .search-box :deep(.el-input__inner:hover) {
-  background: #ebeef5;
+  background: var(--store-border-light);
 }
 
 .search-box :deep(.el-input__inner:focus) {

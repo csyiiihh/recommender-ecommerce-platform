@@ -271,7 +271,7 @@ export default {
     left: -40px;
     width: 320px;
     height: 320px;
-    background: radial-gradient(circle, rgba(58, 91, 160, 0.03) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(var(--store-brand-rgb), 0.03) 0%, transparent 70%);
     border-radius: 50%;
     pointer-events: none;
     animation: floatSlow 28s ease-in-out infinite reverse;
@@ -309,7 +309,7 @@ export default {
     position: absolute;
     width: 60px;
     height: 8px;
-    background: linear-gradient(90deg, transparent 0%, rgba(58, 91, 160, 0.08) 50%, transparent 100%);
+    background: linear-gradient(90deg, transparent 0%, rgba(var(--store-brand-rgb), 0.08) 50%, transparent 100%);
     border-radius: 50%;
     transform-origin: left center;
     animation: sway 8s ease-in-out infinite;
@@ -320,7 +320,7 @@ export default {
     position: absolute;
     width: 30px;
     height: 6px;
-    background: linear-gradient(90deg, rgba(58, 91, 160, 0.06) 0%, transparent 100%);
+    background: linear-gradient(90deg, rgba(var(--store-brand-rgb), 0.06) 0%, transparent 100%);
     border-radius: 50%;
     top: -8px;
     left: 20px;
@@ -332,7 +332,7 @@ export default {
     position: absolute;
     width: 30px;
     height: 6px;
-    background: linear-gradient(90deg, rgba(58, 91, 160, 0.06) 0%, transparent 100%);
+    background: linear-gradient(90deg, rgba(var(--store-brand-rgb), 0.06) 0%, transparent 100%);
     border-radius: 50%;
     top: 8px;
     left: 20px;
@@ -380,7 +380,7 @@ export default {
     left: -10%;
     width: 200px;
     height: 200px;
-    background: radial-gradient(circle, rgba(58, 91, 160, 0.04) 0%, transparent 60%);
+    background: radial-gradient(circle, rgba(var(--store-brand-rgb), 0.04) 0%, transparent 60%);
     border-radius: 50%;
     filter: blur(30px);
     animation: inkFlow 20s ease-in-out infinite;
@@ -405,9 +405,9 @@ export default {
     width: 250px;
     height: 250px;
     background: 
-        radial-gradient(circle at center, transparent 40%, rgba(58, 91, 160, 0.03) 41%, rgba(58, 91, 160, 0.03) 43%, transparent 44%),
-        radial-gradient(circle at center, transparent 55%, rgba(58, 91, 160, 0.02) 56%, rgba(58, 91, 160, 0.02) 58%, transparent 59%),
-        radial-gradient(circle at center, transparent 70%, rgba(58, 91, 160, 0.015) 71%, rgba(58, 91, 160, 0.015) 72%, transparent 73%);
+        radial-gradient(circle at center, transparent 40%, rgba(var(--store-brand-rgb), 0.03) 41%, rgba(var(--store-brand-rgb), 0.03) 43%, transparent 44%),
+        radial-gradient(circle at center, transparent 55%, rgba(var(--store-brand-rgb), 0.02) 56%, rgba(var(--store-brand-rgb), 0.02) 58%, transparent 59%),
+        radial-gradient(circle at center, transparent 70%, rgba(var(--store-brand-rgb), 0.015) 71%, rgba(var(--store-brand-rgb), 0.015) 72%, transparent 73%);
     border-radius: 50%;
     opacity: 0.6;
     animation: rotate 40s linear infinite;
@@ -417,7 +417,7 @@ export default {
     content: '';
     position: absolute;
     inset: 20%;
-    background: radial-gradient(circle, rgba(58, 91, 160, 0.02) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(var(--store-brand-rgb), 0.02) 0%, transparent 70%);
     border-radius: 50%;
 }
 
@@ -448,7 +448,7 @@ export default {
     border-radius: 50%;
     margin-bottom: 16px;
     box-shadow: 
-        0 8px 32px rgba(58, 91, 160, 0.25),
+        0 8px 32px rgba(var(--store-brand-rgb), 0.25),
         inset 0 2px 8px rgba(255, 255, 255, 0.2);
     animation: floatRotate 5s ease-in-out infinite;
     position: relative;
@@ -474,7 +474,7 @@ export default {
     position: absolute;
     inset: -8px;
     border-radius: 50%;
-    border: 2px dashed rgba(58, 91, 160, 0.25);
+    border: 2px dashed rgba(var(--store-brand-rgb), 0.25);
     animation: rotateReverse 35s linear infinite;
 }
 
@@ -530,7 +530,7 @@ export default {
 .register-title:hover {
     color: var(--primary-color);
     transform: translateY(-2px);
-    text-shadow: 0 4px 12px rgba(58, 91, 160, 0.25);
+    text-shadow: 0 4px 12px rgba(var(--store-brand-rgb), 0.25);
 }
 
 .register-title:hover::after {
@@ -584,7 +584,7 @@ export default {
     font-size: 15px;
     color: var(--ink-darkest);
     position: relative;
-    box-shadow: 0 1px 3px rgba(58, 91, 160, 0.06);
+    box-shadow: 0 1px 3px rgba(var(--store-brand-rgb), 0.06);
 }
 
 :deep(.el-input__inner::placeholder) {
@@ -595,8 +595,8 @@ export default {
 :deep(.el-input__inner:focus) {
     border-color: var(--primary-color);
     box-shadow: 
-        0 0 0 3px rgba(58, 91, 160, 0.1),
-        0 2px 8px rgba(58, 91, 160, 0.12);
+        0 0 0 3px rgba(var(--store-brand-rgb), 0.1),
+        0 2px 8px rgba(var(--store-brand-rgb), 0.12);
     background: white;
     border-width: 1.5px;
 }
@@ -608,7 +608,7 @@ export default {
 
 :deep(.el-input__inner:hover:not(:focus)) {
     border-color: var(--primary-light);
-    box-shadow: 0 1px 4px rgba(58, 91, 160, 0.08);
+    box-shadow: 0 1px 4px rgba(var(--store-brand-rgb), 0.08);
 }
 
 :deep(.el-input__prefix) {
@@ -648,8 +648,8 @@ export default {
 :deep(.el-select .el-input__inner:focus) {
     border-color: var(--primary-color);
     box-shadow: 
-        0 0 0 3px rgba(58, 91, 160, 0.12),
-        0 4px 12px rgba(58, 91, 160, 0.18);
+        0 0 0 3px rgba(var(--store-brand-rgb), 0.12),
+        0 4px 12px rgba(var(--store-brand-rgb), 0.18);
     background: white;
     transform: translateY(-1px);
 }
@@ -685,7 +685,7 @@ export default {
     color: white !important;
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
     box-shadow: 
-        0 4px 12px rgba(58, 91, 160, 0.4),
+        0 4px 12px rgba(var(--store-brand-rgb), 0.4),
         0 2px 4px rgba(0, 0, 0, 0.1);
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
@@ -722,10 +722,10 @@ export default {
 .validate-btn:hover:not(:disabled) {
     transform: translateY(-3px) scale(1.02);
     box-shadow: 
-        0 8px 24px rgba(58, 91, 160, 0.55),
-        0 0 0 4px rgba(58, 91, 160, 0.2),
+        0 8px 24px rgba(var(--store-brand-rgb), 0.55),
+        0 0 0 4px rgba(var(--store-brand-rgb), 0.2),
         0 4px 8px rgba(0, 0, 0, 0.15) !important;
-    background: linear-gradient(135deg, #5B7CBD 0%, #3A5BA0 100%) !important;
+    background: linear-gradient(135deg, var(--store-brand) 0%, var(--store-brand) 100%) !important;
     border-color: transparent !important;
     color: white !important;
 }
@@ -759,8 +759,8 @@ export default {
 .validate-container :deep(.el-input__inner:focus) {
     border-color: var(--primary-color);
     box-shadow: 
-        0 0 0 3px rgba(58, 91, 160, 0.12),
-        0 4px 12px rgba(58, 91, 160, 0.18);
+        0 0 0 3px rgba(var(--store-brand-rgb), 0.12),
+        0 4px 12px rgba(var(--store-brand-rgb), 0.18);
     background: white;
     transform: translateY(-1px);
 }
@@ -810,7 +810,7 @@ export default {
 }
 
 :deep(.el-select-dropdown__item:hover) {
-    background: rgba(58, 91, 160, 0.08);
+    background: rgba(var(--store-brand-rgb), 0.08);
     color: var(--primary-color);
     transform: translateX(4px);
 }
@@ -819,7 +819,7 @@ export default {
     background: var(--gradient-primary);
     color: white;
     font-weight: 600;
-    box-shadow: 0 4px 12px rgba(58, 91, 160, 0.25);
+    box-shadow: 0 4px 12px rgba(var(--store-brand-rgb), 0.25);
 }
 
 @keyframes iconBounce {
@@ -922,22 +922,22 @@ export default {
 .submit-button:hover {
     transform: translateY(-4px) scale(1.02);
     box-shadow: 
-        0 12px 32px rgba(58, 91, 160, 0.5),
-        0 0 0 4px rgba(58, 91, 160, 0.2),
+        0 12px 32px rgba(var(--store-brand-rgb), 0.5),
+        0 0 0 4px rgba(var(--store-brand-rgb), 0.2),
         0 4px 8px rgba(0, 0, 0, 0.15) !important;
-    background: linear-gradient(135deg, #5B7CBD 0%, #3A5BA0 100%) !important;
+    background: linear-gradient(135deg, var(--store-brand) 0%, var(--store-brand) 100%) !important;
     border-color: transparent !important;
     color: white !important;
 }
 
 .submit-button:active {
     transform: translateY(-2px) scale(0.98);
-    background: linear-gradient(135deg, #2E4880 0%, #1E3460 100%) !important;
+    background: linear-gradient(135deg, var(--store-brand) 0%, var(--store-brand-hover) 100%) !important;
     color: white !important;
     border-color: transparent !important;
     box-shadow: 
-        0 6px 16px rgba(58, 91, 160, 0.4),
-        0 0 0 2px rgba(58, 91, 160, 0.25) !important;
+        0 6px 16px rgba(var(--store-brand-rgb), 0.4),
+        0 0 0 2px rgba(var(--store-brand-rgb), 0.25) !important;
 }
 
 /* 返回登录链接 */
@@ -970,7 +970,7 @@ export default {
 :deep(.form-footer .el-link.el-link--warning:hover) {
     color: var(--primary-light);
     transform: translateX(-4px);
-    text-shadow: 0 2px 8px rgba(58, 91, 160, 0.25);
+    text-shadow: 0 2px 8px rgba(var(--store-brand-rgb), 0.25);
 }
 
 :deep(.form-footer .el-link i) {
@@ -1034,7 +1034,7 @@ export default {
 
 .terms-link:hover {
     color: var(--primary-light);
-    text-shadow: 0 2px 6px rgba(58, 91, 160, 0.2);
+    text-shadow: 0 2px 6px rgba(var(--store-brand-rgb), 0.2);
 }
 
 .terms-link:hover::after {
@@ -1209,18 +1209,18 @@ export default {
 /* 焦点管理 - 中国风 */
 .submit-button:focus {
     outline: none !important;
-    box-shadow: 0 0 0 4px rgba(58, 91, 160, 0.2) !important;
+    box-shadow: 0 0 0 4px rgba(var(--store-brand-rgb), 0.2) !important;
 }
 
 .validate-btn:focus {
     outline: none !important;
-    box-shadow: 0 0 0 4px rgba(58, 91, 160, 0.2) !important;
+    box-shadow: 0 0 0 4px rgba(var(--store-brand-rgb), 0.2) !important;
 }
 
 /* 确保按下状态保持蓝色 */
 .validate-btn:active:not(:disabled) {
     transform: scale(0.95);
-    background: linear-gradient(135deg, #2E4880 0%, #1E3460 100%) !important;
+    background: linear-gradient(135deg, var(--store-brand) 0%, var(--store-brand-hover) 100%) !important;
     color: white !important;
 }
 
@@ -1230,7 +1230,7 @@ export default {
     border-radius: 14px;
     box-shadow: 
         0 12px 40px rgba(0, 0, 0, 0.15),
-        0 0 0 1px rgba(58, 91, 160, 0.05);
+        0 0 0 1px rgba(var(--store-brand-rgb), 0.05);
     backdrop-filter: blur(10px);
     background: rgba(255, 255, 255, 0.98);
 }
@@ -1244,7 +1244,7 @@ export default {
 }
 
 :deep(.el-option:hover) {
-    background: rgba(58, 91, 160, 0.08);
+    background: rgba(var(--store-brand-rgb), 0.08);
     color: var(--primary-color);
     transform: translateX(4px);
 }
@@ -1253,7 +1253,7 @@ export default {
     background: var(--gradient-primary);
     color: white;
     font-weight: 600;
-    box-shadow: 0 4px 12px rgba(58, 91, 160, 0.25);
+    box-shadow: 0 4px 12px rgba(var(--store-brand-rgb), 0.25);
 }
 
 /* Element UI 全局覆盖 */
@@ -1289,6 +1289,6 @@ export default {
 
 .form-footer .back-link:hover {
     color: var(--primary-light);
-    text-shadow: 0 2px 8px rgba(58, 91, 160, 0.2);
+    text-shadow: 0 2px 8px rgba(var(--store-brand-rgb), 0.2);
 }
 </style>

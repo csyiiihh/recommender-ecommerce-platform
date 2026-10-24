@@ -274,7 +274,7 @@ export default {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(135deg, #f5f7fa 0%, #ecf5ff 100%);
+  background: linear-gradient(135deg, var(--store-surface) 0%, var(--store-surface-active) 100%);
 }
 
 .main-content {
@@ -295,7 +295,7 @@ export default {
   background: white;
   padding: 20px 24px;
   border-radius: 12px;
-  border: 1px solid #ebeef5;
+  border: 1px solid var(--store-border-light);
   position: relative;
   overflow: hidden;
 }
@@ -313,7 +313,7 @@ export default {
 .page-header h2 {
   font-size: 24px;
   font-weight: 500;
-  color: #2c3e50;
+  color: var(--store-ink);
   margin: 0;
 }
 
@@ -327,7 +327,7 @@ export default {
   color: #606266;
   font-size: 14px;
   font-weight: 500;
-  background: rgba(58, 91, 160, 0.1);
+  background: rgba(var(--store-brand-rgb), 0.1);
   padding: 6px 16px;
   border-radius: 20px;
 }
@@ -373,7 +373,7 @@ export default {
   padding: 60px 0;
   background: white;
   border-radius: 12px;
-  border: 1px solid #ebeef5;
+  border: 1px solid var(--store-border-light);
 }
 
 :deep(.el-empty .el-button) {

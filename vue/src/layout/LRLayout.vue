@@ -142,43 +142,43 @@ export default {
     left: 0;
     right: 0;
     bottom: 0;
-    background: linear-gradient(135deg, 
-        #F7F9FA 0%,
-        #EEF3F6 20%,
-        #E8EFF8 40%,
-        #DDE7F5 60%,
-        #EEF3F6 80%,
-        #F7F9FA 100%);
+    background: linear-gradient(135deg,
+        var(--store-page) 0%,
+        var(--store-page) 20%,
+        var(--store-page) 40%,
+        var(--store-border) 60%,
+        var(--store-page) 80%,
+        var(--store-page) 100%);
     animation: gradientShift 30s ease-in-out infinite;
 }
 
 @keyframes gradientShift {
     0%, 100% {
-        background: linear-gradient(135deg, 
-            #F7F9FA 0%,
-            #EEF3F6 20%,
-            #E8EFF8 40%,
-            #DDE7F5 60%,
-            #EEF3F6 80%,
-            #F7F9FA 100%);
+        background: linear-gradient(135deg,
+            var(--store-page) 0%,
+            var(--store-page) 20%,
+            var(--store-page) 40%,
+            var(--store-border) 60%,
+            var(--store-page) 80%,
+            var(--store-page) 100%);
     }
     33% {
-        background: linear-gradient(135deg, 
-            #EDF2FA 0%,
-            #E0EAF2 20%,
-            #D4E0F0 40%,
-            #C8D6E8 60%,
-            #E0EAF2 80%,
-            #EDF2FA 100%);
+        background: linear-gradient(135deg,
+            var(--store-surface-active) 0%,
+            var(--store-surface-active) 20%,
+            var(--store-surface-active) 40%,
+            var(--store-border) 60%,
+            var(--store-surface-active) 80%,
+            var(--store-surface-active) 100%);
     }
     66% {
-        background: linear-gradient(135deg, 
-            #F5F8FA 0%,
-            #E8EFF8 20%,
-            #DDE7F5 40%,
-            #D4E0F0 60%,
-            #E8EFF8 80%,
-            #F5F8FA 100%);
+        background: linear-gradient(135deg,
+            var(--store-page) 0%,
+            var(--store-page) 20%,
+            var(--store-border) 40%,
+            var(--store-surface-active) 60%,
+            var(--store-page) 80%,
+            var(--store-page) 100%);
     }
 }
 
@@ -190,12 +190,12 @@ export default {
     right: 0;
     bottom: 0;
     opacity: 0.06;
-    background-image: 
-        radial-gradient(circle at 25% 25%, #3A5BA0 2px, transparent 2px),
-        radial-gradient(circle at 75% 75%, #5B7BBF 1.5px, transparent 1.5px),
+    background-image:
+        radial-gradient(circle at 25% 25%, var(--store-brand) 2px, transparent 2px),
+        radial-gradient(circle at 75% 75%, var(--store-brand) 1.5px, transparent 1.5px),
         radial-gradient(circle at 50% 100%, #5F7C6E 1.5px, transparent 1.5px),
-        radial-gradient(ellipse at 20% 60%, #3A5BA0 1px, transparent 1px),
-        radial-gradient(ellipse at 80% 40%, #8DA0D9 1px, transparent 1px);
+        radial-gradient(ellipse at 20% 60%, var(--store-brand) 1px, transparent 1px),
+        radial-gradient(ellipse at 80% 40%, var(--store-brand) 1px, transparent 1px);
     background-size: 100px 100px, 80px 80px, 90px 90px, 60px 60px, 70px 70px;
     background-position: 0 0, 30px 30px, 20px 20px, 45px 45px, 55px 15px;
     animation: patternMove 40s linear infinite;
@@ -223,7 +223,7 @@ export default {
 .circle {
     position: absolute;
     border-radius: 50%;
-    background: linear-gradient(135deg, rgba(58, 91, 160, 0.08), rgba(58, 91, 160, 0.03));
+    background: linear-gradient(135deg, rgba(var(--store-brand-rgb), 0.08), rgba(var(--store-brand-rgb), 0.03));
     animation: float 7s ease-in-out infinite;
     filter: blur(20px);
 }
@@ -250,7 +250,7 @@ export default {
     height: 80px;
     top: 35%;
     right: 22%;
-    background: linear-gradient(135deg, rgba(141, 160, 217, 0.08), rgba(141, 160, 217, 0.03));
+    background: linear-gradient(135deg, rgba(var(--store-brand-rgb), 0.08), rgba(var(--store-brand-rgb), 0.03));
     animation-delay: 5s;
 }
 
@@ -367,11 +367,11 @@ export default {
 }
 
 @keyframes cloudDrift {
-    0%, 100% { 
+    0%, 100% {
         transform: translateX(0) translateY(0);
         opacity: 0.4;
     }
-    50% { 
+    50% {
         transform: translateX(15px) translateY(-8px);
         opacity: 0.7;
 }
@@ -382,9 +382,9 @@ export default {
     position: absolute;
     width: 3px;
     height: 50px;
-    background: linear-gradient(180deg, 
-        rgba(58, 91, 160, 0.15) 0%, 
-        rgba(58, 91, 160, 0.08) 50%,
+    background: linear-gradient(180deg,
+        rgba(var(--store-brand-rgb), 0.15) 0%,
+        rgba(var(--store-brand-rgb), 0.08) 50%,
         transparent 100%);
     border-radius: 2px;
     animation: bambooSway 15s ease-in-out infinite;
@@ -479,11 +479,11 @@ export default {
 }
 
 @keyframes blossomFloat {
-    0%, 100% { 
+    0%, 100% {
         transform: translateY(0) rotate(0deg);
         opacity: 0.5;
     }
-    50% { 
+    50% {
         transform: translateY(-12px) rotate(180deg);
         opacity: 0.8;
     }
@@ -495,7 +495,7 @@ export default {
     width: 40px;
     height: 12px;
     border-radius: 50%;
-    border: 2px solid rgba(58, 91, 160, 0.1);
+    border: 2px solid rgba(var(--store-brand-rgb), 0.1);
     animation: waveExpand 8s ease-in-out infinite;
 }
 
@@ -504,7 +504,7 @@ export default {
     position: absolute;
     inset: -6px;
     border-radius: 50%;
-    border: 1px solid rgba(58, 91, 160, 0.06);
+    border: 1px solid rgba(var(--store-brand-rgb), 0.06);
 }
 
 .wave-1 {
@@ -520,11 +520,11 @@ export default {
 }
 
 @keyframes waveExpand {
-    0%, 100% { 
+    0%, 100% {
         transform: scale(1);
         opacity: 0.3;
     }
-    50% { 
+    50% {
         transform: scale(1.3);
         opacity: 0.6;
     }
@@ -577,8 +577,8 @@ export default {
     overflow: hidden;
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(20px);
-    border: 1px solid rgba(226, 232, 240, 0.6);
-    box-shadow: 
+    border: 1px solid rgba(var(--store-border-rgb), 0.6);
+    box-shadow:
         0 12px 40px rgba(0, 0, 0, 0.08),
         0 4px 16px rgba(0, 0, 0, 0.04),
         inset 0 1px 0 rgba(255, 255, 255, 0.6);
@@ -587,7 +587,7 @@ export default {
 
 .auth-layout:hover {
     transform: translateY(-2px);
-    box-shadow: 
+    box-shadow:
         0 16px 48px rgba(0, 0, 0, 0.1),
         0 8px 24px rgba(0, 0, 0, 0.06),
         inset 0 1px 0 rgba(255, 255, 255, 0.8);
@@ -596,7 +596,7 @@ export default {
 /* 左侧介绍区域 - 中国风青花蓝渐变 */
 .intro-section {
     flex: 0 0 55%;
-    background: linear-gradient(135deg, #3A5BA0 0%, #5B7BBF 50%, #8DA0D9 100%);
+    background: linear-gradient(135deg, var(--store-brand) 0%, var(--store-brand) 50%, var(--store-brand) 100%);
     color: white;
     padding: 40px 32px;
     display: flex;
@@ -615,7 +615,7 @@ export default {
     left: 0;
     right: 0;
     bottom: 0;
-    background: 
+    background:
         radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.08) 0%, transparent 40%),
         radial-gradient(circle at 80% 70%, rgba(255, 255, 255, 0.06) 0%, transparent 35%),
         radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.04) 0%, transparent 50%);
@@ -683,7 +683,7 @@ export default {
     backdrop-filter: blur(15px);
     border: 2px solid rgba(255, 255, 255, 0.4);
     animation: logoFloat 5s ease-in-out infinite;
-    box-shadow: 
+    box-shadow:
         0 8px 32px rgba(0, 0, 0, 0.15),
         inset 0 2px 8px rgba(255, 255, 255, 0.2);
     position: relative;
@@ -711,11 +711,11 @@ export default {
 }
 
 @keyframes logoFloat {
-    0%, 100% { 
-        transform: translateY(0px) scale(1); 
+    0%, 100% {
+        transform: translateY(0px) scale(1);
     }
-    50% { 
-        transform: translateY(-10px) scale(1.05); 
+    50% {
+        transform: translateY(-10px) scale(1.05);
     }
 }
 
@@ -878,9 +878,9 @@ export default {
     transform: translateY(-50%);
     width: 2px;
     height: 36px;
-    background: linear-gradient(180deg, 
-        transparent 0%, 
-        rgba(255, 255, 255, 0.3) 50%, 
+    background: linear-gradient(180deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.3) 50%,
         transparent 100%);
 }
 
@@ -909,8 +909,8 @@ export default {
     align-items: center;
     justify-content: center;
     padding: 40px 32px;
-    background: linear-gradient(135deg, 
-        rgba(255, 255, 255, 0.98) 0%, 
+    background: linear-gradient(135deg,
+        rgba(255, 255, 255, 0.98) 0%,
         rgba(255, 255, 255, 0.97) 30%,
         rgba(255, 255, 255, 0.96) 60%,
         rgba(255, 255, 255, 0.95) 100%);
@@ -926,13 +926,13 @@ export default {
     top: 0;
     bottom: 0;
     width: 1px;
-    background: linear-gradient(to bottom, 
-        transparent 0%, 
-        rgba(58, 91, 160, 0.08) 10%, 
-        rgba(58, 91, 160, 0.15) 30%,
-        rgba(58, 91, 160, 0.18) 50%,
-        rgba(58, 91, 160, 0.15) 70%,
-        rgba(58, 91, 160, 0.08) 90%, 
+    background: linear-gradient(to bottom,
+        transparent 0%,
+        rgba(var(--store-brand-rgb), 0.08) 10%,
+        rgba(var(--store-brand-rgb), 0.15) 30%,
+        rgba(var(--store-brand-rgb), 0.18) 50%,
+        rgba(var(--store-brand-rgb), 0.15) 70%,
+        rgba(var(--store-brand-rgb), 0.08) 90%,
         transparent 100%);
     z-index: 1;
     opacity: 0.5;
@@ -945,10 +945,10 @@ export default {
     top: 0;
     bottom: 0;
     width: 80px;
-    background: linear-gradient(to right, 
-        rgba(58, 91, 160, 0.04) 0%, 
-        rgba(58, 91, 160, 0.02) 40%,
-        rgba(58, 91, 160, 0.01) 70%,
+    background: linear-gradient(to right,
+        rgba(var(--store-brand-rgb), 0.04) 0%,
+        rgba(var(--store-brand-rgb), 0.02) 40%,
+        rgba(var(--store-brand-rgb), 0.01) 70%,
         transparent 100%);
     z-index: 0;
     pointer-events: none;
@@ -973,21 +973,21 @@ export default {
         max-width: 500px;
         min-height: auto;
     }
-    
+
     .intro-section {
         flex: none;
         padding: 40px 30px;
     }
-    
+
     .brand-title {
         font-size: 28px;
     }
-    
+
     .features-list {
         gap: 16px;
         margin-bottom: 30px;
     }
-    
+
     .form-section {
         flex: none;
         padding: 40px 30px;
@@ -998,81 +998,81 @@ export default {
     .auth-content {
         padding: 20px;
     }
-    
+
     .auth-layout {
         border-radius: 20px;
         min-height: auto;
     }
-    
+
     .intro-section {
         padding: 30px 20px;
     }
-    
+
     .brand-area {
         margin-bottom: 30px;
     }
-    
+
     .logo-circle {
         width: 60px;
         height: 60px;
     }
-    
+
     .logo-circle i {
         font-size: 28px;
     }
-    
+
     .brand-title {
         font-size: 24px;
     }
-    
+
     .brand-subtitle {
         font-size: 16px;
     }
-    
+
     .features-grid {
         margin-bottom: 30px;
     }
-    
+
     .form-section {
         padding: 30px 20px;
     }
-    
+
     .circle-1 {
         width: 80px;
         height: 80px;
     }
-    
+
     .circle-2 {
         width: 60px;
         height: 60px;
     }
-    
+
     .circle-3 {
         width: 40px;
         height: 40px;
     }
-    
+
     .leaf {
         width: 14px;
         height: 14px;
     }
-    
+
     /* 中国风元素移动端优化 */
     .auspicious-cloud {
         width: 50px;
         height: 18px;
     }
-    
+
     .ink-bamboo {
         width: 2px;
         height: 40px;
     }
-    
+
     .plum-blossom {
         width: 10px;
         height: 10px;
     }
-    
+
     .wave-pattern {
         width: 35px;
         height: 10px;
@@ -1083,20 +1083,20 @@ export default {
     .auth-content {
         padding: 16px;
     }
-    
+
     .intro-section {
         padding: 20px 16px;
     }
-    
+
     .form-section {
         padding: 20px 16px;
     }
-    
+
     .stats-section {
         flex-direction: column;
         gap: 20px;
     }
-    
+
     .stat-item {
         padding: 0;
     }
@@ -1105,21 +1105,21 @@ export default {
 /* 优化深色模式 */
 @media (prefers-color-scheme: dark) {
     .bg-gradient {
-        background: linear-gradient(135deg, 
-            #0f172a 0%,
-            #1e293b 25%,
-            #334155 50%,
-            #475569 75%,
-            #64748b 100%);
+        background: linear-gradient(135deg,
+            var(--store-brand-hover) 0%,
+            var(--store-brand-hover) 25%,
+            var(--store-muted) 50%,
+            var(--store-muted) 75%,
+            var(--store-muted) 100%);
     }
-    
+
     .auth-layout {
-        background: rgba(30, 41, 59, 0.95);
+        background: rgba(var(--store-brand-hover-rgb), 0.95);
         border: 1px solid rgba(255, 255, 255, 0.1);
     }
-    
+
     .form-section {
-        background: rgba(30, 41, 59, 0.98);
+        background: rgba(var(--store-brand-hover-rgb), 0.98);
     }
 }
 
@@ -1138,7 +1138,7 @@ export default {
     .rice-grain {
         animation: none;
     }
-    
+
     .auth-layout,
     .feature-card {
         transition: none;

@@ -47,7 +47,7 @@
         link
         size="small" 
         @click="showWeights = !showWeights"
-        style="width: 100%; margin-top: 8px; color: #667eea;"
+        style="width: 100%; margin-top: 8px; color: #4f715b;"
       >
         {{ showWeights ? '收起配置' : '展开配置' }}
       </el-button>
@@ -195,7 +195,7 @@ export default {
 .card-title {
   font-size: 16px;
   font-weight: 600;
-  color: #2c3e50;
+  color: var(--store-ink);
   margin: 0 0 16px 0;
   display: flex;
   align-items: center;
@@ -203,13 +203,13 @@ export default {
 }
 
 .card-title i {
-  color: #667eea;
+  color: var(--store-brand-light);
 }
 
 .algo-status {
   margin-bottom: 16px;
   padding-bottom: 16px;
-  border-bottom: 1px solid #f0f2f5;
+  border-bottom: 1px solid var(--store-surface);
 }
 
 .status-item {
@@ -229,7 +229,7 @@ export default {
 }
 
 .status-item .value {
-  color: #2c3e50;
+  color: var(--store-ink);
   font-weight: 500;
 }
 
@@ -240,7 +240,7 @@ export default {
 .weights-title {
   font-size: 14px;
   font-weight: 600;
-  color: #2c3e50;
+  color: var(--store-ink);
   margin: 0 0 12px 0;
 }
 
@@ -262,21 +262,21 @@ export default {
 }
 
 .slider-value {
-  color: #667eea;
+  color: var(--store-brand-light);
   font-weight: 600;
   font-size: 14px;
 }
 
 :deep(.el-slider__runway) {
-  background-color: #e4e7ed;
+  background-color: var(--store-border);
 }
 
 :deep(.el-slider__bar) {
-  background-color: #667eea;
+  background-color: var(--store-brand-light);
 }
 
 :deep(.el-slider__button) {
-  border-color: #667eea;
+  border-color: var(--store-brand-light);
 }
 
 @media (max-width: 768px) {

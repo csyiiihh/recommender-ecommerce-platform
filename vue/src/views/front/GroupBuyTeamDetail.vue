@@ -349,7 +349,7 @@ export default {
     progressColor() {
       const percent = this.progressPercent
       if (percent >= 80) return '#e6a23c'
-      return '#409eff'
+      return '#315749'
     }
   },
   mounted() {
@@ -506,7 +506,7 @@ export default {
   padding: 20px;
   max-width: 1000px;
   margin: 0 auto;
-  background: #f5f7fa;
+  background: var(--store-surface);
   min-height: 100vh;
 }
 
@@ -537,7 +537,7 @@ export default {
 }
 
 .status-ongoing .status-icon {
-  color: #409eff;
+  color: var(--store-brand);
   animation: rotate 2s linear infinite;
 }
 
@@ -571,7 +571,7 @@ export default {
   align-items: center;
   gap: 10px;
   padding: 12px 24px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--store-brand-light) 0%, var(--store-olive) 100%);
   border-radius: 30px;
   color: white;
   font-size: 16px;
@@ -597,7 +597,7 @@ export default {
 .progress-text .current {
   font-size: 24px;
   font-weight: bold;
-  color: #409eff;
+  color: var(--store-brand);
 }
 
 .progress-text .slash {
@@ -620,7 +620,7 @@ export default {
 .failed-info {
   max-width: 500px;
   margin: 20px auto 0;
-  background: #f8f9fa;
+  background: var(--store-page);
   border-radius: 8px;
   padding: 20px;
 }
@@ -630,7 +630,7 @@ export default {
   justify-content: space-between;
   align-items: center;
   padding: 10px 0;
-  border-bottom: 1px dashed #e4e7ed;
+  border-bottom: 1px dashed var(--store-border);
 }
 
 .info-item:last-child {
@@ -654,7 +654,7 @@ export default {
   gap: 15px;
   margin-top: 30px;
   padding-top: 25px;
-  border-top: 1px solid #ebeef5;
+  border-top: 1px solid var(--store-border-light);
 }
 
 /* 商品信息卡片 */
@@ -703,7 +703,7 @@ export default {
 }
 
 .product-title:hover {
-  color: #409eff;
+  color: var(--store-brand);
 }
 
 .product-desc {
@@ -756,7 +756,7 @@ export default {
 
 .member-count {
   font-size: 14px;
-  color: #409eff;
+  color: var(--store-brand);
   font-weight: 500;
 }
 
@@ -770,13 +770,13 @@ export default {
   align-items: center;
   gap: 15px;
   padding: 15px;
-  background: #f8f9fa;
+  background: var(--store-page);
   border-radius: 8px;
   transition: all 0.3s;
 }
 
 .member-item:not(.empty):hover {
-  background: #e9ecef;
+  background: var(--store-border-light);
   transform: translateX(5px);
 }
 
@@ -858,7 +858,7 @@ export default {
   color: #666;
   margin-bottom: 20px;
   padding: 12px;
-  background: #f0f9ff;
+  background: var(--store-surface);
   border-radius: 6px;
   display: flex;
   align-items: center;
@@ -867,7 +867,7 @@ export default {
 
 .share-desc i {
   font-size: 18px;
-  color: #409eff;
+  color: var(--store-brand);
 }
 
 .share-link-box {
@@ -879,7 +879,7 @@ export default {
 }
 
 .share-tips {
-  background: #f8f9fa;
+  background: var(--store-page);
   border-radius: 6px;
   padding: 15px;
 }

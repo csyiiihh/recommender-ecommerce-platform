@@ -468,7 +468,7 @@ export default {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(135deg, #f8faf5 0%, #f5f7fa 100%);
+  background: linear-gradient(135deg, #f8faf5 0%, var(--store-surface) 100%);
 }
 
 .main-content {
@@ -486,7 +486,7 @@ export default {
   background: white;
   padding: 20px 24px;
   border-radius: 12px;
-  border: 1px solid #ebeef5;
+  border: 1px solid var(--store-border-light);
   position: relative;
   overflow: hidden;
 }
@@ -504,7 +504,7 @@ export default {
 .page-header h2 {
   font-size: 24px;
   font-weight: 500;
-  color: #2c3e50;
+  color: var(--store-ink);
   margin: 0;
 }
 
@@ -518,7 +518,7 @@ export default {
   width: 240px;
   background: white;
   border-radius: 12px;
-  border: 1px solid #ebeef5;
+  border: 1px solid var(--store-border-light);
   overflow: hidden;
 }
 
@@ -557,7 +557,7 @@ export default {
   flex: 1;
   background: white;
   border-radius: 12px;
-  border: 1px solid #ebeef5;
+  border: 1px solid var(--store-border-light);
   padding: 30px;
 }
 
@@ -567,12 +567,12 @@ export default {
   align-items: flex-start;
   margin-bottom: 30px;
   padding-bottom: 20px;
-  border-bottom: 1px solid #f0f2f5;
+  border-bottom: 1px solid var(--store-surface);
 }
 
 .header-left h3 {
   font-size: 24px;
-  color: #2c3e50;
+  color: var(--store-ink);
   margin: 0 0 8px 0;
   font-weight: 500;
 }
@@ -600,8 +600,8 @@ export default {
   height: 100px;
   border-radius: 50%;
   overflow: hidden;
-  border: 3px solid #e4e7ed;
-  background: #f5f7fa;
+  border: 3px solid var(--store-border);
+  background: var(--store-surface);
 }
 
 .avatar-img {
@@ -618,7 +618,7 @@ export default {
   justify-content: center;
   font-size: 48px;
   color: #c0c4cc;
-  background: linear-gradient(135deg, #f5f7fa 0%, #e4e7ed 100%);
+  background: linear-gradient(135deg, var(--store-surface) 0%, var(--store-border) 100%);
 }
 
 .avatar-upload-btn {
@@ -651,7 +651,7 @@ export default {
 
 .address-item {
   transition: all 0.3s ease;
-  border: 1px solid #ebeef5;
+  border: 1px solid var(--store-border-light);
   border-radius: 8px;
   position: relative;
   overflow: hidden;
@@ -692,7 +692,7 @@ export default {
 .name {
   font-size: 16px;
   font-weight: 600;
-  color: #2c3e50;
+  color: var(--store-ink);
 }
 
 .phone {
@@ -737,7 +737,7 @@ export default {
 
 :deep(.el-dialog__header) {
   padding: 20px;
-  border-bottom: 1px solid #f0f2f5;
+  border-bottom: 1px solid var(--store-surface);
   margin: 0;
   background: linear-gradient(135deg, #f8faf5, #fff);
 }
@@ -764,7 +764,7 @@ export default {
 
 :deep(.el-dialog__footer) {
   padding: 16px 24px;
-  border-top: 1px solid #f0f2f5;
+  border-top: 1px solid var(--store-surface);
   margin-top: 0;
 }
 
@@ -777,7 +777,7 @@ export default {
 :deep(.el-textarea__inner) {
   border-radius: 6px;
   transition: all 0.3s ease;
-  border-color: #dcdfe6;
+  border-color: var(--store-border);
 }
 
 :deep(.el-input__inner:hover),

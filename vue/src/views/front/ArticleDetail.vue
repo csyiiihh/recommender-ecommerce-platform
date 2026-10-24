@@ -119,7 +119,7 @@ export default {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(135deg, #f8faf5 0%, #f5f7fa 100%);
+  background: linear-gradient(135deg, #f8faf5 0%, var(--store-surface) 100%);
 }
 
 .main-content {
@@ -135,7 +135,7 @@ export default {
   background: white;
   padding: 32px;
   border-radius: 12px;
-  border: 1px solid #ebeef5;
+  border: 1px solid var(--store-border-light);
   position: relative;
   overflow: hidden;
 }
@@ -153,7 +153,7 @@ export default {
 .article-title {
   font-size: 28px;
   font-weight: 500;
-  color: #2c3e50;
+  color: var(--store-ink);
   margin: 0 0 24px 0;
   line-height: 1.4;
 }
@@ -164,7 +164,7 @@ export default {
   align-items: center;
   padding-bottom: 24px;
   margin-bottom: 24px;
-  border-bottom: 1px solid #ebeef5;
+  border-bottom: 1px solid var(--store-border-light);
   background: #f8faf5;
   padding: 16px 24px;
   border-radius: 8px;
@@ -195,7 +195,7 @@ export default {
   margin-bottom: 32px;
   border-radius: 8px;
   overflow: hidden;
-  border: 1px solid #ebeef5;
+  border: 1px solid var(--store-border-light);
   transition: all 0.3s ease;
 }
 
@@ -247,7 +247,7 @@ export default {
 .article-content :deep(h4),
 .article-content :deep(h5),
 .article-content :deep(h6) {
-  color: #2c3e50;
+  color: var(--store-ink);
   font-weight: 600;
   line-height: 1.4;
 }
@@ -266,13 +266,13 @@ export default {
 .article-content :deep(blockquote) {
   margin: 16px 0;
   padding: 16px 24px;
-  background: #f8f9fa;
+  background: var(--store-page);
   border-left: 4px solid #67c23a;
   color: #606266;
 }
 
 .article-content :deep(pre) {
-  background: #f8f9fa;
+  background: var(--store-page);
   padding: 16px;
   border-radius: 8px;
   overflow-x: auto;
@@ -280,7 +280,7 @@ export default {
 }
 
 .article-content :deep(code) {
-  background: #f8f9fa;
+  background: var(--store-page);
   padding: 2px 6px;
   border-radius: 4px;
   color: #e6a23c;
@@ -306,19 +306,19 @@ export default {
 
 .article-content :deep(th),
 .article-content :deep(td) {
-  border: 1px solid #ebeef5;
+  border: 1px solid var(--store-border-light);
   padding: 12px;
   text-align: left;
 }
 
 .article-content :deep(th) {
-  background-color: #f8f9fa;
+  background-color: var(--store-page);
   font-weight: 500;
 }
 
 .article-content :deep(hr) {
   border: none;
-  border-top: 1px solid #ebeef5;
+  border-top: 1px solid var(--store-border-light);
   margin: 24px 0;
 }
 

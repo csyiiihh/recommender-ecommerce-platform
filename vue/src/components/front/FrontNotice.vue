@@ -259,13 +259,13 @@ export default {
   gap: 10px;
   font-size: 18px;
   font-weight: 600;
-  color: #2c3e50;
+  color: var(--store-ink);
 }
 
 .title-wrapper i {
   color: var(--primary-color);
   font-size: 20px;
-  background: rgba(58, 91, 160, 0.1);
+  background: rgba(var(--store-brand-rgb), 0.1);
   padding: 8px;
   border-radius: 50%;
 }
@@ -336,7 +336,7 @@ export default {
 .notice-title {
   font-size: 17px;
   font-weight: 600;
-  color: #2c3e50;
+  color: var(--store-ink);
   margin-bottom: 14px;
   line-height: 1.4;
   overflow: hidden;
@@ -406,14 +406,14 @@ export default {
 :deep(.notice-detail-dialog .el-dialog__header) {
   padding: 20px;
   background: linear-gradient(135deg, #f8faf5, #fff);
-  border-bottom: 1px solid #ebeef5;
+  border-bottom: 1px solid var(--store-border-light);
   margin: 0;
 }
 
 :deep(.notice-detail-dialog .el-dialog__title) {
   font-size: 20px;
   font-weight: 600;
-  color: #2c3e50;
+  color: var(--store-ink);
   line-height: 1.4;
 }
 
@@ -508,7 +508,7 @@ export default {
 
 :deep(.notice-list-dialog .el-dialog__header) {
   padding: 20px;
-  border-bottom: 1px solid #ebeef5;
+  border-bottom: 1px solid var(--store-border-light);
   margin: 0;
 }
 
@@ -520,7 +520,7 @@ export default {
 
 .notice-list-item {
   padding: 16px;
-  border-bottom: 1px solid #ebeef5;
+  border-bottom: 1px solid var(--store-border-light);
   cursor: pointer;
   transition: all 0.3s ease;
 }
@@ -552,13 +552,13 @@ export default {
 
 .notice-list-title {
   font-size: 15px;
-  color: #2c3e50;
+  color: var(--store-ink);
   line-height: 1.4;
 }
 
 :deep(.notice-list-dialog .el-dialog__footer) {
   padding: 16px 20px;
-  border-top: 1px solid #ebeef5;
+  border-top: 1px solid var(--store-border-light);
   text-align: center;
 }
 
