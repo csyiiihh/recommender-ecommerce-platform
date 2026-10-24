@@ -3,7 +3,7 @@
     <!-- 页面标题区域 -->
     <div class="page-header">
       <h2>订单管理</h2>
-      <el-tag type="info">共 {{ total }} 个订单</el-tag>
+      <el-tag type="info">共 {{ loading || listError ? '—' : total }} 个订单</el-tag>
     </div>
 
     <!-- 搜索和操作区域 -->
@@ -30,6 +30,7 @@
     </el-card>
 
     <!-- 订单统计卡片 -->
+    <h3 class="page-statistics-title">本页订单概况</h3>
     <div class="statistics-cards">
       <el-row :gutter="20">
         <el-col :span="6">
@@ -39,7 +40,7 @@
                 <div class="stat-icon"><i class="fas fa-clock"></i></div>
                 <div class="stat-title">待付款</div>
               </div>
-              <div class="stat-value">{{ getOrderCountByStatus(0) }}</div>
+              <div class="stat-value">{{ loading || listError ? '—' : getOrderCountByStatus(0) }}</div>
             </div>
           </el-card>
         </el-col>
@@ -50,7 +51,7 @@
                 <div class="stat-icon"><i class="fas fa-box"></i></div>
                 <div class="stat-title">待发货</div>
               </div>
-              <div class="stat-value">{{ getOrderCountByStatus(1) }}</div>
+              <div class="stat-value">{{ loading || listError ? '—' : getOrderCountByStatus(1) }}</div>
             </div>
           </el-card>
         </el-col>
@@ -61,7 +62,7 @@
                 <div class="stat-icon"><i class="fas fa-truck"></i></div>
                 <div class="stat-title">已发货</div>
               </div>
-              <div class="stat-value">{{ getOrderCountByStatus(2) }}</div>
+              <div class="stat-value">{{ loading || listError ? '—' : getOrderCountByStatus(2) }}</div>
             </div>
           </el-card>
         </el-col>
@@ -72,7 +73,7 @@
                 <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
                 <div class="stat-title">已完成</div>
               </div>
-              <div class="stat-value">{{ getOrderCountByStatus(3) }}</div>
+              <div class="stat-value">{{ loading || listError ? '—' : getOrderCountByStatus(3) }}</div>
             </div>
           </el-card>
         </el-col>
@@ -81,19 +82,23 @@
 
     <!-- 订单列表 -->
     <el-card class="table-card" shadow="hover">
-      <el-table :data="orders" border style="width: 100%" :default-sort="{prop: 'createdAt', order: 'descending'}">
+      <div v-if="listError" role="alert" class="list-error">
+        <p>订单加载失败，请重试。</p>
+        <el-button type="primary" @click="getList">重新加载订单</el-button>
+      </div>
+      <el-table v-else v-loading="loading" :data="orders" border style="width: 100%" :default-sort="{prop: 'createdAt', order: 'descending'}">
         <el-table-column prop="id" label="订单号" width="120" sortable></el-table-column>
         <el-table-column label="商品信息" min-width="300">
           <template #default="{ row }">
             <div class="product-info">
               <el-image
-                :src="row.product && row.product.imageUrl ? '/api' + row.product.imageUrl : ''"
-                :preview-src-list="row.product && row.product.imageUrl ? ['/api' + row.product.imageUrl] : []"
+                :src="productImage(row.product)"
+                :preview-src-list="productImage(row.product) ? [productImage(row.product)] : []"
                 fit="cover"
                 style="width: 50px; height: 50px">
               </el-image>
               <div class="product-detail">
-                <div class="product-name">{{ row.product.name }}</div>
+                <div class="product-name">{{ row.product?.name || '商品信息暂不可用' }}</div>
                 <div class="product-price">
                   ¥{{ row.price.toFixed(2) }} × {{ row.quantity }}
                 </div>
@@ -126,68 +131,45 @@
         </el-table-column>
         <el-table-column label="操作" width="200" fixed="right">
           <template #default="{ row }">
-            <!-- 根据订单状态和用户角色显示不同的操作按钮 -->
-            <template v-if="isMerchant">
-              <!-- 商户只能发货 -->
-              <el-button 
-                v-if="row.status === 1" 
-                link 
-                size="small" 
-                @click="handleShip(row)">发货</el-button>
-              <!-- 添加查看物流按钮 -->
-              <el-button 
-                v-if="row.status >= 2 " 
-                link 
-                size="small" 
-                @click="handleViewLogistics(row)">查看物流</el-button>
-              <el-button 
-                v-if="row.status === 5" 
-                link 
-                size="small" 
-                @click="handleRefund(row)">处理退款</el-button>
+            <template v-if="isMerchant || isAdmin">
+              <el-button v-if="canShip(row)" link size="small" :loading="shipPreparingId === row.id" :disabled="actionsBusy" @click="handleShip(row)">发货</el-button>
+              <el-button v-if="canViewLogistics(row)" link size="small" :disabled="actionsBusy" @click="handleViewLogistics(row)">查看物流</el-button>
+              <el-button v-if="row.status === 5" link size="small" :disabled="actionsBusy" @click="handleRefund(row)">处理退款</el-button>
             </template>
-            
-            <template v-else-if="isAdmin">
-              <!-- 管理员只能删除订单 -->
-              <el-button 
-                link 
-                size="small" 
-                @click="handleDelete(row)">删除</el-button>
-            </template>
-            
-            <el-button link size="small" @click="handleDetail(row)">详情</el-button>
+            <el-button link size="small" :disabled="actionsBusy" @click="handleDetail(row)">详情</el-button>
           </template>
         </el-table-column>
       </el-table>
 
       <!-- 分页 -->
-      <pagination v-show="total > 0" :total="total" v-model:page="queryParams.currentPage" v-model:limit="queryParams.size" @pagination="getList" />
+      <pagination v-show="total > 0 && !listError" :total="total" v-model:page="queryParams.currentPage" v-model:limit="queryParams.size" @pagination="getList" />
     </el-card>
 
     <!-- 添加退款处理对话框 -->
-    <el-dialog title="退款处理" v-model="refundDialogVisible" width="500px">
+    <el-dialog title="退款处理" v-model="refundDialogVisible" width="500px" :close-on-click-modal="!refundSubmitting" :close-on-press-escape="!refundSubmitting" :show-close="!refundSubmitting">
       <div class="refund-info">
         <p>订单号：{{ currentOrder?.id }}</p>
         <p>退款金额：¥{{ currentOrder?.totalPrice }}</p>
         <p>退款原因：{{ currentOrder?.refundReason }}</p>
       </div>
       <div class="refund-operation">
-        <el-form :model="refundForm" label-width="80px">
+        <el-alert v-if="isAutomaticRefund(currentOrder)" type="warning" :closable="false" title="此订单属于系统补偿退款，不能拒绝退款。" />
+        <el-form ref="refundForm" :model="refundForm" :rules="refundRules" :disabled="refundSubmitting" label-width="80px">
           <el-form-item label="处理结果">
             <el-radio-group v-model="refundForm.status">
               <el-radio :value="6">同意退款</el-radio>
-              <el-radio :value="7">拒绝退款</el-radio>
+              <el-radio :value="7" :disabled="isAutomaticRefund(currentOrder)">拒绝退款</el-radio>
             </el-radio-group>
           </el-form-item>
-          <el-form-item label="处理备注">
-            <el-input type="textarea" v-model="refundForm.remark" :rows="3"></el-input>
+          <el-form-item label="处理备注" prop="remark">
+            <el-input type="textarea" v-model="refundForm.remark" :rows="3" maxlength="255" show-word-limit></el-input>
           </el-form-item>
         </el-form>
       </div>
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="refundDialogVisible = false">取 消</el-button>
-          <el-button type="primary" @click="submitRefund">确 定</el-button>
+          <el-button @click="refundDialogVisible = false" :disabled="refundSubmitting">取 消</el-button>
+          <el-button type="primary" @click="submitRefund" :loading="refundSubmitting" :disabled="refundSubmitting">确 定</el-button>
         </div>
       </template>
     </el-dialog>
@@ -218,9 +200,9 @@
         <div class="detail-section">
           <h4>商品信息</h4>
           <div class="product-detail-info">
-            <el-image 
-              :src="currentOrder?.product?.imageUrl ? '/api' + currentOrder.product.imageUrl : ''" 
-              :preview-src-list="currentOrder?.product?.imageUrl ? ['/api' + currentOrder.product.imageUrl] : []"
+            <el-image
+              :src="productImage(currentOrder?.product)"
+              :preview-src-list="productImage(currentOrder?.product) ? [productImage(currentOrder?.product)] : []"
               fit="cover"
               style="width: 80px; height: 80px; border-radius: 4px;">
             </el-image>
@@ -289,8 +271,8 @@
     </el-dialog>
 
     <!-- 修改发货对话框 -->
-    <el-dialog title="发货处理" v-model="shipDialogVisible" width="500px">
-      <el-form :model="shipForm" :rules="shipRules" ref="shipForm" label-width="100px">
+    <el-dialog title="发货处理" v-model="shipDialogVisible" width="500px" :close-on-click-modal="!shipSubmitting" :close-on-press-escape="!shipSubmitting" :show-close="!shipSubmitting">
+      <el-form :model="shipForm" :rules="shipRules" ref="shipForm" :disabled="shipSubmitting" label-width="100px">
         <el-form-item label="收货人" prop="receiverName">
           <el-input v-model="shipForm.receiverName" disabled></el-input>
         </el-form-item>
@@ -323,8 +305,8 @@
       </el-form>
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="shipDialogVisible = false">取 消</el-button>
-          <el-button type="primary" @click="submitShip">确 定</el-button>
+          <el-button @click="shipDialogVisible = false" :disabled="shipSubmitting">取 消</el-button>
+          <el-button type="primary" @click="submitShip" :loading="shipSubmitting" :disabled="shipSubmitting">确 定</el-button>
         </div>
       </template>
     </el-dialog>
@@ -398,6 +380,15 @@ export default {
       },
       // 订单列表
       orders: [],
+      loading: false,
+      listError: false,
+      listSequence: 0,
+      shipPreparingId: null,
+      shipSubmitting: false,
+      refundSubmitting: false,
+      refundRules: {
+        remark: [{ required: true, whitespace: true, max: 255, message: '请填写处理备注（最多255字）', trigger: 'blur' }]
+      },
       // 总数
       total: 0,
       // 订单状态映射
@@ -409,7 +400,7 @@ export default {
         4: '已取消',
         5: '退款中',
         6: '已退款',
-        7: '退款失败'
+        7: '退款未通过'
       },
       // 添加退款相关数据
       refundDialogVisible: false,
@@ -424,7 +415,8 @@ export default {
         1: '申请退款',
         2: '退款中',
         3: '已退款',
-        4: '退款失败'
+        4: '退款未通过',
+        5: '系统补偿待退款'
       },
       // 修改发货对话框
       shipDialogVisible: false,
@@ -443,7 +435,7 @@ export default {
           { required: true, message: '请选择快递公司', trigger: 'change' }
         ],
         trackingNumber: [
-          { required: true, message: '请输入快递单号', trigger: 'blur' }
+          { required: true, whitespace: true, message: '请输入快递单号', trigger: 'blur' }
         ]
       },
       logisticsInfo: null,
@@ -456,42 +448,59 @@ export default {
     }
   },
   computed: {
+    actionsBusy() {
+      return this.shipPreparingId !== null || this.shipSubmitting || this.refundSubmitting
+    },
     // 判断是否为管理员
     isAdmin() {
-      return ['SUPER_ADMIN', 'ADMIN'].includes(this.userInfo.role)
+      return this.userInfo?.role === 'ADMIN'
     },
     // 判断是否为商户
     isMerchant() {
-      return this.userInfo.role === 'MERCHANT'
+      return this.userInfo?.role === 'MERCHANT'
     }
   },
   created() {
     this.getList()
   },
+  beforeUnmount() { this.listSequence++ },
   methods: {
+    productImage(product) {
+      const url = product?.imageUrl
+      return typeof url === 'string' && url ? (url.startsWith('http') ? url : `/api${url}`) : ''
+    },
+    fulfillmentStatus(order) {
+      return order?.status === 7 ? order.lastStatus : order?.status
+    },
+    canShip(order) { return this.fulfillmentStatus(order) === 1 },
+    canViewLogistics(order) {
+      return [2, 3].includes(order.status) || ([5, 6, 7].includes(order.status) && order.lastStatus === 2)
+    },
+    isAutomaticRefund(order) {
+      return order?.refundStatus === 5 && (order.refundReason?.startsWith('拼团失败自动退款') || order.refundReason === '支付后无法履约自动退款')
+    },
     // 获取订单列表
     async getList() {
+      const sequence = ++this.listSequence
+      this.loading = true
+      this.listError = false
       try {
-        const params = {
-          ...this.queryParams,
-          ...this.searchForm
-        }
-        // 如果不是管理员，只能查看自己的订单
-        if (!this.isAdmin) {
-          params.merchantId = this.userInfo.id
-        }
+        const params = { ...this.queryParams, ...this.searchForm }
+        if (!this.isAdmin) params.merchantId = this.userInfo.id
         const res = await Request.get('/order/page', { params })
-        if (res.code === '0') {
-          if (res.data.total === 0) {
-            this.orders = []
-            this.total = 0
-          } else {
-            this.orders = res.data.records
-            this.total = res.data.total
-          }
-        }
+        if (sequence !== this.listSequence) return
+        if (res.code !== '0' || !res.data || !Number.isSafeInteger(res.data.total) || res.data.total < 0
+            || (!Array.isArray(res.data.records) && !(res.data.total === 0 && res.data.records == null))) throw new Error('订单数据暂不可用')
+        this.orders = res.data.records || []
+        this.total = res.data.total
       } catch (error) {
+        if (sequence !== this.listSequence) return
         logger.error('获取订单列表失败:', error)
+        this.orders = []
+        this.total = 0
+        this.listError = true
+      } finally {
+        if (sequence === this.listSequence) this.loading = false
       }
     },
     // 搜索
@@ -524,91 +533,65 @@ export default {
     },
     // 获取指定状态的订单数量
     getOrderCountByStatus(status) {
-      return this.orders.filter(order => order.status === status).length
+      return this.orders.filter(order => this.fulfillmentStatus(order) === status).length
     },
-    // 取消订单
-    async handleCancel(order) {
+    // Group orders must have completed their team before shipment.
+    async handleShip(order) {
+      if (this.actionsBusy || !(this.isAdmin || this.isMerchant) || !this.canShip(order)) return
+      this.shipPreparingId = order.id
       try {
-        await this.$confirm('确认取消该订单?', '提示', {
-          type: 'warning'
-        })
-        const res = await Request.put(`/order/${order.id}/status?status=4`)
-        if (res.code === '0') {
-          this.$message.success('订单已取消')
-          this.getList()
+        if (order.orderType === 1) {
+          if (!order.groupBuyTeamId) { this.$message.warning('拼团信息不完整，暂不能发货'); return }
+          const res = await Request.get(`/group-buy/team/${order.groupBuyTeamId}`)
+          if (res.code !== '0' || res.data?.status !== 1) { this.$message.warning('拼团尚未成功，暂不能发货'); return }
         }
+        this.currentOrder = order
+        this.shipForm = { orderId: order.id, receiverName: order.recvName, receiverPhone: order.recvPhone,
+          receiverAddress: order.recvAddress, companyName: '', trackingNumber: '', expectedArrivalTime: '' }
+        this.shipDialogVisible = true
+        this.$nextTick(() => this.$refs.shipForm?.clearValidate())
       } catch (error) {
-        logger.error('取消订单失败:', error)
-      }
-    },
-    // 发货
-    handleShip(order) {
-      this.currentOrder = order
-      this.shipForm = {
-        orderId: order.id,
-        receiverName: order.recvName,
-        receiverPhone: order.recvPhone,
-        receiverAddress: order.recvAddress,
-        companyName: '',
-        trackingNumber: '',
-        expectedArrivalTime: '',
-      }
-      this.shipDialogVisible = true
-    },
-    // 确认收货
-    async handleConfirm(order) {
-      try {
-        await this.$confirm('确认收到商品?', '提示', {
-          type: 'warning'
-        })
-        const res = await Request.put(`/order/${order.id}/status?status=3`)
-        if (res.code === '0') {
-          this.$message.success('确认收货成功')
-          this.getList()
-        }
-      } catch (error) {
-        logger.error('确认收货失败:', error)
-      }
-    },
-    // 评价
-    handleReview(order) {
-      this.$router.push(`/review/${order.id}`)
+        logger.error('核对发货条件失败:', error)
+        this.$message.error('暂时无法核对发货条件，请重试')
+      } finally { this.shipPreparingId = null }
     },
     // 查看详情
     handleDetail(order) {
+      if (this.actionsBusy) return
       this.currentOrder = order
       this.detailDialogVisible = true
     },
     // 处理退款
     handleRefund(order) {
+      if (this.actionsBusy || !(this.isAdmin || this.isMerchant) || order.status !== 5) return
       this.currentOrder = order
       this.refundForm = {
         status: 6,
         remark: ''
       }
       this.refundDialogVisible = true
+      this.$nextTick(() => this.$refs.refundForm?.clearValidate())
     },
     // 提交退款处理
     async submitRefund() {
+      if (this.actionsBusy || !(this.isAdmin || this.isMerchant) || this.currentOrder?.status !== 5) return
+      if (this.isAutomaticRefund(this.currentOrder) && this.refundForm.status === 7) { this.$message.warning('系统补偿退款不能拒绝'); return }
+      this.refundSubmitting = true
       try {
-        const res = await Request.put(`/order/${this.currentOrder.id}/handle-refund`, null, {
-          params: {
-            status: this.refundForm.status,    // 6-已退款 或 7-退款失败
-            remark: this.refundForm.remark     // 处理备注
-          }
+        try { await this.$refs.refundForm.validate() } catch { return }
+        const orderId = this.currentOrder.id
+        const decision = this.refundForm.status
+        const res = await Request.put(`/order/${orderId}/handle-refund`, null, {
+          params: { status: decision, remark: this.refundForm.remark.trim() }
         })
-        
-        if (res.code === '0') {
-          this.$message.success(this.refundForm.status === 6 ? '退款已通过' : '退款已拒绝')
-          this.refundDialogVisible = false
-          this.getList()
-        } else {
-          this.$message.error(res.msg || '退款处理失败')
-        }
+        if (res.code !== '0') { this.$message.error(res.msg || '退款处理失败'); return }
+        this.$message.success(decision === 6 ? '退款已通过' : '退款已拒绝')
+        this.refundDialogVisible = false
+        await this.getList()
       } catch (error) {
         logger.error('退款处理失败:', error)
-        this.$message.error('退款处理失败')
-      }
+        this.$message.error(error.response?.data?.msg || '退款结果未确认，请刷新后核对退款状态')
+      } finally { this.refundSubmitting = false }
     },
     // 获取退款状态对应的类型
     getRefundStatusType(status) {
@@ -623,86 +606,27 @@ export default {
     },
     // 添加格式化时间方法
     formatTime,
-    // 添加删除订单方法
-    async handleDelete(order) {
-      try {
-        await this.$confirm('确认删除该订单?', '提示', {
-          type: 'warning'
-        })
-        const res = await Request.delete(`/order/${order.id}`)
-        if (res.code === '0') {
-          this.$message.success('订单已删除')
-          this.getList()
-        }
-      } catch (error) {
-        logger.error('删除订单失败:', error)
-      }
-    },
-    // 提交发货信息
+    // Creating logistics and advancing the order are one backend transaction.
     async submitShip() {
+      if (this.actionsBusy || !(this.isAdmin || this.isMerchant) || !this.canShip(this.currentOrder)) return
+      this.shipSubmitting = true
+      let loading = null
       try {
-        // 表单验证
-        await this.$refs.shipForm.validate()
-
-        // 显示加载中
-        const loading = this.$loading({
-          lock: true,
-          text: '正在处理发货请求...',
-          spinner: 'fas fa-spinner fa-spin',
-          background: 'rgba(0, 0, 0, 0.7)'
-        });
-        
-        try {
-          // 创建物流信息
-          const logisticsRes = await Request.post('/logistics', {
-            orderId: this.shipForm.orderId,
-            receiverName: this.shipForm.receiverName,
-            receiverPhone: this.shipForm.receiverPhone,
-            receiverAddress: this.shipForm.receiverAddress,
-            companyName: this.shipForm.companyName,
-            trackingNumber: this.shipForm.trackingNumber,
-            expectedArrivalTime: this.shipForm.expectedArrivalTime,
-            status: 1  // 直接设置为已发货状态
-          })
-  
-          if (logisticsRes.code === '0') {
-            // 更新订单状态为已发货
-            const orderRes = await Request.put(`/order/${this.shipForm.orderId}/status?status=2`)
-            
-            if (orderRes.code === '0') {
-              this.$message({
-                type: 'success',
-                message: '发货成功',
-                duration: 3000
-              });
-              this.shipDialogVisible = false
-              this.shipForm = {  // 重置表单
-                orderId: null,
-                receiverName: '',
-                receiverPhone: '',
-                receiverAddress: '',
-                companyName: '',
-                trackingNumber: '',
-                expectedArrivalTime: '',
-              }
-              this.getList()
-            } else {
-              this.$message.error(orderRes.msg || '更新订单状态失败，但物流信息已创建')
-            }
-          } else {
-            this.$message.error(logisticsRes.msg || '创建物流信息失败')
-          }
-        } catch (error) {
-          logger.error('发货处理过程中出错:', error)
-          this.$message.error(error.response?.data?.msg || '发货处理失败，请稍后重试')
-        } finally {
-          // 关闭加载提示
-          loading.close();
-        }
-      } catch (validationError) {
-        // 表单验证失败
-        logger.error('表单验证失败:', validationError)
-        this.$message.warning('请完善发货信息')
+        try { await this.$refs.shipForm.validate() } catch { return }
+        const payload = { ...this.shipForm, companyName: this.shipForm.companyName.trim(),
+          trackingNumber: this.shipForm.trackingNumber.trim(), expectedArrivalTime: this.shipForm.expectedArrivalTime.trim() || null }
+        loading = this.$loading({ lock: true, text: '正在处理发货请求...' })
+        const res = await Request.post('/logistics', payload)
+        if (res.code !== '0') { this.$message.error(res.msg || '发货处理失败'); return }
+        this.$message.success('发货成功')
+        this.shipDialogVisible = false
+        await this.getList()
+      } catch (error) {
+        logger.error('发货处理过程中出错:', error)
+        this.$message.error(error.response?.data?.msg || '发货结果未确认，请刷新订单或查看物流后再处理')
+      } finally {
+        if (loading) loading.close()
+        this.shipSubmitting = false
       }
     },
     // 查看物流信息
@@ -715,10 +639,10 @@ export default {
           spinner: 'fas fa-spinner fa-spin',
           background: 'rgba(0, 0, 0, 0.7)'
         });
-        
+
         try {
           const res = await Request.get(`/logistics/order/${order.id}`)
-          
+
           if (res.code === '0' && res.data) {
             this.logisticsInfo = res.data
             // 添加物流时间显示
@@ -756,6 +680,9 @@ export default {
 </script>
 
 <style scoped>
+.page-statistics-title { margin: 20px 0 12px; font-size: 15px; color: #606266; }
+.list-error { padding: 24px; text-align: center; }
+
 .order-manager {
   padding: var(--spacing-xxl);
   background-color: var(--color-bg-page);
@@ -994,4 +921,4 @@ export default {
   margin: var(--spacing-sm) 0;
   color: var(--color-text-regular);
 }
-</style> 
+</style>
