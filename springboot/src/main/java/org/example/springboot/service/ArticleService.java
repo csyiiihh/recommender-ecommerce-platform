@@ -23,9 +23,6 @@ public class ArticleService {
     @Autowired
     private ArticleMapper articleMapper;
 
-    @Autowired
-    private FileService fileService;
-
     public Result<?> createArticle(Article article) {
         try {
             int result = articleMapper.insert(article);
@@ -52,13 +49,8 @@ public class ArticleService {
         }
 
         try {
-            // 处理封面图片
-            String oldImg = oldArticle.getCoverImage();
-            String newImg = article.getCoverImage();
-            if (oldImg != null && newImg != null && !oldImg.equals(newImg)) {
-                fileService.fileRemove(oldImg);
-            }
-
+            // Images may be shared; database failures cannot restore deleted files.
+            // Retain uploads on edits and deletions; clean up only after a reference audit.
             article.setId(id);
             int result = articleMapper.updateById(article);
             if (result > 0) {
@@ -84,11 +76,7 @@ public class ArticleService {
         }
         
         try {
-            // 删除封面图片
-            if (article.getCoverImage() != null) {
-                fileService.fileRemove(article.getCoverImage());
-            }
-
+            // Keep shared cover files when removing article records.
             int result = articleMapper.deleteById(id);
             if (result > 0) {
                 LOGGER.info("删除资讯成功，资讯ID：{}，标题：{}", id, article.getTitle());
@@ -171,14 +159,7 @@ public class ArticleService {
         }
         
         try {
-            // 删除相关的封面图片
-            for (Long id : ids) {
-                Article article = articleMapper.selectById(id);
-                if (article != null && article.getCoverImage() != null) {
-                    fileService.fileRemove(article.getCoverImage());
-                }
-            }
-
+            // Batch deletion also retains uploads referenced by other content.
             LambdaQueryWrapper<Article> wrapper = Wrappers.lambdaQuery();
             wrapper.in(Article::getId, ids);
             int result = articleMapper.delete(wrapper);
