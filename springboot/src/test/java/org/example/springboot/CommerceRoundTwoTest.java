@@ -100,6 +100,7 @@ class CommerceRoundTwoTest {
         User user=new User();user.setId(7L);when(access.current()).thenReturn(user);
         StockIn in=new StockIn();in.setId(99L);in.setProductId(2L);in.setOperatorId(999L);in.setQuantity(2);in.setStatus(0);in.setUnitPrice(BigDecimal.TEN);
         when(stockInMapper.insert(any(StockIn.class))).thenReturn(1);
+        when(productMapper.updateById(any(Product.class))).thenReturn(1);
         assertEquals("0",stocks.createStockIn(in).getCode());assertEquals(7L,in.getOperatorId());assertEquals(1,in.getStatus());assertNull(in.getId());assertEquals(6,p.getStock());
         InOrder sequence=inOrder(productMapper,stockInMapper);sequence.verify(productMapper).selectForUpdate(2L);sequence.verify(productMapper).updateById(p);sequence.verify(stockInMapper).insert(in);
     }

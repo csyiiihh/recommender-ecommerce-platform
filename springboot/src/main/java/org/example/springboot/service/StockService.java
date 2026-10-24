@@ -39,7 +39,7 @@ public class StockService {
 
     @Autowired private AccessService access;
 
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public Result<?> createStockIn(StockIn stockIn) {
         try {
             // 检查商品是否存在
@@ -65,8 +65,8 @@ public class StockService {
             stockIn.setTotalPrice(stockIn.getUnitPrice().multiply(new BigDecimal(stockIn.getQuantity())));
 
             // 更新商品库存
-            product.setStock(product.getStock() + stockIn.getQuantity());
-            productMapper.updateById(product);
+            product.setStock(addStock(product, stockIn.getQuantity()));
+            writeStock(product);
 
             // 保存入库记录
             stockIn.setId(null);
@@ -88,7 +88,7 @@ public class StockService {
         }
     }
 
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public Result<?> createStockOut(StockOut stockOut) {
         try {
             // 检查商品是否存在
@@ -105,7 +105,8 @@ public class StockService {
             }
 
             // 检查库存是否足够
-            if (product.getStock() == null || product.getStock() < stockOut.getQuantity()) {
+            int available = availableStock(product);
+            if (available < stockOut.getQuantity()) {
                 LOGGER.warn("创建出库记录失败，商品ID：{}，当前库存：{}，出库数量：{}，库存不足", 
                     stockOut.getProductId(), product.getStock(), stockOut.getQuantity());
                 return ResultUtils.stockInsufficient("库存不足，当前库存：" + product.getStock() + "，需要：" + stockOut.getQuantity());
@@ -121,8 +122,8 @@ public class StockService {
             stockOut.setTotalPrice(stockOut.getUnitPrice().multiply(new BigDecimal(stockOut.getQuantity())));
 
             // 更新商品库存
-            product.setStock(product.getStock() - stockOut.getQuantity());
-            productMapper.updateById(product);
+            product.setStock(available - stockOut.getQuantity());
+            writeStock(product);
 
             // 保存出库记录
             stockOut.setId(null);
@@ -228,7 +229,7 @@ public class StockService {
     }
 
     // 作废入库记录
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public Result<?> invalidateStockIn(Long id) {
         StockIn stockIn = stockInMapper.selectForUpdate(id);
         if (stockIn == null) {
@@ -241,21 +242,14 @@ public class StockService {
             return ResultUtils.businessError("该记录已作废");
         }
         
+        requireActiveRecord(stockIn.getStatus(), stockIn.getQuantity());
         try {
             // 更新商品库存
             Product product = productMapper.selectForUpdate(stockIn.getProductId());
-            if (product != null) {
-                int newStock = product.getStock() - stockIn.getQuantity();
-                if (newStock < 0) {
-                    LOGGER.warn("作废入库记录失败，入库ID：{}，商品ID：{}，当前库存：{}，入库数量：{}，库存不足", 
-                        id, stockIn.getProductId(), product.getStock(), stockIn.getQuantity());
-                    return ResultUtils.stockInsufficient("作废入库记录会导致库存为负数");
-                }
-                product.setStock(newStock);
-                productMapper.updateById(product);
-                LOGGER.debug("作废入库记录，更新商品库存，商品ID：{}，原库存：{}，新库存：{}", 
-                    stockIn.getProductId(), product.getStock() + stockIn.getQuantity(), newStock);
-            }
+            int available = availableStock(product);
+            if (available < stockIn.getQuantity()) return ResultUtils.stockInsufficient("作废入库记录会导致库存为负数");
+            product.setStock(available - stockIn.getQuantity());
+            writeStock(product);
 
             // 更新入库记录状态
             stockIn.setStatus(0);
@@ -275,7 +269,7 @@ public class StockService {
     }
 
     // 作废出库记录
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public Result<?> invalidateStockOut(Long id) {
         StockOut stockOut = stockOutMapper.selectForUpdate(id);
         if (stockOut == null) {
@@ -288,15 +282,12 @@ public class StockService {
             return ResultUtils.businessError("该记录已作废");
         }
         
+        requireActiveRecord(stockOut.getStatus(), stockOut.getQuantity());
         try {
             // 更新商品库存
             Product product = productMapper.selectForUpdate(stockOut.getProductId());
-            if (product != null) {
-                product.setStock(product.getStock() + stockOut.getQuantity());
-                productMapper.updateById(product);
-                LOGGER.debug("作废出库记录，恢复商品库存，商品ID：{}，原库存：{}，新库存：{}", 
-                    stockOut.getProductId(), product.getStock() - stockOut.getQuantity(), product.getStock());
-            }
+            product.setStock(addStock(product, stockOut.getQuantity()));
+            writeStock(product);
 
             // 更新出库记录状态
             stockOut.setStatus(0);
@@ -316,7 +307,7 @@ public class StockService {
     }
 
     // 删除入库记录
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public Result<?> deleteStockIn(Long id) {
         StockIn stockIn = stockInMapper.selectForUpdate(id);
         if (stockIn == null) {
@@ -324,6 +315,9 @@ public class StockService {
             return ResultUtils.dataNotFound("入库记录不存在");
         }
         
+        if (!Integer.valueOf(0).equals(stockIn.getStatus()) && !Integer.valueOf(1).equals(stockIn.getStatus())) {
+            throw new BusinessException("库存记录状态异常，不能删除");
+        }
         try {
             // 如果记录状态为正常，需要先作废（减少库存）
             if (stockIn.getStatus() != null && stockIn.getStatus() == 1) {
@@ -350,7 +344,7 @@ public class StockService {
     }
 
     // 删除出库记录
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public Result<?> deleteStockOut(Long id) {
         StockOut stockOut = stockOutMapper.selectForUpdate(id);
         if (stockOut == null) {
@@ -358,6 +352,9 @@ public class StockService {
             return ResultUtils.dataNotFound("出库记录不存在");
         }
         
+        if (!Integer.valueOf(0).equals(stockOut.getStatus()) && !Integer.valueOf(1).equals(stockOut.getStatus())) {
+            throw new BusinessException("库存记录状态异常，不能删除");
+        }
         try {
             // 如果记录状态为正常，需要先作废（恢复库存）
             if (stockOut.getStatus() != null && stockOut.getStatus() == 1) {
@@ -380,6 +377,23 @@ public class StockService {
         } catch (Exception e) {
             LOGGER.error("删除出库记录异常，出库ID：{}，错误：{}", id, e.getMessage(), e);
             throw new BusinessException(ResultCode.OPERATION_FAILED.getCode(), "删除出库记录失败：" + e.getMessage());
+        }
+    }
+    private int availableStock(Product product) {
+        if (product == null) throw new BusinessException("商品不存在，不能变更库存记录");
+        if (product.getStock() == null || product.getStock() < 0) throw new BusinessException("商品库存数据异常，请先核对");
+        return product.getStock();
+    }
+    private int addStock(Product product, int quantity) {
+        try { return Math.addExact(availableStock(product), quantity); }
+        catch (ArithmeticException e) { throw new BusinessException("库存数量超出允许范围"); }
+    }
+    private void writeStock(Product product) {
+        if (productMapper.updateById(product) != 1) throw new BusinessException("更新商品库存失败");
+    }
+    private void requireActiveRecord(Integer status, Integer quantity) {
+        if (!Integer.valueOf(1).equals(status) || quantity == null || quantity <= 0) {
+            throw new BusinessException("库存记录状态或数量异常，请先核对");
         }
     }
 } 

@@ -48,8 +48,6 @@ public class ProductService {
     @Autowired
     private FavoriteMapper favoriteMapper;
 
-    @Autowired
-    private FileService fileService;
 
     @Autowired
     private CarouselItemMapper carouselItemMapper;
@@ -91,14 +89,8 @@ public class ProductService {
             return ResultUtils.dataNotFound("商品不存在");
         }
         
-        // 处理图片更新
-        String oldImg = oldProduct.getImageUrl();
-        String newImg = product.getImageUrl();
-        // 只有当旧图片和新图片都不为空且不相等时才删除旧图片
-        if (oldImg != null && newImg != null && !oldImg.equals(newImg)) {
-            fileService.fileRemove(oldImg);
-        }
-        
+        // Uploaded images can be shared by other records. Keep old files on edits;
+        // a database rollback cannot restore a file deleted before the commit.
         product.setId(id);
         product.setStock(oldProduct.getStock());
         product.setSalesCount(oldProduct.getSalesCount());
