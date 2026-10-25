@@ -134,6 +134,7 @@
 </template>
 
 <script>
+import { buildImageUrl } from '@/utils/imageUrl'
 import { getProductOptions } from '@/utils/productOptions'
 import Request from '../utils/request.js'
 import logger from '@/utils/logger'
@@ -187,24 +188,7 @@ export default {
   },
   methods: {
     // 构建正确的图片URL
-    buildImageUrl(imageUrl) {
-      if (!imageUrl) {
-        return '';
-      }
-      
-      // 如果已经是完整的HTTP/HTTPS URL，直接返回
-      if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
-        return imageUrl;
-      }
-      
-      // 如果以 / 开头，说明是相对路径（如 /img/xxx.png）
-      if (imageUrl.startsWith('/')) {
-        return `/api${imageUrl}`;
-      }
-      
-      // 如果只是文件名（如 1767524244906.png），添加 /img/ 前缀
-      return `/api/img/${imageUrl}`;
-    },
+    buildImageUrl,
     // 获取轮播图列表
     async getList() {
       try {

@@ -99,6 +99,7 @@
 </template>
 
 <script>
+import { buildImageUrl } from '@/utils/imageUrl'
 import Request from '@/utils/request'
 import logger from '@/utils/logger'
 import FrontHeader from '@/components/front/FrontHeader.vue'
@@ -158,14 +159,7 @@ export default {
     },
     
     getImageUrl(product) {
-      if (!product || !product.imageUrl) {
-        return require('@/assets/logo.png')
-      }
-      // 如果是完整URL则直接返回，否则拼接/api前缀
-      if (product.imageUrl.startsWith('http')) {
-        return product.imageUrl
-      }
-      return `/api${product.imageUrl}`
+      return buildImageUrl(product?.imageUrl) || require('@/assets/logo.png')
     }
   }
 }

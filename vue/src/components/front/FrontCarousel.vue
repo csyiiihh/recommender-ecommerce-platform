@@ -64,6 +64,7 @@
 </template>
 
 <script>
+import { buildImageUrl } from '@/utils/imageUrl'
 import Request from '@/utils/request'
 import logger from '@/utils/logger'
 
@@ -89,24 +90,7 @@ export default {
   },
   methods: {
     // 构建正确的图片URL
-    buildImageUrl(imageUrl) {
-      if (!imageUrl) {
-        return '';
-      }
-
-      // 如果已经是完整的HTTP/HTTPS URL，直接返回
-      if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
-        return imageUrl;
-      }
-
-      // 如果以 / 开头，说明是相对路径（如 /img/xxx.png）
-      if (imageUrl.startsWith('/')) {
-        return `/api${imageUrl}`;
-      }
-
-      // 如果只是文件名（如 1767148875583.png），添加 /img/ 前缀
-      return `/api/img/${imageUrl}`;
-    },
+    buildImageUrl,
     calculateHeight() {
       // 固定高度400px，与公告一致
       this.carouselHeight = window.innerWidth <= 600 ? 220 : 360

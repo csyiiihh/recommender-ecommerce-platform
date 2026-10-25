@@ -163,124 +163,59 @@ const router = createRouter({
   history: createWebHistory(process.env.BASE_URL),
   routes,
 });
-export const setRoutes = () => {
-  const userMenuListStr = localStorage.getItem("userMenuList")
-  if (userMenuListStr && userMenuListStr !== 'undefined') {
-    const currentRoutes = router.getRoutes().map(v => v.name)
-    if (!currentRoutes.includes('home')) {
-      const currRouter = {
-        path: '/',
-        name: 'home',
-        component: home,
-        redirect: '/showView',
-        children: [
-          {
-            path: "/showView",
-            name: "homeView",
-            component: ShowView,
-            meta: {
-              title: "首页"
-            },
-          },
-          {
-            path: '/menu',
-            name: 'Menu',
-            component: Menu,
-            meta: {
-              title: "菜单管理"
-            },
-          },
-        ]
-      }
-
-      try {
-      const menus = JSON.parse(userMenuListStr);
-      menus.forEach((item) => {
-        if (item.path) {
-          if (!item.pagePath) {
-            logger.warn(`菜单项 ${item.name} 缺少 pagePath 属性`);
-            return;
-          }
-          const itemMenu = {
-            path: item.path.replace("/", ""),
-            name: item.name,
-            component: () => import(`../views/${item.pagePath}.vue`).catch(err => {
-              logger.error(`加载组件失败: ${item.pagePath}`, err);
-              // 返回一个占位组件，避免空白页面（使用 render 函数，因为 Vue 3 运行时构建不支持 template）
-              return {
-                default: {
-                  render() {
-                    return h('div', {
-                      style: { 
-                        padding: '20px', 
-                        textAlign: 'center',
-                        color: '#f56c6c',
-                        backgroundColor: '#fef0f0',
-                        border: '1px solid #fbc4c4',
-                        borderRadius: '4px',
-                        margin: '20px'
-                      }
-                    }, [
-                      h('h3', { style: { margin: '0 0 10px 0' } }, '组件加载失败'),
-                      h('p', { style: { margin: 0 } }, `无法加载组件: ${item.pagePath}`)
-                    ]);
-                  }
-                }
-              };
-            }),
-            meta: {
-              title: item.name
-            }
-          };
-          currRouter.children.push(itemMenu);
-        } else if (item.children?.length) {
-          item.children.forEach((subItem) => {
-            if (subItem.path) {
-              if (!subItem.pagePath) {
-                logger.warn(`菜单项 ${subItem.name} 缺少 pagePath 属性`);
-                return;
-              }
-              const itemMenu = {
-                path: subItem.path.replace("/", ""),
-                name: subItem.name,
-                component: () => import(`../views/${subItem.pagePath}.vue`).catch(err => {
-                  logger.error(`加载组件失败: ${subItem.pagePath}`, err);
-                  // 返回一个占位组件，避免空白页面（使用 render 函数，因为 Vue 3 运行时构建不支持 template）
-                  return {
-                    default: {
-                      render() {
-                        return h('div', {
-                          style: { 
-                            padding: '20px', 
-                            textAlign: 'center',
-                            color: '#f56c6c',
-                            backgroundColor: '#fef0f0',
-                            border: '1px solid #fbc4c4',
-                            borderRadius: '4px',
-                            margin: '20px'
-                          }
-                        }, [
-                          h('h3', { style: { margin: '0 0 10px 0' } }, '组件加载失败'),
-                          h('p', { style: { margin: 0 } }, `无法加载组件: ${subItem.pagePath}`)
-                        ]);
-                      }
-                    }
-                  };
-                }),
-                meta: {
-                  title: subItem.name
-                }
-              };
-              currRouter.children.push(itemMenu);
-            }
-          });
+function createMenuRoute(item) {
+  return {
+    path: item.path.replace(/^\//, ''),
+    name: item.name,
+    component: () => import(`../views/${item.pagePath}.vue`).catch(err => {
+      logger.error(`加载组件失败: ${item.pagePath}`, err)
+      return {
+        render() {
+          return h('div', {
+            style: { padding: '20px', textAlign: 'center', color: '#f56c6c', backgroundColor: '#fef0f0', border: '1px solid #fbc4c4', borderRadius: '4px', margin: '20px' }
+          }, [
+            h('h3', { style: { margin: '0 0 10px 0' } }, '组件加载失败'),
+            h('p', { style: { margin: 0 } }, `无法加载组件: ${item.pagePath}`)
+          ])
         }
-      });
-      router.addRoute(currRouter)
-      } catch (err) {
-        logger.error('Failed to parse userMenuList:', err);
-    }
+      }
+    }),
+    meta: { title: item.name }
   }
+}
+
+function appendMenuRoutes(menus, children) {
+  menus.forEach(item => {
+    if (!item || typeof item !== 'object') return
+    if (item.path) {
+      if (!item.pagePath) {
+        logger.warn(`菜单项 ${item.name} 缺少 pagePath 属性`)
+        return
+      }
+      children.push(createMenuRoute(item))
+    } else if (Array.isArray(item.children)) {
+      appendMenuRoutes(item.children, children)
+    }
+  })
+}
+
+export const setRoutes = () => {
+  const raw = localStorage.getItem('userMenuList')
+  if (!raw || raw === 'undefined' || router.hasRoute('home')) return
+  try {
+    const menus = JSON.parse(raw)
+    if (!Array.isArray(menus)) {
+      logger.warn('userMenuList must be an array')
+      return
+    }
+    const children = [
+      { path: '/showView', name: 'homeView', component: ShowView, meta: { title: '首页' } },
+      { path: '/menu', name: 'Menu', component: Menu, meta: { title: '菜单管理' } }
+    ]
+    appendMenuRoutes(menus, children)
+    router.addRoute({ path: '/', name: 'home', component: home, redirect: '/showView', children })
+  } catch (err) {
+    logger.error('Failed to parse userMenuList:', err)
   }
 }
 setRoutes()

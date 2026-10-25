@@ -322,6 +322,7 @@
 </template>
 
 <script>
+import { buildImageUrl } from '@/utils/imageUrl'
 import Request from '@/utils/request'
 import logger from '@/utils/logger'
 import CountDown from '@/components/CountDown.vue'
@@ -443,13 +444,7 @@ export default {
     },
 
     getImageUrl(product) {
-      if (!product || !product.imageUrl) {
-        return require('@/assets/logo.png')
-      }
-      if (product.imageUrl.startsWith('http')) {
-        return product.imageUrl
-      }
-      return `/api${product.imageUrl}`
+      return buildImageUrl(product?.imageUrl) || require('@/assets/logo.png')
     },
 
     getUserAvatar(user) {
