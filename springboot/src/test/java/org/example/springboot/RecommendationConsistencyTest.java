@@ -81,4 +81,32 @@ class RecommendationConsistencyTest {
     @Test void deletedCandidatesFallBackToPublishedPopularList() {
         collaborative();var data=run(null);assertTrue(data.getStats().getFallbackUsed());assertTrue(data.getProducts().isEmpty());verify(products,times(2)).selectList(any());
     }
+
+    @Test void similarityUsesFullNeighborHistoryNotOnlyOverlap() {
+        var history = new ArrayList<Order>();
+        for (long id=1; id<=100; id++) history.add(order(2,id));
+        when(orders.selectList(any())).thenReturn(List.of(order(1,1)),List.of(order(2,1)),history);
+        when(products.selectList(any())).thenReturn(List.of(product(2,10)));
+        var data=run(null);
+        assertEquals(0,data.getStats().getSimilarUserCount());
+        assertTrue(data.getStats().getFallbackUsed());
+        verify(orders,times(3)).selectList(any());
+    }
+    @Test void latestFeedbackReplacesOlderPreference() {
+        var old=vote(2,"ALREADY_OWN");old.setId(1L);old.setFeedbackTime(new java.sql.Timestamp(1));
+        var recent=vote(2,"LIKE");recent.setId(2L);recent.setFeedbackTime(new java.sql.Timestamp(2));
+        when(feedback.selectList(any())).thenReturn(List.of(recent,old));
+        when(products.selectList(any())).thenReturn(List.of(product(2,10)));
+        var data=run("TRENDING");assertEquals(List.of(2L),data.getProducts().stream().map(Product::getId).toList());
+        assertTrue(data.getExplanations().get(0).getScore()>1.0);
+    }
+    @Test void completedPurchaseIsExcludedBeforePopularLimit() {
+        when(orders.selectList(any())).thenReturn(List.of(order(1,99)),List.of());
+        when(products.selectList(any())).thenAnswer(call -> {
+            LambdaQueryWrapper<Product> q=call.getArgument(0);
+            assertTrue(q.getSqlSegment().contains("id NOT IN"));
+            assertTrue(q.getParamNameValuePairs().containsValue(99L));return List.of(product(2,10));
+        });
+        assertEquals(1,run(null).getProducts().size());
+    }
 }

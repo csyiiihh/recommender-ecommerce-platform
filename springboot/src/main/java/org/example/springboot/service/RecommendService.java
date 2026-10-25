@@ -85,9 +85,9 @@ public class RecommendService {
      * 优化版本：只计算与指定用户相关的相似度，而不是所有用户
      * 这样可以大大减少计算量和数据库查询
      */
-    private Map<Long, Double> calculateUserSimilarityForUser(Long userId, Set<Long> userProducts) {
+    private Neighborhood calculateUserSimilarityForUser(Long userId, Set<Long> userProducts) {
         if (userProducts == null || userProducts.isEmpty()) {
-            return new HashMap<>();
+            return new Neighborhood(Map.of(), List.of(), List.of());
         }
 
         // 只获取与当前用户有共同商品的用户（优化：只查询相关订单和收藏）
@@ -103,16 +103,17 @@ public class RecommendService {
                       .ne(Favorite::getUserId, userId); // 排除当前用户
         List<Favorite> relevantFavorites = favoriteMapper.selectList(favoriteWrapper);
 
-        // 构建其他用户-商品映射
+        Set<Long> relatedIds = new HashSet<>();
+        relevantOrders.forEach(o -> relatedIds.add(o.getUserId()));
+        relevantFavorites.forEach(f -> relatedIds.add(f.getUserId()));
+        relatedIds.remove(null);
+        if (relatedIds.isEmpty()) return new Neighborhood(Map.of(), List.of(), List.of());
+        List<Order> completeOrders = orderMapper.selectList(new LambdaQueryWrapper<Order>().in(Order::getUserId, relatedIds).eq(Order::getStatus, 3));
+        List<Favorite> completeFavorites = favoriteMapper.selectList(new LambdaQueryWrapper<Favorite>().in(Favorite::getUserId, relatedIds).eq(Favorite::getStatus, 1));
         Map<Long, Set<Long>> otherUserProductMap = new HashMap<>();
-        for (Order order : relevantOrders) {
-            Set<Long> products = otherUserProductMap.computeIfAbsent(order.getUserId(), k -> new HashSet<>());
-            products.add(order.getProductId());
-        }
-        for (Favorite favorite : relevantFavorites) {
-            otherUserProductMap.computeIfAbsent(favorite.getUserId(), k -> new HashSet<>())
-                             .add(favorite.getProductId());
-        }
+        completeOrders.forEach(o -> otherUserProductMap.computeIfAbsent(o.getUserId(), k -> new HashSet<>()).add(o.getProductId()));
+        completeFavorites.forEach(f -> otherUserProductMap.computeIfAbsent(f.getUserId(), k -> new HashSet<>()).add(f.getProductId()));
+        otherUserProductMap.values().forEach(ids -> ids.remove(null));
 
         // 只计算与当前用户的相似度
         Map<Long, Double> similarUsers = new HashMap<>();
@@ -124,10 +125,12 @@ public class RecommendService {
         }
 
         LOGGER.debug("为用户 {} 找到 {} 个相似用户", userId, similarUsers.size());
-        return similarUsers;
+        return new Neighborhood(similarUsers, completeOrders, completeFavorites);
     }
 
-    // 为指定用户生成推?
+    private record Neighborhood(Map<Long, Double> scores, List<Order> orders, List<Favorite> favorites) {}
+
+    // 为指定用户生成推荐
     public Result<?> generateRecommendations(Long userId) {
         // Keep the legacy array response while sharing ranking and visibility rules.
         return ResultUtils.success(generateRecommendationsWithExplanation(userId, null, null).getData().getProducts());
@@ -258,7 +261,13 @@ public class RecommendService {
 
             Map<Long, Double> feedbackWeightMap = new HashMap<>();
             Set<Long> blockedProducts = new HashSet<>();
-            for (RecommendationFeedback feedback : userFeedbacks) {
+            var feedbackOrder = Comparator.comparing(RecommendationFeedback::getFeedbackTime, Comparator.nullsFirst(Comparator.naturalOrder()))
+                .thenComparing(RecommendationFeedback::getId, Comparator.nullsFirst(Comparator.naturalOrder()));
+            Map<Long, RecommendationFeedback> latestFeedback = new HashMap<>();
+            for (RecommendationFeedback item : userFeedbacks) {
+                if (item.getProductId() != null) latestFeedback.merge(item.getProductId(), item, (a, b) -> feedbackOrder.compare(a, b) >= 0 ? a : b);
+            }
+            for (RecommendationFeedback feedback : latestFeedback.values()) {
                 String type = feedback.getFeedbackType() == null ? "" : feedback.getFeedbackType().trim().toUpperCase(Locale.ROOT);
                 double weight = FEEDBACK_WEIGHTS.getOrDefault(type, 1.0);
                 Long pid = feedback.getProductId();
@@ -268,10 +277,11 @@ public class RecommendService {
                 if (weight == 0.0) {
                     blockedProducts.add(pid);
                 }
-                // 取最小权重（保守降权）
-                double current = feedbackWeightMap.getOrDefault(pid, weight);
-                feedbackWeightMap.put(pid, Math.min(current, weight));
+                // 每个商品仅使用上面选出的最新反馈。
+                feedbackWeightMap.put(pid, weight);
             }
+
+            userOrders.stream().map(Order::getProductId).filter(Objects::nonNull).forEach(blockedProducts::add);
 
             // 非协同过滤算法的快速分支（单一算法）
             if ("TRENDING".equalsIgnoreCase(algoType)) {
@@ -290,7 +300,8 @@ public class RecommendService {
             }
 
             // 优化：只计算与当前用户相关的相似度，而不是所有用户
-            Map<Long, Double> similarUsers = calculateUserSimilarityForUser(userId, userProducts);
+            Neighborhood neighborhood = calculateUserSimilarityForUser(userId, userProducts);
+            Map<Long, Double> similarUsers = new HashMap<>(neighborhood.scores());
 
             // 动态调整相似度阈值
             double similarityThreshold;
@@ -306,7 +317,7 @@ public class RecommendService {
             similarUsers = similarUsers.entrySet()
                 .stream()
                 .filter(entry -> entry.getValue() >= similarityThreshold)
-                .sorted(Map.Entry.<Long, Double>comparingByValue().reversed())
+                .sorted(Map.Entry.<Long, Double>comparingByValue().reversed().thenComparing(Map.Entry.comparingByKey()))
                 .limit(10)
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
@@ -324,30 +335,11 @@ public class RecommendService {
             Map<Long, List<Order>> similarUserOrdersMap = new HashMap<>();
             Map<Long, List<Favorite>> similarUserFavoritesMap = new HashMap<>();
 
-            if (!similarUserIds.isEmpty()) {
-                // 批量查询所有相似用户的订单
-                List<Order> allSimilarUserOrders = orderMapper.selectList(
-                    new LambdaQueryWrapper<Order>()
-                        .in(Order::getUserId, similarUserIds)
-                        .eq(Order::getStatus, 3)
-                );
-                // 按用户ID分组
-                for (Order order : allSimilarUserOrders) {
-                    similarUserOrdersMap.computeIfAbsent(order.getUserId(), k -> new ArrayList<>())
-                                       .add(order);
-                }
-
-                // 批量查询所有相似用户的收藏
-                List<Favorite> allSimilarUserFavorites = favoriteMapper.selectList(
-                    new LambdaQueryWrapper<Favorite>()
-                        .in(Favorite::getUserId, similarUserIds)
-                        .eq(Favorite::getStatus, 1)
-                );
-                // 按用户ID分组
-                for (Favorite favorite : allSimilarUserFavorites) {
-                    similarUserFavoritesMap.computeIfAbsent(favorite.getUserId(), k -> new ArrayList<>())
-                                           .add(favorite);
-                }
+            for (Order order : neighborhood.orders()) {
+                if (similarUserIds.contains(order.getUserId())) similarUserOrdersMap.computeIfAbsent(order.getUserId(), k -> new ArrayList<>()).add(order);
+            }
+            for (Favorite favorite : neighborhood.favorites()) {
+                if (similarUserIds.contains(favorite.getUserId())) similarUserFavoritesMap.computeIfAbsent(favorite.getUserId(), k -> new ArrayList<>()).add(favorite);
             }
 
             for (Map.Entry<Long, Double> entry : similarUsers.entrySet()) {
