@@ -4,7 +4,6 @@ import org.apache.catalina.connector.ClientAbortException;
 import org.example.springboot.common.Result;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.BindException;
@@ -28,20 +27,6 @@ public class GlobalExceptionHandler {
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
     
     /**
-     * 是否为生产环境
-     * 生产环境不暴露详细错误信息
-     */
-    @Value("${spring.profiles.active:dev}")
-    private String activeProfile;
-    
-    /**
-     * 判断是否为生产环境
-     */
-    private boolean isProduction() {
-        return "prod".equals(activeProfile) || "production".equals(activeProfile);
-    }
-    
-    /**
      * 处理业务异常
      */
     @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
@@ -50,13 +35,14 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
     public org.springframework.http.ResponseEntity<Result<?>> handleStatus(org.springframework.web.server.ResponseStatusException e) {
-        return org.springframework.http.ResponseEntity.status(e.getStatusCode()).body(Result.error(String.valueOf(e.getStatusCode().value()), e.getReason()));
+        return org.springframework.http.ResponseEntity.status(e.getStatusCode()).body(Result.error(String.valueOf(e.getStatusCode().value()), (e.getStatusCode().is5xxServerError() ? "系统内部错误，请稍后重试" : e.getReason())));
     }
 
     @ExceptionHandler(BusinessException.class)
     public Result<?> handleBusinessException(BusinessException e) {
-        log.error("业务异常: {}", e.getMessage());
-        return Result.error(e.getCode(), e.getMessage());
+        log.error("业务异常", e);
+        String message = java.util.Set.of("1003", "500").contains(e.getCode()) ? "操作失败，请稍后重试" : e.getMessage();
+        return Result.error(e.getCode(), message);
     }
     
     /**
@@ -66,8 +52,8 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Result<?> handleHttpMessageNotReadableException(HttpMessageNotReadableException e) {
         log.error("JSON解析失败", e);
-        // 生产环境不暴露详细错误信息
-        String message = isProduction() ? "请求数据格式错误" : "JSON解析失败: " + (e.getCause() != null ? e.getCause().getMessage() : e.getMessage());
+        // 不向客户端暴露详细错误信息
+        String message = "请求数据格式错误";
         return Result.error("400", message);
     }
     
@@ -134,8 +120,8 @@ public class GlobalExceptionHandler {
         // 记录详细错误日志（包含堆栈信息）
         log.error("系统异常: {}", e.getMessage(), e);
         
-        // 生产环境不暴露详细错误信息，避免泄露系统内部信息
-        String message = isProduction() ? "系统内部错误，请联系管理员" : "系统错误: " + e.getMessage();
+        // 不向客户端暴露详细错误信息，避免泄露系统内部信息
+        String message = "系统内部错误，请联系管理员";
         return Result.error("500", message);
     }
 }

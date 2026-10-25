@@ -77,10 +77,9 @@ public class RedisTestController {
         } catch (Exception e) {
             LOGGER.error("Redis连接测试失败", e);
             result.put("status", "失败");
-            result.put("message", "Redis连接失败: " + e.getMessage());
+            result.put("message", "Redis连接失败，请查看服务端日志");
             result.put("connected", false);
-            result.put("error", e.getClass().getSimpleName());
-            return Result.error("500", "Redis连接测试失败: " + e.getMessage(), result);
+            return Result.error("500", "Redis连接测试失败", result);
         }
     }
     
@@ -118,7 +117,8 @@ public class RedisTestController {
                 }
             } catch (Exception e) {
                 info.put("ping", "失败");
-                info.put("status", "连接异常: " + e.getMessage());
+                LOGGER.error("Redis ping 失败", e);
+                info.put("status", "连接异常，请查看服务端日志");
             }
             
             return Result.success(info);
@@ -126,7 +126,7 @@ public class RedisTestController {
         } catch (Exception e) {
             LOGGER.error("获取Redis信息失败", e);
             info.put("configured", false);
-            info.put("error", e.getMessage());
+            info.put("error", "连接诊断失败，请查看服务端日志");
             return Result.error("500", "获取Redis信息失败", info);
         }
     }

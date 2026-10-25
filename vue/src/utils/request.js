@@ -155,6 +155,8 @@ request.interceptors.response.use(
             method: error.config?.method
         });
         
+        if ((error.config?.silent || error.config?.silentError) && error.response?.status !== 401) return Promise.reject(error);
+
         // 如果请求被取消，不显示错误提示
         if (axios.isCancel && axios.isCancel(error)) {
             logger.debug('请求被取消:', error.message);

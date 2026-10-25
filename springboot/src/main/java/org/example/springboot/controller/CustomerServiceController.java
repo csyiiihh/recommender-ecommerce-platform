@@ -8,8 +8,6 @@ import org.example.springboot.common.Result;
 import org.example.springboot.entity.CustomerServiceMessage;
 import org.example.springboot.entity.CustomerServiceSession;
 import org.example.springboot.service.CustomerServiceService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -26,7 +24,6 @@ import java.util.Map;
 public class CustomerServiceController {
     @Autowired private org.example.springboot.service.AccessService access;
     
-    private static final Logger LOGGER = LoggerFactory.getLogger(CustomerServiceController.class);
     
     @Autowired
     private CustomerServiceService customerServiceService;
@@ -39,13 +36,8 @@ public class CustomerServiceController {
     @PostMapping("/session/create")
     public Result<?> createSession(@RequestParam @NotNull(message = "用户ID不能为空") @Min(value = 1, message = "用户ID必须大于0") Long userId) {
         access.owner(userId);
-        try {
-            CustomerServiceSession session = customerServiceService.getOrCreateSession(userId);
-            return Result.success(session);
-        } catch (Exception e) {
-            LOGGER.error("创建客服会话失败", e);
-            return Result.error("-1", "创建客服会话失败：" + e.getMessage());
-        }
+        CustomerServiceSession session = customerServiceService.getOrCreateSession(userId);
+        return Result.success(session);
     }
     
     /**
@@ -59,16 +51,11 @@ public class CustomerServiceController {
             @RequestParam @NotNull(message = "会话ID不能为空") @Min(value = 1, message = "会话ID必须大于0") Long sessionId, 
             @RequestParam @NotNull(message = "客服ID不能为空") @Min(value = 1, message = "客服ID必须大于0") Long serviceId) {
         access.staff(); access.owner(serviceId);
-        try {
-            boolean success = customerServiceService.acceptSession(sessionId, serviceId);
-            if (success) {
-                return Result.success();
-            } else {
-                return Result.error("-1", "接入会话失败");
-            }
-        } catch (Exception e) {
-            LOGGER.error("接入会话失败", e);
-            return Result.error("-1", "接入会话失败：" + e.getMessage());
+        boolean success = customerServiceService.acceptSession(sessionId, serviceId);
+        if (success) {
+            return Result.success();
+        } else {
+            return Result.error("-1", "接入会话失败");
         }
     }
     
@@ -80,16 +67,11 @@ public class CustomerServiceController {
     @PostMapping("/session/end")
     public Result<?> endSession(@RequestParam @NotNull(message = "会话ID不能为空") @Min(value = 1, message = "会话ID必须大于0") Long sessionId) {
         access.session(sessionId);
-        try {
-            boolean success = customerServiceService.endSession(sessionId);
-            if (success) {
-                return Result.success();
-            } else {
-                return Result.error("-1", "结束会话失败");
-            }
-        } catch (Exception e) {
-            LOGGER.error("结束会话失败", e);
-            return Result.error("-1", "结束会话失败：" + e.getMessage());
+        boolean success = customerServiceService.endSession(sessionId);
+        if (success) {
+            return Result.success();
+        } else {
+            return Result.error("-1", "结束会话失败");
         }
     }
     
@@ -101,20 +83,15 @@ public class CustomerServiceController {
     @PostMapping("/message/send")
     public Result<?> sendMessage(@RequestBody Map<String, Object> params) {
         access.session(Long.valueOf(params.get("sessionId").toString())); access.owner(Long.valueOf(params.get("senderId").toString())); if("SERVICE".equals(params.get("senderType"))) access.staff(); else if(!"USER".equals(params.get("senderType"))) throw new IllegalArgumentException("无效发送类型");
-        try {
-            Long sessionId = Long.valueOf(params.get("sessionId").toString());
-            Long senderId = Long.valueOf(params.get("senderId").toString());
-            String senderType = params.get("senderType").toString();
-            String content = params.get("content").toString();
-            String messageType = params.getOrDefault("messageType", "TEXT").toString();
-            
-            CustomerServiceMessage message = customerServiceService.sendMessage(
-                    sessionId, senderId, senderType, content, messageType);
-            return Result.success(message);
-        } catch (Exception e) {
-            LOGGER.error("发送消息失败", e);
-            return Result.error("-1", "发送消息失败：" + e.getMessage());
-        }
+        Long sessionId = Long.valueOf(params.get("sessionId").toString());
+        Long senderId = Long.valueOf(params.get("senderId").toString());
+        String senderType = params.get("senderType").toString();
+        String content = params.get("content").toString();
+        String messageType = params.getOrDefault("messageType", "TEXT").toString();
+
+        CustomerServiceMessage message = customerServiceService.sendMessage(
+                sessionId, senderId, senderType, content, messageType);
+        return Result.success(message);
     }
     
     /**
@@ -130,14 +107,9 @@ public class CustomerServiceController {
             @RequestParam @NotNull(message = "用户ID不能为空") @Min(value = 1, message = "用户ID必须大于0") Long currentUserId,
             @RequestParam @NotBlank(message = "用户类型不能为空") String userType) {
         access.session(sessionId); access.owner(currentUserId); if("SERVICE".equals(userType)) access.staff();
-        try {
-            List<CustomerServiceMessage> messages = customerServiceService.getMessages(
-                    sessionId, currentUserId, userType);
-            return Result.success(messages);
-        } catch (Exception e) {
-            LOGGER.error("获取消息列表失败", e);
-            return Result.error("-1", "获取消息列表失败：" + e.getMessage());
-        }
+        List<CustomerServiceMessage> messages = customerServiceService.getMessages(
+                sessionId, currentUserId, userType);
+        return Result.success(messages);
     }
     
     /**
@@ -148,13 +120,8 @@ public class CustomerServiceController {
     @GetMapping("/session/user")
     public Result<?> getUserSessions(@RequestParam @NotNull(message = "用户ID不能为空") @Min(value = 1, message = "用户ID必须大于0") Long userId) {
         access.owner(userId);
-        try {
-            List<CustomerServiceSession> sessions = customerServiceService.getUserSessions(userId);
-            return Result.success(sessions);
-        } catch (Exception e) {
-            LOGGER.error("获取用户会话列表失败", e);
-            return Result.error("-1", "获取用户会话列表失败：" + e.getMessage());
-        }
+        List<CustomerServiceSession> sessions = customerServiceService.getUserSessions(userId);
+        return Result.success(sessions);
     }
     
     /**
@@ -165,13 +132,8 @@ public class CustomerServiceController {
     @GetMapping("/session/service")
     public Result<?> getServiceSessions(@RequestParam @NotNull(message = "客服ID不能为空") @Min(value = 1, message = "客服ID必须大于0") Long serviceId) {
         access.staff(); access.owner(serviceId);
-        try {
-            List<CustomerServiceSession> sessions = customerServiceService.getServiceSessions(serviceId);
-            return Result.success(sessions);
-        } catch (Exception e) {
-            LOGGER.error("获取客服会话列表失败", e);
-            return Result.error("-1", "获取客服会话列表失败：" + e.getMessage());
-        }
+        List<CustomerServiceSession> sessions = customerServiceService.getServiceSessions(serviceId);
+        return Result.success(sessions);
     }
     
     /**
@@ -181,13 +143,8 @@ public class CustomerServiceController {
     @GetMapping("/session/all")
     public Result<?> getAllSessions() {
         access.admin();
-        try {
-            List<CustomerServiceSession> sessions = customerServiceService.getAllSessions();
-            return Result.success(sessions);
-        } catch (Exception e) {
-            LOGGER.error("获取所有会话列表失败", e);
-            return Result.error("-1", "获取所有会话列表失败：" + e.getMessage());
-        }
+        List<CustomerServiceSession> sessions = customerServiceService.getAllSessions();
+        return Result.success(sessions);
     }
     
     /**
@@ -205,14 +162,9 @@ public class CustomerServiceController {
             @RequestParam(defaultValue = "1") @Min(value = 1, message = "当前页必须大于0") Integer currentPage,
             @RequestParam(defaultValue = "10") @Min(value = 1, message = "每页大小必须大于0") Integer pageSize) {
         if(!access.isAdmin()) userId=access.current().getId();
-        try {
-            Page<CustomerServiceSession> page = customerServiceService.getSessionHistory(
-                    status, userId, currentPage, pageSize);
-            return Result.success(page);
-        } catch (Exception e) {
-            LOGGER.error("获取会话历史失败", e);
-            return Result.error("-1", "获取会话历史失败：" + e.getMessage());
-        }
+        Page<CustomerServiceSession> page = customerServiceService.getSessionHistory(
+                status, userId, currentPage, pageSize);
+        return Result.success(page);
     }
     
     /**
@@ -226,13 +178,8 @@ public class CustomerServiceController {
             @RequestParam @NotNull(message = "用户ID不能为空") @Min(value = 1, message = "用户ID必须大于0") Long userId,
             @RequestParam @NotBlank(message = "用户类型不能为空") String userType) {
         access.owner(userId); if("SERVICE".equals(userType)) access.staff();
-        try {
-            Integer count = customerServiceService.getUnreadCount(userId, userType);
-            return Result.success(count);
-        } catch (Exception e) {
-            LOGGER.error("获取未读消息数失败", e);
-            return Result.error("-1", "获取未读消息数失败：" + e.getMessage());
-        }
+        Integer count = customerServiceService.getUnreadCount(userId, userType);
+        return Result.success(count);
     }
     
     /**
@@ -243,16 +190,11 @@ public class CustomerServiceController {
     @DeleteMapping("/session/{sessionId}")
     public Result<?> deleteSession(@PathVariable @NotNull(message = "会话ID不能为空") @Min(value = 1, message = "会话ID必须大于0") Long sessionId) {
         access.admin();
-        try {
-            boolean success = customerServiceService.deleteSession(sessionId);
-            if (success) {
-                return Result.success();
-            } else {
-                return Result.error("-1", "删除会话失败");
-            }
-        } catch (Exception e) {
-            LOGGER.error("删除会话失败", e);
-            return Result.error("-1", "删除会话失败：" + e.getMessage());
+        boolean success = customerServiceService.deleteSession(sessionId);
+        if (success) {
+            return Result.success();
+        } else {
+            return Result.error("-1", "删除会话失败");
         }
     }
 }
