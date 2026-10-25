@@ -45,71 +45,19 @@ public class RecommendService {
 
     @Autowired
     private OrderMapper orderMapper;
-    
+
     @Autowired
     private FavoriteMapper favoriteMapper;
-    
+
     @Autowired
     private ProductMapper productMapper;
-    
+
     @Autowired
     private org.example.springboot.mapper.RecommendationFeedbackMapper feedbackMapper;
 
     @Autowired
     private ObjectMapper objectMapper;
 
-    // 计算用户相似度矩?
-    private Map<Long, Map<Long, Double>> calculateUserSimilarity() {
-        // 构建用户-商品行为矩阵
-        Map<Long, Set<Long>> userProductMap = new HashMap<>();
-        
-        // 获取所有订单数据（已完成的订单?
-        LambdaQueryWrapper<Order> orderWrapper = new LambdaQueryWrapper<>();
-        orderWrapper.eq(Order::getStatus, 3); // 已完成状?
-        List<Order> orders = orderMapper.selectList(orderWrapper);
-        
-        // 获取所有收藏数据（有效的收藏）
-        LambdaQueryWrapper<Favorite> favoriteWrapper = new LambdaQueryWrapper<>();
-        favoriteWrapper.eq(Favorite::getStatus, 1); // 收藏状态为1
-        List<Favorite> favorites = favoriteMapper.selectList(favoriteWrapper);
-
-        // 构建用户-商品映射，购买行为权重为2，收藏行为权重为1
-        for (Order order : orders) {
-            Set<Long> products = userProductMap.computeIfAbsent(order.getUserId(), k -> new HashSet<>());
-            products.add(order.getProductId());
-            products.add(order.getProductId()); // 添加两次表示更高权重
-        }
-        
-        for (Favorite favorite : favorites) {
-            userProductMap.computeIfAbsent(favorite.getUserId(), k -> new HashSet<>())
-                         .add(favorite.getProductId());
-        }
-
-        // 计算用户相似?
-        Map<Long, Map<Long, Double>> similarityMatrix = new HashMap<>();
-        List<Long> userIds = new ArrayList<>(userProductMap.keySet());
-
-        for (int i = 0; i < userIds.size(); i++) {
-            Long user1 = userIds.get(i);
-            Map<Long, Double> userSimilarities = new HashMap<>();
-            similarityMatrix.put(user1, userSimilarities);
-
-            for (int j = i + 1; j < userIds.size(); j++) {
-                Long user2 = userIds.get(j);
-                double similarity = calculateCosineSimilarity(
-                    userProductMap.get(user1), 
-                    userProductMap.get(user2)
-                );
-                userSimilarities.put(user2, similarity);
-                similarityMatrix.computeIfAbsent(user2, k -> new HashMap<>())
-                               .put(user1, similarity);
-            }
-        }
-
-        return similarityMatrix;
-    }
-
-    // 计算余弦相似?
     private double calculateCosineSimilarity(Set<Long> set1, Set<Long> set2) {
         if (set1 == null || set2 == null || set1.isEmpty() || set2.isEmpty()) {
             return 0.0;
@@ -128,7 +76,7 @@ public class RecommendService {
         double numerator = intersection.size();
         double denominator = Math.sqrt(set1.size()) * Math.sqrt(set2.size());
         double similarity = numerator / denominator;
-        
+
         LOGGER.debug("计算相似? set1={}, set2={}, similarity={}", set1, set2, similarity);
         return similarity;
     }
@@ -160,7 +108,6 @@ public class RecommendService {
         for (Order order : relevantOrders) {
             Set<Long> products = otherUserProductMap.computeIfAbsent(order.getUserId(), k -> new HashSet<>());
             products.add(order.getProductId());
-            products.add(order.getProductId()); // 购买权重为2
         }
         for (Favorite favorite : relevantFavorites) {
             otherUserProductMap.computeIfAbsent(favorite.getUserId(), k -> new HashSet<>())
@@ -182,125 +129,8 @@ public class RecommendService {
 
     // 为指定用户生成推?
     public Result<?> generateRecommendations(Long userId) {
-        try {
-            // 获取用户的订单和收藏数据
-            LambdaQueryWrapper<Order> orderWrapper = new LambdaQueryWrapper<>();
-            orderWrapper.eq(Order::getUserId, userId)
-                       .eq(Order::getStatus, 3); // 已完成的订单
-            List<Order> userOrders = orderMapper.selectList(orderWrapper);
-
-            LambdaQueryWrapper<Favorite> favoriteWrapper = new LambdaQueryWrapper<>();
-            favoriteWrapper.eq(Favorite::getUserId, userId)
-                          .eq(Favorite::getStatus, 1); // 有效的收?
-            List<Favorite> userFavorites = favoriteMapper.selectList(favoriteWrapper);
-
-            // 获取用户的商品集?
-            Set<Long> userProducts = new HashSet<>();
-            userOrders.forEach(order -> userProducts.add(order.getProductId()));
-            userFavorites.forEach(favorite -> userProducts.add(favorite.getProductId()));
-
-            if (userProducts.isEmpty()) {
-                LOGGER.warn("用户 {} 没有任何订单或收藏记录", userId);
-            }
-
-            // 获取用户相似度矩?
-            Map<Long, Map<Long, Double>> similarityMatrix = calculateUserSimilarity();
-
-            // 获取相似用户
-            Map<Long, Double> similarUsers = new HashMap<>();
-            // 获取当前用户与其他用户的相似?
-            if (similarityMatrix.containsKey(userId)) {
-                similarUsers.putAll(similarityMatrix.get(userId));
-            }
-            // 获取其他用户与当前用户的相似?
-            for (Map.Entry<Long, Map<Long, Double>> entry : similarityMatrix.entrySet()) {
-                if (entry.getValue().containsKey(userId)) {
-                    similarUsers.put(entry.getKey(), entry.getValue().get(userId));
-                }
-            }
-
-            // 动态调整相似度阈?
-            double similarityThreshold;
-            if (userProducts.size() < 3) { // 新用?
-                similarityThreshold = 0.2;
-            } else if (userProducts.size() > 10) { // 活跃用户
-                similarityThreshold = 0.4;
-            } else {
-                similarityThreshold = 0.3;
-            }
-
-            // 过滤和排序相似用?
-            similarUsers = similarUsers.entrySet()
-                .stream()
-                .filter(entry -> entry.getValue() >= similarityThreshold)
-                .sorted(Map.Entry.<Long, Double>comparingByValue().reversed())
-                .limit(10)
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-
-            // 收集推荐商品及其得分
-            Map<Long, Double> productScores = new HashMap<>();
-            for (Map.Entry<Long, Double> entry : similarUsers.entrySet()) {
-                Long similarUserId = entry.getKey();
-                double similarity = entry.getValue();
-
-                // 获取相似用户的订单和收藏
-                List<Order> similarUserOrders = orderMapper.selectList(
-                    new LambdaQueryWrapper<Order>()
-                        .eq(Order::getUserId, similarUserId)
-                        .eq(Order::getStatus, 3)
-                );
-                
-                List<Favorite> similarUserFavorites = favoriteMapper.selectList(
-                    new LambdaQueryWrapper<Favorite>()
-                        .eq(Favorite::getUserId, similarUserId)
-                        .eq(Favorite::getStatus, 1)
-                );
-
-                // 计算推荐分数（订单权?, 收藏权???
-                for (Order order : similarUserOrders) {
-                    if (!userProducts.contains(order.getProductId())) {
-                        double newScore = productScores.getOrDefault(order.getProductId(), 0.0) + similarity * 2;
-                        productScores.put(order.getProductId(), newScore);
-                    }
-                }
-                
-                for (Favorite favorite : similarUserFavorites) {
-                    if (!userProducts.contains(favorite.getProductId())) {
-                        double newScore = productScores.getOrDefault(favorite.getProductId(), 0.0) + similarity;
-                        productScores.put(favorite.getProductId(), newScore);
-                    }
-                }
-            }
-
-            List<Product> recommendations;
-            if (productScores.isEmpty()) {
-                LOGGER.info("没有找到相似用户，使用基于销量的推荐");
-                recommendations = productMapper.selectList(
-                    new LambdaQueryWrapper<Product>()
-                        .orderByDesc(Product::getSalesCount)
-                        .last("LIMIT 12")
-                );
-            } else {
-                List<Map.Entry<Long, Double>> sortedProducts = new ArrayList<>(productScores.entrySet());
-                sortedProducts.sort((e1, e2) -> e2.getValue().compareTo(e1.getValue()));
-
-                List<Long> recommendedIds = sortedProducts.stream()
-                    .limit(12)
-                    .map(Map.Entry::getKey)
-                    .collect(Collectors.toList());
-
-                recommendations = productMapper.selectList(
-                    new LambdaQueryWrapper<Product>()
-                        .in(Product::getId, recommendedIds)
-                );
-            }
-
-            LOGGER.info("为用户 {} 生成推荐成功，推荐数量：{}", userId, recommendations.size());
-            return ResultUtils.success(recommendations);
-        } catch (Exception e) {
-            LOGGER.error("生成推荐异常，用户ID：{}，错误：{}", userId, e.getMessage(), e);
-            throw new BusinessException(ResultCode.OPERATION_FAILED.getCode(), "生成推荐失败：" + e.getMessage());
-        }
+        // Keep the legacy array response while sharing ranking and visibility rules.
+        return ResultUtils.success(generateRecommendationsWithExplanation(userId, null, null).getData().getProducts());
     }
 
     // 定时更新推荐
@@ -421,20 +251,42 @@ public class RecommendService {
             boolean fallbackUsed = false;
             String fallbackReason = null;
 
+            // 获取用户的历史反馈（用于权重/过滤）
+            LambdaQueryWrapper<RecommendationFeedback> feedbackWrapper = new LambdaQueryWrapper<>();
+            feedbackWrapper.eq(RecommendationFeedback::getUserId, userId);
+            List<RecommendationFeedback> userFeedbacks = feedbackMapper.selectList(feedbackWrapper);
+
+            Map<Long, Double> feedbackWeightMap = new HashMap<>();
+            Set<Long> blockedProducts = new HashSet<>();
+            for (RecommendationFeedback feedback : userFeedbacks) {
+                String type = feedback.getFeedbackType() == null ? "" : feedback.getFeedbackType().trim().toUpperCase(Locale.ROOT);
+                double weight = FEEDBACK_WEIGHTS.getOrDefault(type, 1.0);
+                Long pid = feedback.getProductId();
+                if (pid == null) {
+                    continue;
+                }
+                if (weight == 0.0) {
+                    blockedProducts.add(pid);
+                }
+                // 取最小权重（保守降权）
+                double current = feedbackWeightMap.getOrDefault(pid, weight);
+                feedbackWeightMap.put(pid, Math.min(current, weight));
+            }
+
             // 非协同过滤算法的快速分支（单一算法）
             if ("TRENDING".equalsIgnoreCase(algoType)) {
-                RecommendationResponse response = buildTrendingResponse(trendingWeight, startTime);
-                return Result.success(response);
+                RecommendationResponse response = buildTrendingResponse(trendingWeight, startTime, blockedProducts);
+                return Result.success(applyFeedback(response, feedbackWeightMap));
             }
 
             if ("SERENDIPITY".equalsIgnoreCase(algoType)) {
-                RecommendationResponse response = buildSerendipityResponse(startTime);
-                return Result.success(response);
+                RecommendationResponse response = buildSerendipityResponse(startTime, blockedProducts);
+                return Result.success(applyFeedback(response, feedbackWeightMap));
             }
 
             if ("CONTENT".equalsIgnoreCase(algoType)) {
-                RecommendationResponse response = buildContentResponse(contentWeight, startTime);
-                return Result.success(response);
+                RecommendationResponse response = buildContentResponse(contentWeight, startTime, blockedProducts);
+                return Result.success(applyFeedback(response, feedbackWeightMap));
             }
 
             // 优化：只计算与当前用户相关的相似度，而不是所有用户
@@ -460,31 +312,9 @@ public class RecommendService {
 
             int similarUserCount = similarUsers.size();
 
-            // 获取用户的历史反馈（用于权重/过滤）
-            LambdaQueryWrapper<RecommendationFeedback> feedbackWrapper = new LambdaQueryWrapper<>();
-            feedbackWrapper.eq(RecommendationFeedback::getUserId, userId);
-            List<RecommendationFeedback> userFeedbacks = feedbackMapper.selectList(feedbackWrapper);
-
-            Map<Long, Double> feedbackWeightMap = new HashMap<>();
-            Set<Long> blockedProducts = new HashSet<>();
-            for (RecommendationFeedback feedback : userFeedbacks) {
-                String type = feedback.getFeedbackType() == null ? "" : feedback.getFeedbackType().trim().toUpperCase();
-                double weight = FEEDBACK_WEIGHTS.getOrDefault(type, 1.0);
-                Long pid = feedback.getProductId();
-                if (pid == null) {
-                    continue;
-                }
-                if (weight == 0.0) {
-                    blockedProducts.add(pid);
-                }
-                // 取最小权重（保守降权）
-                double current = feedbackWeightMap.getOrDefault(pid, 1.0);
-                feedbackWeightMap.put(pid, Math.min(current, weight));
-            }
-            
             // 收集推荐商品及其得分和来源信息
             Map<Long, ProductScoreInfo> productScoreMap = new HashMap<>();
-            
+
             // 记录每个商品的来源（哪些相似用户推荐了它，以及来源商品）
             Map<Long, Map<Long, Double>> productSimilarUserMap = new HashMap<>(); // 商品 -> 相似用户ID -> 相似度
             Map<Long, Set<Long>> productSourceMap = new HashMap<>(); // 商品 -> 来源商品ID集合
@@ -493,7 +323,7 @@ public class RecommendService {
             Set<Long> similarUserIds = similarUsers.keySet();
             Map<Long, List<Order>> similarUserOrdersMap = new HashMap<>();
             Map<Long, List<Favorite>> similarUserFavoritesMap = new HashMap<>();
-            
+
             if (!similarUserIds.isEmpty()) {
                 // 批量查询所有相似用户的订单
                 List<Order> allSimilarUserOrders = orderMapper.selectList(
@@ -506,7 +336,7 @@ public class RecommendService {
                     similarUserOrdersMap.computeIfAbsent(order.getUserId(), k -> new ArrayList<>())
                                        .add(order);
                 }
-                
+
                 // 批量查询所有相似用户的收藏
                 List<Favorite> allSimilarUserFavorites = favoriteMapper.selectList(
                     new LambdaQueryWrapper<Favorite>()
@@ -544,15 +374,13 @@ public class RecommendService {
                     ProductScoreInfo info = productScoreMap.computeIfAbsent(productId,
                         k -> new ProductScoreInfo());
                     info.cfScore += similarity * 2 * scoreMultiplier;
-                    info.trendScore = computeTrendScore(productId);
-                    info.contentScore = computeContentScore(productId);
 
                     productSimilarUserMap.computeIfAbsent(productId, k -> new HashMap<>())
                         .put(similarUserId, similarity);
                     productSourceMap.computeIfAbsent(productId, k -> new HashSet<>())
                         .addAll(similarUserProductIds);
                 }
-                
+
                 for (Favorite favorite : similarUserFavorites) {
                     Long productId = favorite.getProductId();
                     if (productId == null || userProducts.contains(productId) || blockedProducts.contains(productId)) {
@@ -563,14 +391,26 @@ public class RecommendService {
                     ProductScoreInfo info = productScoreMap.computeIfAbsent(productId,
                         k -> new ProductScoreInfo());
                     info.cfScore += similarity * scoreMultiplier;
-                    info.trendScore = computeTrendScore(productId);
-                    info.contentScore = computeContentScore(productId);
 
                     productSimilarUserMap.computeIfAbsent(productId, k -> new HashMap<>())
                         .put(similarUserId, similarity);
                     productSourceMap.computeIfAbsent(productId, k -> new HashSet<>())
                         .addAll(similarUserProductIds);
                 }
+            }
+
+            Map<Long, Product> candidateMap = new HashMap<>();
+            if (!productScoreMap.isEmpty()) {
+                for (Product p : productMapper.selectList(publishedCandidates(blockedProducts).in(Product::getId, productScoreMap.keySet()))) {
+                    if (Integer.valueOf(1).equals(p.getStatus()) && !blockedProducts.contains(p.getId())) candidateMap.put(p.getId(), p);
+                }
+                productScoreMap.keySet().retainAll(candidateMap.keySet());
+                productScoreMap.forEach((id, info) -> {
+                    Product p = candidateMap.get(id);
+                    double factor = feedbackWeightMap.getOrDefault(id, 1.0);
+                    info.trendScore = (p.getSalesCount() == null ? 0 : p.getSalesCount()) * factor;
+                    info.contentScore = computeContentScore(p, startTime) * factor;
+                });
             }
 
             List<Product> recommendations;
@@ -590,16 +430,16 @@ public class RecommendService {
                     fallbackReason = "当前个性化信号不足，暂时采用热门/销量推荐作为兜底结果。";
                 }
                 recommendations = productMapper.selectList(
-                    new LambdaQueryWrapper<Product>()
-                        .orderByDesc(Product::getSalesCount)
-                        .last("LIMIT 20")
+                    publishedCandidates(blockedProducts)
+                        .orderByDesc(Product::getSalesCount).orderByAsc(Product::getId)
+                        .last("LIMIT 12")
                 );
                 // 过滤被屏蔽的商品（例如 ALREADY_OWN）
                 recommendations = recommendations.stream()
                         .filter(p -> !blockedProducts.contains(p.getId()))
                         .limit(12)
                         .collect(Collectors.toList());
-                
+
                 for (Product product : recommendations) {
                     RecommendationExplanation explanation = new RecommendationExplanation();
                     explanation.setProductId(product.getId());
@@ -626,7 +466,7 @@ public class RecommendService {
                     RecommendationExplanation.SupportingFactor trend = new RecommendationExplanation.SupportingFactor();
                     trend.setType("TREND");
                     trend.setDescription("近期销量高，用户关注度高");
-                    trend.setScore(Math.min(100.0, product.getSalesCount() * 1.0));
+                    trend.setScore(Math.min(100.0, (product.getSalesCount() == null ? 0 : product.getSalesCount()) * 1.0));
                     supportingFactors.add(trend);
                     explanation.setSupportingFactors(supportingFactors);
 
@@ -636,25 +476,16 @@ public class RecommendService {
                 // 协同过滤推荐
                 List<Map.Entry<Long, ProductScoreInfo>> sortedProducts = new ArrayList<>(
                     productScoreMap.entrySet());
-                sortedProducts.sort((e1, e2) -> Double.compare(
+                sortedProducts.sort((e1, e2) -> {
+                    int scoreOrder = Double.compare(
                         e2.getValue().totalScore(collaborativeWeight, contentWeight, trendingWeight),
-                        e1.getValue().totalScore(collaborativeWeight, contentWeight, trendingWeight)
-                ));
+                        e1.getValue().totalScore(collaborativeWeight, contentWeight, trendingWeight));
+                    return scoreOrder != 0 ? scoreOrder : Long.compare(e1.getKey(), e2.getKey());
+                });
 
-                List<Long> recommendedIds = sortedProducts.stream()
-                    .limit(12)
-                    .map(Map.Entry::getKey)
-                    .collect(Collectors.toList());
+                recommendations = new ArrayList<>();
+                Map<Long, Product> productMap = candidateMap;
 
-                recommendations = productMapper.selectList(
-                    new LambdaQueryWrapper<Product>()
-                        .in(Product::getId, recommendedIds)
-                );
-
-                // 按推荐分数排序
-                Map<Long, Product> productMap = recommendations.stream()
-                    .collect(Collectors.toMap(Product::getId, p -> p));
-                
                 int index = 0;
                 for (Map.Entry<Long, ProductScoreInfo> entry : sortedProducts) {
                     if (index >= 12) break;
@@ -668,12 +499,12 @@ public class RecommendService {
                     double totalScore = info.totalScore(collaborativeWeight, contentWeight, trendingWeight);
                     explanation.setScore(totalScore);
                     explanation.setReasonType("COLLABORATIVE");
-                    
+
                     // 生成推荐理由描述
                     Map<Long, Double> similarUsersForProduct = productSimilarUserMap.get(productId);
                     int count = similarUsersForProduct != null ? similarUsersForProduct.size() : 0;
                     Set<Long> sourceProducts = productSourceMap.get(productId);
-                    
+
                     StringBuilder reasonDesc = new StringBuilder();
                     if (count > 0) {
                         reasonDesc.append("有 ").append(count).append(" 位与您兴趣相似的用户也喜欢此商品");
@@ -685,9 +516,9 @@ public class RecommendService {
                     }
                     explanation.setReasonDescription(reasonDesc.toString());
                     explanation.setPrimaryReason(reasonDesc.toString());
-                    
+
                     explanation.setSimilarUserCount(count);
-                    
+
                     // 生成相似用户提示（脱敏）
                     List<String> userHints = new ArrayList<>();
                     if (similarUsersForProduct != null) {
@@ -699,7 +530,7 @@ public class RecommendService {
                         }
                     }
                     explanation.setSimilarUserHints(userHints);
-                    
+
                     // 设置来源商品（取交集，即用户也购买/收藏过的商品）
                     Set<Long> sourceProductIds = new HashSet<>();
                     if (sourceProducts != null) {
@@ -711,7 +542,7 @@ public class RecommendService {
                         }
                     }
                     explanation.setSourceProductIds(new ArrayList<>(sourceProductIds));
-                    
+
                     // 计算置信度
                     double confidence = Math.min(0.95, 0.5 + (totalScore / 10.0));
                     explanation.setConfidence(confidence);
@@ -744,11 +575,12 @@ public class RecommendService {
                     RecommendationExplanation.SupportingFactor trend = new RecommendationExplanation.SupportingFactor();
                     trend.setType("TREND");
                     trend.setDescription("销量/热度加权推荐");
-                    trend.setScore(Math.min(100.0, product.getSalesCount() * 1.0));
+                    trend.setScore(Math.min(100.0, (product.getSalesCount() == null ? 0 : product.getSalesCount()) * 1.0));
                     factors.add(trend);
                     explanation.setSupportingFactors(factors);
-                    
+
                     explanations.add(explanation);
+                    recommendations.add(product);
                     index++;
                 }
             }
@@ -758,7 +590,7 @@ public class RecommendService {
             response.setProducts(recommendations);
             response.setExplanations(explanations);
             response.setAlgorithmType(fallbackUsed ? "POPULAR" : algoType);
-            
+
             RecommendationResponse.RecommendationStats stats = new RecommendationResponse.RecommendationStats();
             stats.setSimilarUserCount(similarUserCount);
             stats.setUserBehaviorCount(userBehaviorCount);
@@ -768,9 +600,10 @@ public class RecommendService {
             stats.setLastUpdateTime(System.currentTimeMillis());
             response.setStats(stats);
 
-            LOGGER.info("为用户 {} 生成推荐解释成功，算法类型：{}，推荐数量：{}，执行时间：{}ms", 
-                userId, response.getAlgorithmType(), recommendations.size(), 
+            LOGGER.info("为用户 {} 生成推荐解释成功，算法类型：{}，推荐数量：{}，执行时间：{}ms",
+                userId, response.getAlgorithmType(), recommendations.size(),
                 response.getStats().getExecutionTime());
+            if (fallbackUsed) applyFeedback(response, feedbackWeightMap);
             return ResultUtils.success(response);
         } catch (Exception e) {
             LOGGER.error("生成推荐解释异常，用户ID：{}，错误：{}", userId, e.getMessage(), e);
@@ -786,7 +619,9 @@ public class RecommendService {
             return new HashMap<>();
         }
         try {
-            return objectMapper.readValue(weightsJson, new TypeReference<Map<String, Integer>>() {});
+            Map<String, Integer> parsed = objectMapper.readValue(weightsJson, new TypeReference<Map<String, Integer>>() {});
+            if (parsed == null || parsed.values().stream().anyMatch(v -> v == null || v < 0 || v > 100)) return new HashMap<>();
+            return parsed;
         } catch (Exception e) {
             LOGGER.warn("解析算法权重失败，使用默认值: {}", e.getMessage());
             return new HashMap<>();
@@ -796,11 +631,10 @@ public class RecommendService {
     /**
      * 构建热门趋势推荐
      */
-    private RecommendationResponse buildTrendingResponse(double trendingWeight, long startTime) {
+    private RecommendationResponse buildTrendingResponse(double trendingWeight, long startTime, Set<Long> blockedProducts) {
         List<Product> recommendations = productMapper.selectList(
-                new LambdaQueryWrapper<Product>()
-                        .eq(Product::getStatus, 1)
-                        .orderByDesc(Product::getSalesCount)
+                publishedCandidates(blockedProducts)
+                        .orderByDesc(Product::getSalesCount).orderByAsc(Product::getId)
                         .last("LIMIT 12")
         );
         List<RecommendationExplanation> explanations = new ArrayList<>();
@@ -829,37 +663,33 @@ public class RecommendService {
         return response;
     }
 
-    /**
-     * 计算趋势得分（按销量）
-     */
-    private double computeTrendScore(Long productId) {
-        Product p = productMapper.selectById(productId);
-        if (p == null) return 0.0;
-        return p.getSalesCount() == null ? 0.0 : p.getSalesCount();
+    private LambdaQueryWrapper<Product> publishedCandidates(Set<Long> blocked) {
+        return new LambdaQueryWrapper<Product>().eq(Product::getStatus, 1)
+                .notIn(!blocked.isEmpty(), Product::getId, blocked);
     }
 
-    /**
-     * 计算内容/上新得分（按更新时间，越新得分越高）
-     */
-    private double computeContentScore(Long productId) {
-        Product p = productMapper.selectById(productId);
-        if (p == null || p.getUpdatedAt() == null) return 0.0;
-        long now = System.currentTimeMillis();
-        long diff = now - p.getUpdatedAt().getTime();
-        // 30天半衰，越近越高
-        double days = diff / (1000.0 * 60 * 60 * 24);
-        double score = Math.max(0.0, 100.0 * Math.exp(-days / 30.0));
-        return score;
+    private double computeContentScore(Product p, long now) {
+        if (p.getUpdatedAt() == null) return 0.0;
+        double days = Math.max(0L, now - p.getUpdatedAt().getTime()) / (1000.0 * 60 * 60 * 24);
+        return 100.0 * Math.exp(-days / 30.0);
+    }
+
+    private RecommendationResponse applyFeedback(RecommendationResponse response, Map<Long, Double> weights) {
+        Map<Long, Product> products = response.getProducts().stream().collect(Collectors.toMap(Product::getId, p -> p));
+        List<RecommendationExplanation> explanations = response.getExplanations();
+        explanations.forEach(e -> e.setScore(e.getScore() * weights.getOrDefault(e.getProductId(), 1.0)));
+        explanations.sort(Comparator.comparingDouble(RecommendationExplanation::getScore).reversed());
+        response.setProducts(explanations.stream().map(e -> products.get(e.getProductId())).collect(Collectors.toList()));
+        return response;
     }
 
     /**
      * 构建内容相似/更新驱动的推荐（简化版，用最新商品近似）
      */
-    private RecommendationResponse buildContentResponse(double contentWeight, long startTime) {
+    private RecommendationResponse buildContentResponse(double contentWeight, long startTime, Set<Long> blockedProducts) {
         List<Product> recommendations = productMapper.selectList(
-                new LambdaQueryWrapper<Product>()
-                        .eq(Product::getStatus, 1)
-                        .orderByDesc(Product::getUpdatedAt)
+                publishedCandidates(blockedProducts)
+                        .orderByDesc(Product::getUpdatedAt).orderByAsc(Product::getId)
                         .last("LIMIT 12")
         );
         List<RecommendationExplanation> explanations = new ArrayList<>();
@@ -891,10 +721,9 @@ public class RecommendService {
     /**
      * 构建探索/随机推荐
      */
-    private RecommendationResponse buildSerendipityResponse(long startTime) {
+    private RecommendationResponse buildSerendipityResponse(long startTime, Set<Long> blockedProducts) {
         List<Product> recommendations = productMapper.selectList(
-                new LambdaQueryWrapper<Product>()
-                        .eq(Product::getStatus, 1)
+                publishedCandidates(blockedProducts)
                         .last("ORDER BY RAND() LIMIT 12")
         );
         List<RecommendationExplanation> explanations = new ArrayList<>();
@@ -930,14 +759,14 @@ public class RecommendService {
                 LOGGER.warn("保存反馈失败，不支持的反馈类型：{}", feedbackType);
                 return ResultUtils.paramError("不支持的反馈类型，支持的类型：" + ALLOWED_FEEDBACK_TYPES);
             }
-            
+
             RecommendationFeedback feedback = new RecommendationFeedback();
             feedback.setUserId(userId);
             feedback.setProductId(productId);
             feedback.setFeedbackType(normalizedType);
             feedback.setRemark(remark);
             feedback.setFeedbackTime(new java.sql.Timestamp(System.currentTimeMillis()));
-            
+
             int result = feedbackMapper.insert(feedback);
             if (result > 0) {
                 LOGGER.info("用户 {} 对商品 {} 的反馈已保存，反馈类型：{}", userId, productId, normalizedType);
@@ -982,7 +811,7 @@ public class RecommendService {
                 LOGGER.warn("撤销反馈失败，反馈ID：{}，用户ID：{}，反馈不存在或不属于该用户", feedbackId, userId);
                 return ResultUtils.dataNotFound("反馈记录不存在或已被删除");
             }
-            
+
             LambdaQueryWrapper<RecommendationFeedback> wrapper = new LambdaQueryWrapper<>();
             wrapper.eq(RecommendationFeedback::getId, feedbackId)
                    .eq(RecommendationFeedback::getUserId, userId);
@@ -1000,7 +829,7 @@ public class RecommendService {
             throw new BusinessException(ResultCode.OPERATION_FAILED.getCode(), "撤销反馈失败：" + e.getMessage());
         }
     }
-    
+
     /**
      * 商品推荐分数信息（内部类）
      * 支持多维得分，便于按权重混合
