@@ -198,8 +198,8 @@
     </el-card>
 
     <!-- 新增/编辑对话框 -->
-    <el-dialog :title="dialogTitle" v-model="dialogVisible" width="800px" :close-on-click-modal="false">
-      <el-form :model="form" :rules="rules" ref="form" label-width="120px">
+    <el-dialog :title="dialogTitle" v-model="dialogVisible" :show-close="!saving" :close-on-press-escape="!saving" width="800px" :close-on-click-modal="false">
+      <el-form :model="form" :disabled="saving" :rules="rules" ref="form" label-width="120px">
         <el-form-item label="活动名称" prop="activityName">
           <el-input v-model="form.activityName" placeholder="请输入活动名称"></el-input>
         </el-form-item>
@@ -245,8 +245,8 @@
       </el-form>
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="dialogVisible = false">取 消</el-button>
-          <el-button type="primary" @click="submitForm">确 定</el-button>
+          <el-button @click="dialogVisible = false" :disabled="saving">取 消</el-button>
+          <el-button type="primary" @click="submitForm" :loading="saving" :disabled="saving">确 定</el-button>
         </div>
       </template>
     </el-dialog>
@@ -329,6 +329,7 @@
 <script>
 import { getProductOptions } from '@/utils/productOptions'
 import Request from '@/utils/request'
+import { showRequestError } from '@/utils/requestError'
 import logger from '@/utils/logger'
 import { Plus, Refresh, View as ViewIcon, Edit, Upload, VideoPause, Download, VideoPlay, Delete } from '@element-plus/icons-vue'
 
@@ -366,6 +367,7 @@ export default {
         status: null
       },
       dialogVisible: false,
+      saving: false,
       teamsDialogVisible: false,
       membersDialogVisible: false,
       dialogTitle: '',
@@ -528,6 +530,7 @@ export default {
       this.getTeams(this.currentActivityId, val)
     },
     handleAdd() {
+      if (this.saving) return
       logger.debug('点击新增活动按钮')
       this.dialogTitle = '新增拼团活动'
       this.resetForm()
@@ -540,6 +543,7 @@ export default {
       this.dialogVisible = true
     },
     handleEdit(row) {
+      if (this.saving) return
       this.dialogTitle = '编辑拼团活动'
       this.form = {
         id: row.id,
@@ -562,41 +566,27 @@ export default {
         this.form.groupPrice = (this.selectedProduct.price * 0.8).toFixed(2)
       }
     },
-    submitForm() {
-      this.$refs.form.validate(async (valid) => {
-        if (valid) {
-          try {
-            // 准备提交数据
-            const submitData = {
-              ...this.form,
-              merchantId: this.userInfo.id,
-              // 确保数值类型正确
-              groupPrice: parseFloat(this.form.groupPrice),
-              requiredMembers: parseInt(this.form.requiredMembers),
-              validityHours: parseInt(this.form.validityHours)
-            }
-            
-            logger.debug('提交数据:', submitData)
-            
-            if (this.form.id) {
-              await Request.put('/group-buy/activity', submitData)
-              this.$message.success('更新成功')
-            } else {
-              await Request.post('/group-buy/activity', submitData)
-              this.$message.success('新增成功')
-            }
-            this.dialogVisible = false
-            this.getList()
-          } catch (error) {
-            logger.error('提交失败:', error)
-            logger.error('错误状态:', error.response?.status)
-            logger.error('错误数据:', error.response?.data)
-            logger.error('错误数据(JSON):', JSON.stringify(error.response?.data, null, 2))
-            const errorMsg = error.response?.data?.msg || error.response?.data?.message || error.message || '操作失败'
-            this.$message.error('创建失败: ' + errorMsg)
-          }
+    async submitForm() {
+      if (this.saving) return
+      this.saving = true
+      try {
+        if (!(await this.$refs.form.validate().catch(() => false))) return
+        const payload = { ...this.form, merchantId: this.userInfo.id, groupPrice: parseFloat(this.form.groupPrice), requiredMembers: parseInt(this.form.requiredMembers), validityHours: parseInt(this.form.validityHours) }
+        const method = this.form.id ? 'put' : 'post'
+        const res = await Request[method]('/group-buy/activity', payload, { silent: true })
+        if (!['0', '200'].includes(String(res.code))) {
+          this.$message.error(res.msg || '保存失败')
+          return
         }
-      })
+        this.$message.success(this.form.id ? '更新成功' : '新增成功')
+        this.dialogVisible = false
+        this.getList()
+      } catch (error) {
+        logger.error('保存表单失败', error)
+        showRequestError(error)
+      } finally {
+        this.saving = false
+      }
     },
     resetForm() {
       this.form = {

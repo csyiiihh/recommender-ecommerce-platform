@@ -150,8 +150,8 @@
     </el-card>
 
     <!-- 商品表单对话框 -->
-    <el-dialog :title="dialogTitle" v-model="dialogVisible" width="1200px" :close-on-click-modal="false">
-      <el-form :model="form" :rules="rules" ref="form" label-width="100px" class="product-form">
+    <el-dialog :title="dialogTitle" v-model="dialogVisible" :show-close="!saving" :close-on-press-escape="!saving" width="1200px" :close-on-click-modal="false">
+      <el-form :model="form" :disabled="saving" :rules="rules" ref="form" label-width="100px" class="product-form">
         <!-- 左侧基本信息 -->
         <div class="form-left">
           <el-form-item label="商品名称" prop="name">
@@ -214,8 +214,8 @@
       </el-form>
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="dialogVisible = false">取 消</el-button>
-          <el-button type="primary" @click="submitForm">确 定</el-button>
+          <el-button @click="dialogVisible = false" :disabled="saving">取 消</el-button>
+          <el-button type="primary" @click="submitForm" :loading="saving" :disabled="saving">确 定</el-button>
         </div>
       </template>
     </el-dialog>
@@ -226,6 +226,7 @@
 
 <script>
 import Request from '@/utils/request'
+import { showRequestError } from '@/utils/requestError'
 import { buildImageUrl } from '@/utils/imageUrl'
 import logger from '@/utils/logger'
 import Pagination from '@/components/Pagination/index.vue'
@@ -283,6 +284,7 @@ export default {
       total: 0,
       // 对话框显示
       dialogVisible: false,
+      saving: false,
       // 对话框标题
       dialogTitle: '',
       // 表单数据
@@ -443,6 +445,7 @@ export default {
     },
     // 新增商品
     handleAdd() {
+      if (this.saving) return
       this.dialogTitle = '新增商品'
       this.form = {
         name: '',
@@ -462,6 +465,7 @@ export default {
     },
     // 编辑商品
     handleEdit(row) {
+      if (this.saving) return
       this.dialogTitle = '编辑商品'
       this.form = { 
         ...row,
@@ -566,33 +570,27 @@ export default {
       return false // 阻止自动上传
     },
     // 提交表单
-    submitForm() {
-      // if(this.form.)
-      if(this.userInfo.role==='MERCHANT'){
-        this.form.merchantId=this.userInfo.id
-     
-      }
-      this.$refs.form.validate(async (valid) => {
-        if (valid) {
-          try {
-            const method = this.form.id ? 'put' : 'post'
-            const url = this.form.id ? `/product/${this.form.id}` : '/product'
-            logger.debug('提交数据:', JSON.stringify(this.form, null, 2))
-            const res = await Request[method](url, this.form)
-            if (res.code === '0') {
-              this.$message.success(`${this.form.id ? '更新' : '添加'}成功`)
-              this.dialogVisible = false
-              this.getList()
-            }
-          } catch (error) {
-            logger.error('提交表单失败:', error)
-            logger.error('错误状态:', error.response?.status)
-            logger.error('错误数据:', error.response?.data)
-            const errorMsg = error.response?.data?.msg || error.response?.data?.message || error.message || '操作失败'
-            this.$message.error('提交失败: ' + errorMsg)
-          }
+    async submitForm() {
+      if (this.saving) return
+      this.saving = true
+      try {
+        if (!(await this.$refs.form.validate().catch(() => false))) return
+        if (this.userInfo.role === 'MERCHANT') this.form.merchantId = this.userInfo.id
+        const method = this.form.id ? 'put' : 'post'
+        const res = await Request[method](this.form.id ? `/product/${this.form.id}` : '/product', this.form, { silent: true })
+        if (!['0', '200'].includes(String(res.code))) {
+          this.$message.error(res.msg || '保存失败')
+          return
         }
-      })
+        this.$message.success(this.form.id ? '更新成功' : '新增成功')
+        this.dialogVisible = false
+        this.getList()
+      } catch (error) {
+        logger.error('保存表单失败', error)
+        showRequestError(error)
+      } finally {
+        this.saving = false
+      }
     },
     handleCreated(editor) {
       this.editor = Object.seal(editor)
