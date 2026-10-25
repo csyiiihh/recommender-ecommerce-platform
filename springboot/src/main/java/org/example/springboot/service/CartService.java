@@ -156,10 +156,7 @@ public class CartService {
             
             if (carts != null && !carts.isEmpty()) {
                 // 填充关联信息
-                carts.forEach(cart -> {
-                    cart.setUser(userMapper.selectById(cart.getUserId()));
-                    cart.setProduct(productMapper.selectById(cart.getProductId()));
-                });
+                fillRelations(carts);
                 LOGGER.debug("查询用户购物车，用户ID：{}，购物车项数：{}", userId, carts.size());
                 return ResultUtils.success(carts);
             }
@@ -212,10 +209,7 @@ public class CartService {
             Page<Cart> result = cartMapper.selectPage(page, queryWrapper);
 
             // 填充关联信息
-            result.getRecords().forEach(cart -> {
-                cart.setUser(userMapper.selectById(cart.getUserId()));
-                cart.setProduct(productMapper.selectById(cart.getProductId()));
-            });
+            fillRelations(result.getRecords());
 
             LOGGER.debug("分页查询购物车，当前页：{}，每页大小：{}，总数：{}", currentPage, size, result.getTotal());
             return ResultUtils.success(result);
@@ -250,5 +244,13 @@ public class CartService {
             LOGGER.error("批量删除购物车项异常，ID列表：{}，错误：{}", ids, e.getMessage(), e);
             throw new BusinessException(ResultCode.OPERATION_FAILED.getCode(), "批量删除购物车项失败：" + e.getMessage());
         }
+    }
+
+    private void fillRelations(List<Cart> rows) {
+        var userIds = rows.stream().map(Cart::getUserId).filter(java.util.Objects::nonNull).collect(java.util.stream.Collectors.toSet());
+        var productIds = rows.stream().map(Cart::getProductId).filter(java.util.Objects::nonNull).collect(java.util.stream.Collectors.toSet());
+        var users = userIds.isEmpty() ? java.util.Map.<Long, org.example.springboot.entity.User>of() : userMapper.selectBatchIds(userIds).stream().collect(java.util.stream.Collectors.toMap(org.example.springboot.entity.User::getId, u -> u));
+        var products = productIds.isEmpty() ? java.util.Map.<Long, Product>of() : productMapper.selectBatchIds(productIds).stream().collect(java.util.stream.Collectors.toMap(Product::getId, p -> p));
+        rows.forEach(row -> { row.setUser(users.get(row.getUserId())); row.setProduct(products.get(row.getProductId())); });
     }
 } 

@@ -249,10 +249,7 @@ public class ReviewService {
             Page<Review> result = reviewMapper.selectPage(page, queryWrapper);
 
             // 填充关联信息
-            result.getRecords().forEach(review -> {
-                review.setUser(userMapper.selectById(review.getUserId()));
-                review.setProduct(productMapper.selectById(review.getProductId()));
-            });
+            fillRelations(result.getRecords());
 
             LOGGER.debug("分页查询评价，当前页：{}，每页大小：{}，总数：{}", currentPage, size, result.getTotal());
             return ResultUtils.success(result);
@@ -262,4 +259,12 @@ public class ReviewService {
         }
     }
 
+
+    private void fillRelations(List<Review> rows) {
+        var userIds = rows.stream().map(Review::getUserId).filter(java.util.Objects::nonNull).collect(java.util.stream.Collectors.toSet());
+        var productIds = rows.stream().map(Review::getProductId).filter(java.util.Objects::nonNull).collect(java.util.stream.Collectors.toSet());
+        var users = userIds.isEmpty() ? java.util.Map.<Long, org.example.springboot.entity.User>of() : userMapper.selectBatchIds(userIds).stream().collect(java.util.stream.Collectors.toMap(org.example.springboot.entity.User::getId, u -> u));
+        var products = productIds.isEmpty() ? java.util.Map.<Long, Product>of() : productMapper.selectBatchIds(productIds).stream().collect(java.util.stream.Collectors.toMap(Product::getId, p -> p));
+        rows.forEach(row -> { row.setUser(users.get(row.getUserId())); row.setProduct(products.get(row.getProductId())); });
+    }
 } 
