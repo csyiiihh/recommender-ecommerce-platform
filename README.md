@@ -119,7 +119,7 @@ npm run serve
 
 ## 测试与验证
 
-后端最近一次本地验证（2026-10-25）：**287 项测试通过**，打包成功。此前前端分批完成 35 个交易与编辑模拟场景，以及 16 个路由与图片模拟场景；本次推荐服务重构仅运行后端验证。
+最近一次本地验证（2026-10-25）：后端 **300 项测试通过**并打包成功；前端静态检查、生产构建和仓库内 **19 个浏览器模拟场景通过**，覆盖路由、图片及商品 / 资讯 / 拼团表单的重复提交与失败恢复。
 
 ```bash
 # springboot 目录：测试并打包
@@ -128,9 +128,13 @@ mvn verify
 # vue 目录：静态检查与构建
 npm run lint -- --no-fix
 npm run build
+
+# 首次安装测试浏览器，然后执行模拟接口回归
+npx playwright install chromium
+npm run test:e2e
 ```
 
-后端回归使用 JUnit / Mockito；浏览器场景为本地使用模拟接口的验证记录，尚未集成为仓库自动化流水线。上述结果不代表真实 MySQL 并发、事务回滚或支付宝沙箱联调已经通过。
+后端回归使用 JUnit / Mockito；浏览器回归使用 Playwright，静态资源和 API 均在浏览器内拦截，不连接业务后端。已提供 GitHub Actions 检查工作流，推送后需查看首次远程运行结果；本地通过不代表远程 CI 或真实 MySQL 并发、事务回滚、支付宝沙箱联调已通过。
 
 ## 开发文档
 
@@ -139,6 +143,9 @@ npm run build
 - [隔离验证与真实环境验收清单](springboot/隔离联调与验收清单.md)
 - [资讯访问边界与冗余清理](docs/CLEANUP.md)
 - [推荐一致性与查询边界](docs/RECOMMENDATION.md)
+- [自动化检查与浏览器回归](docs/AUTOMATED_CHECKS.md)
+- [独立环境联调执行手册](docs/INTEGRATION.md)
+- [六步优化交付记录](docs/SIX_STEP_PROGRESS.md)
 
 ## 当前边界与后续计划
 

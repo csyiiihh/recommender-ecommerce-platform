@@ -1,0 +1,18 @@
+name: zhiyue-integration
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_ROOT_PASSWORD: ${INTEGRATION_MYSQL_PASSWORD:?set a test-only password}
+      MYSQL_DATABASE: online_sales_integration
+    ports:
+      - "127.0.0.1:13316:3306"
+    volumes:
+      - test-mysql:/var/lib/mysql
+      - ./online_sales_only_struct.sql:/seed/schema.sql:ro
+  redis:
+    image: redis:7.4
+    ports:
+      - "127.0.0.1:13379:6379"
+volumes:
+  test-mysql:
