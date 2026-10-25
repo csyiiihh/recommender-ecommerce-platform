@@ -45,3 +45,10 @@ coverage/
 /vue/src/assets/fonts/MiSans-Regular.woff2
 /vue/src/assets/fonts/5EkWAplwkHic.woff
 /vue/src/assets/fonts/5EkWAplwkHic.woff2
+
+# Isolated checks and integration credentials
+/vue/test-results/
+.env.integration
+/integration-uploads/
+
+!.env.integration.example
