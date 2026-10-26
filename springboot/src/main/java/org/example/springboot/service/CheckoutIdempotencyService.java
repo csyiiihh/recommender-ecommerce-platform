@@ -23,7 +23,7 @@ public class CheckoutIdempotencyService {
     @Transactional(propagation = Propagation.MANDATORY)
     public Token prepare(Long buyerId, String scope, String key, List<?> payload) {
         if (key == null || !key.matches("[A-Za-z0-9_-]{16,128}") || buyerId == null || buyerId < 1) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "无效下单请求标识");
-        if (!Set.of("single", "cart").contains(scope)) throw new IllegalArgumentException("Unknown checkout scope");
+        if (!Set.of("single", "cart", "group-start", "group-join").contains(scope)) throw new IllegalArgumentException("Unknown checkout scope");
         String prefix = digest(Arrays.asList(scope, buyerId, key)).substring(0, 32);
         String tradeNo = prefix + digest(payload).substring(0, 32);
         var buyer = users.selectForUpdate(buyerId);
@@ -31,11 +31,11 @@ public class CheckoutIdempotencyService {
         // Buyer lock serializes same-user allocations. Avoid missing-row gap locks here.
         List<Order> existing = orders.selectCheckoutByPrefix(buyerId, prefix);
         for (Order order : existing) {
-            if (!buyerId.equals(order.getUserId()) || !Integer.valueOf(0).equals(order.getOrderType()) || !tradeNo.equals(order.getOutTradeNo())) {
+            if (!buyerId.equals(order.getUserId()) || !Integer.valueOf(scope.startsWith("group-") ? 1 : 0).equals(order.getOrderType()) || !tradeNo.equals(order.getOutTradeNo())) {
                 throw new ResponseStatusException(HttpStatus.CONFLICT, "该下单请求已用于其他内容，请检查已有订单后重新提交");
             }
         }
-        if ("single".equals(scope) && existing.size() > 1) throw new ResponseStatusException(HttpStatus.CONFLICT, "下单请求记录异常，请检查已有订单");
+        if (!"cart".equals(scope) && existing.size() > 1) throw new ResponseStatusException(HttpStatus.CONFLICT, "下单请求记录异常，请检查已有订单");
         return new Token(tradeNo, List.copyOf(existing));
     }
     private String digest(Object value) {

@@ -66,7 +66,7 @@ public class GlobalExceptionHandler {
         log.error("参数校验失败", e);
         Map<String, String> errors = new HashMap<>();
         e.getBindingResult().getAllErrors().forEach(error -> {
-            String fieldName = ((FieldError) error).getField();
+            String fieldName = error instanceof FieldError field ? field.getField() : error.getObjectName();
             String errorMessage = error.getDefaultMessage();
             errors.put(fieldName, errorMessage);
         });
@@ -82,13 +82,24 @@ public class GlobalExceptionHandler {
         log.error("参数绑定失败", e);
         Map<String, String> errors = new HashMap<>();
         e.getBindingResult().getAllErrors().forEach(error -> {
-            String fieldName = ((FieldError) error).getField();
+            String fieldName = error instanceof FieldError field ? field.getField() : error.getObjectName();
             String errorMessage = error.getDefaultMessage();
             errors.put(fieldName, errorMessage);
         });
         return Result.error("400", "参数绑定失败: " + errors);
     }
     
+    @ExceptionHandler({org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class,
+        org.springframework.web.bind.MissingServletRequestParameterException.class,
+        jakarta.validation.ConstraintViolationException.class,
+        org.springframework.web.method.annotation.HandlerMethodValidationException.class,
+        IllegalArgumentException.class})
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public Result<?> handleInvalidParameter(Exception e) {
+        log.debug("请求参数无效", e);
+        return Result.error("400", "请求参数无效，请检查后重试");
+    }
+
     /**
      * 处理客户端断开连接异常（不影响使用，无需记录详细堆栈）
      */

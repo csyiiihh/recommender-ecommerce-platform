@@ -412,7 +412,7 @@ export default {
       const user = JSON.parse(localStorage.getItem('frontUser') || '{}')
       const member = this.team.members?.find(m => m.userId === user.id)
       
-      if (member && member.orderId) {
+      if (member) {
         this.$router.push(`/order`)
       } else {
         this.$message.warning('未找到订单信息')
@@ -448,13 +448,7 @@ export default {
     },
 
     getUserAvatar(user) {
-      if (!user || !user.avatar) {
-        return ''
-      }
-      if (user.avatar.startsWith('http')) {
-        return user.avatar
-      }
-      return `http://localhost:1234${user.avatar}`
+      return buildImageUrl(user?.avatar)
     },
 
     formatTime(time) {

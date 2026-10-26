@@ -87,4 +87,16 @@ class CheckoutIdempotencyTest {
     @Test void cartRequestConflictPreservesHttpStatus() {
         when(requests.prepare(eq(1L), eq("cart"), eq(KEY), anyList())).thenThrow(new ResponseStatusException(org.springframework.http.HttpStatus.CONFLICT, "changed")); assertEquals(409, assertThrows(ResponseStatusException.class, () -> checkout.createOrdersFromCart(Map.of("cartIds", List.of(1), "userId", 1), KEY)).getStatusCode().value()); verifyNoInteractions(products, carts, inventory);
     }
+    @Test void groupScopesCannotCollideWithSingleCartOrEachOther() {
+        enabledBuyer(); var worker=worker();
+        Set<String> trades=new HashSet<>();
+        for(String scope:List.of("single","cart","group-start","group-join")) trades.add(worker.prepare(1L,scope,KEY,List.of(2,3,1)).tradeNo());
+        assertEquals(4,trades.size());
+    }
+    @Test void groupReplayAcceptsOnlyMatchingGroupOrder() {
+        enabledBuyer(); var worker=worker(); String trade=worker.prepare(1L,"group-start",KEY,List.of(2,3,1)).tradeNo();
+        Order order=existing(trade); order.setOrderType(1); when(orders.selectCheckoutByPrefix(eq(1L),anyString())).thenReturn(List.of(order));
+        assertSame(order,worker.prepare(1L,"group-start",KEY,List.of(2,3,1)).existing().get(0));
+        assertEquals(409,assertThrows(ResponseStatusException.class,()->worker.prepare(1L,"group-start",KEY,List.of(2,3,2))).getStatusCode().value());
+    }
 }

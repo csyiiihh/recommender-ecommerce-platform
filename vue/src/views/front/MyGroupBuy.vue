@@ -356,13 +356,7 @@ export default {
     },
     
     getUserAvatar(user) {
-      if (!user || !user.avatar) {
-        return ''
-      }
-      if (user.avatar.startsWith('http')) {
-        return user.avatar
-      }
-      return `http://localhost:1234${user.avatar}`
+      return buildImageUrl(user?.avatar)
     },
     
     formatTime(time) {

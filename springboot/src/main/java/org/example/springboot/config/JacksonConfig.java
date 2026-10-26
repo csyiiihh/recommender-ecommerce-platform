@@ -18,6 +18,7 @@ public class JacksonConfig {
     @Bean
     public Jackson2ObjectMapperBuilderCustomizer jsonCustomizer() {
         return builder -> {
+            builder.featuresToDisable(com.fasterxml.jackson.databind.DeserializationFeature.ACCEPT_FLOAT_AS_INT);
             // 创建 JavaTimeModule
             JavaTimeModule module = new JavaTimeModule();
             

@@ -18,6 +18,12 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
+import org.example.springboot.service.CheckoutIdempotencyService;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 /**
  * 拼团业务实现类
@@ -25,6 +31,7 @@ import java.util.Map;
 @Service
 public class GroupBuyServiceImpl implements GroupBuyService {
     @Autowired private org.example.springboot.service.AutomaticRefundService automaticRefunds;
+    @Autowired private CheckoutIdempotencyService checkoutRequests;
 
     
     private static final Logger log = LoggerFactory.getLogger(GroupBuyServiceImpl.class);
@@ -57,90 +64,35 @@ public class GroupBuyServiceImpl implements GroupBuyService {
     
     @Override
     @Transactional
-    public GroupBuyActivity createActivity(GroupBuyActivity activity) {
-        // 检查商品是否存在
-        Product product = productMapper.selectById(activity.getProductId());
-        if (product == null) {
-            throw new BusinessException("商品不存在");
-        }
-        
-        // 自动设置原价（从商品价格获取）
-        if (activity.getOriginalPrice() == null) {
-            activity.setOriginalPrice(product.getPrice());
-        }
-        
-        // 设置活动库存（从商品库存获取）
-        if (activity.getStock() == null) {
-            // 如果没有指定活动库存，使用商品的库存
-            activity.setStock(product.getStock());
-            log.info("活动库存未指定，使用商品库存: {}", product.getStock());
-        } else {
-            // 如果指定了活动库存，验证不能超过商品库存
-            if (activity.getStock() > product.getStock()) {
-                throw new BusinessException("活动库存不能超过商品库存（商品库存: " + product.getStock() + "）");
-            }
-        }
-        
-        // 参数验证
-        if (activity.getGroupPrice().compareTo(activity.getOriginalPrice()) >= 0) {
-            throw new BusinessException("拼团价必须小于原价");
-        }
-        if (activity.getRequiredMembers() < 2) {
-            throw new BusinessException("成团人数至少为2人");
-        }
-        if (activity.getValidityHours() < 1 || activity.getValidityHours() > 72) {
-            throw new BusinessException("拼团时限应在1-72小时之间");
-        }
-        
-        // 设置其他默认值
-        if (activity.getStatus() == null) {
-            // ⭐ 根据开始时间自动判断状态
-            Date now = new Date();
-            if (activity.getStartTime() != null && activity.getStartTime().after(now)) {
-                // 开始时间在未来，状态为未发布
-                activity.setStatus(0);
-                log.info("活动开始时间在未来，设置为未发布，开始时间: {}", activity.getStartTime());
-            } else {
-                // 开始时间是现在或过去，状态为进行中
-                activity.setStatus(1);
-                log.info("活动开始时间已到，设置为进行中，开始时间: {}", activity.getStartTime());
-            }
-        }
-        if (activity.getSalesCount() == null) {
-            activity.setSalesCount(0);
-        }
-        
-        activityMapper.insert(activity);
-        log.info("创建拼团活动成功，活动ID: {}，库存: {}", activity.getId(), activity.getStock());
+    public GroupBuyActivity createActivity(GroupBuyActivity input) {
+        Product product = productMapper.selectForUpdate(input.getProductId());
+        validateActivity(input, product);
+        if (input.getEndTime().before(new Date())) throw new BusinessException("结束时间必须晚于当前时间");
+        GroupBuyActivity activity = editableActivity(input);
+        activity.setId(null);
+        activity.setMerchantId(product.getMerchantId());
+        activity.setOriginalPrice(product.getPrice());
+        activity.setStock(product.getStock());
+        activity.setSalesCount(0);
+        activity.setStatus(input.getStartTime().after(new Date()) ? 0 : 1);
+        if (activityMapper.insert(activity) != 1) throw new BusinessException("创建活动失败");
         return activity;
     }
     
     @Override
     public Page<GroupBuyActivity> getActivityList(Integer currentPage, Integer size, Integer status) {
-        Page<GroupBuyActivity> page = new Page<>(currentPage, size);
-        QueryWrapper<GroupBuyActivity> wrapper = new QueryWrapper<>();
-        
-        // 按状态筛选
-        if (status != null) {
-            wrapper.eq("status", status);
-        }
-        
-        // 按创建时间倒序排列（最新的在前）
-        wrapper.orderByDesc("created_at");
-        
-        Page<GroupBuyActivity> result = activityMapper.selectPage(page, wrapper);
-        
-        // 填充商品信息，并同步商品库存
-        for (GroupBuyActivity activity : result.getRecords()) {
-            Product product = productMapper.selectById(activity.getProductId());
-            activity.setProduct(product);
-            
-            // ⭐ 使用商品的实际库存（系统设计：活动库存和商品库存同步）
-            if (product != null) {
-                activity.setStock(product.getStock());
-            }
-        }
-        
+        return getActivityList(currentPage, size, status, null, null);
+    }
+
+    @Override
+    public Page<GroupBuyActivity> getActivityList(Integer currentPage, Integer size, Integer status, Long merchantId, String activityName) {
+        QueryWrapper<GroupBuyActivity> q = new QueryWrapper<>();
+        if (status != null) q.eq("status", status);
+        if (merchantId != null) q.eq("merchant_id", merchantId);
+        if (activityName != null && !activityName.isBlank()) q.like("activity_name", activityName.strip());
+        q.orderByDesc("created_at").orderByDesc("id");
+        Page<GroupBuyActivity> result = activityMapper.selectPage(new Page<>(currentPage, Math.min(size, 100)), q);
+        fillActivityProducts(result.getRecords());
         return result;
     }
     
@@ -152,7 +104,7 @@ public class GroupBuyServiceImpl implements GroupBuyService {
         Date now = new Date();
         
         // 只查询进行中的活动（状态=1）
-        wrapper.eq("status", 1);
+        wrapper.eq("status", 1).inSql("product_id", "SELECT id FROM product WHERE status = 1");
         
         // 且当前时间在活动时间范围内
         wrapper.le("start_time", now)   // 开始时间 <= 当前时间
@@ -163,17 +115,8 @@ public class GroupBuyServiceImpl implements GroupBuyService {
         
         Page<GroupBuyActivity> result = activityMapper.selectPage(page, wrapper);
         
-        // 填充商品信息，并同步商品库存
-        for (GroupBuyActivity activity : result.getRecords()) {
-            Product product = productMapper.selectById(activity.getProductId());
-            activity.setProduct(product);
-            
-            // ⭐ 使用商品的实际库存（系统设计：活动库存和商品库存同步）
-            if (product != null) {
-                activity.setStock(product.getStock());
-            }
-        }
-        
+        fillActivityProducts(result.getRecords());
+
         return result;
     }
     
@@ -200,8 +143,9 @@ public class GroupBuyServiceImpl implements GroupBuyService {
     @Override
     @Transactional
     public boolean updateActivityStatus(Long activityId, Integer status) {
+        if (status == null || !Set.of(0, 1, 2, 3).contains(status)) throw new BusinessException("无效活动状态");
         // 1. 检查活动是否存在
-        GroupBuyActivity activity = activityMapper.selectById(activityId);
+        GroupBuyActivity activity = activityMapper.selectForUpdate(activityId);
         if (activity == null) {
             throw new BusinessException("活动不存在");
         }
@@ -209,6 +153,7 @@ public class GroupBuyServiceImpl implements GroupBuyService {
         log.info("更新活动{}状态：当前状态={}，目标状态={}，活动结束时间={}", 
                 activityId, activity.getStatus(), status, activity.getEndTime());
         
+        if (status == 0 && hasActivityHistory(activityId)) throw new BusinessException("已有历史的活动不能恢复为草稿，请下架或结束");
         // 2. 如果是上架(1)或开始操作，检查活动时间是否有效
         if (status == 1) {
             Date now = new Date();
@@ -250,277 +195,70 @@ public class GroupBuyServiceImpl implements GroupBuyService {
                 
                 // 让所有进行中的团队失败并退款
                 for (GroupBuyTeam team : ongoingTeams) {
-                    try {
-                        failTeam(team.getId(), failReason);
-                        log.info("成功处理团队{}的失败和退款", team.getId());
-                    } catch (Exception e) {
-                        log.error("处理团队{}失败时出错: ", team.getId(), e);
-                        // 继续处理其他团队
-                    }
+                    failTeam(team.getId(), failReason);
+
                 }
             }
         }
         
         // 4. 更新活动状态
-        activity.setStatus(status);
-        return activityMapper.updateById(activity) > 0;
+        GroupBuyActivity patch = new GroupBuyActivity();
+        patch.setId(activityId); patch.setStatus(status);
+        return activityMapper.updateById(patch) == 1;
     }
     
     @Override
-    public boolean updateActivity(GroupBuyActivity activity) {
-        return activityMapper.updateById(activity) > 0;
+    @Transactional(rollbackFor = Exception.class)
+    public boolean updateActivity(GroupBuyActivity input) {
+        Product product = productMapper.selectForUpdate(input.getProductId());
+        GroupBuyActivity old = activityMapper.selectForUpdate(input.getId());
+        if (old == null) throw new BusinessException("活动不存在");
+        validateActivity(input, product);
+        if (hasActivityHistory(old.getId()) && tradingRulesChanged(old, input)) {
+            throw new BusinessException("活动已有交易或团队历史，仅允许修改名称和说明");
+        }
+        GroupBuyActivity patch = editableActivity(input);
+        patch.setMerchantId(product.getMerchantId());
+        patch.setOriginalPrice(product.getPrice());
+        // stock, salesCount and status are not part of editableActivity.
+        return activityMapper.updateById(patch) == 1;
     }
     
     @Override
     @Transactional
     public void deleteActivity(Long activityId) {
-        // 1. 检查活动是否存在
-        GroupBuyActivity activity = activityMapper.selectById(activityId);
-        if (activity == null) {
-            throw new BusinessException("活动不存在");
+        GroupBuyActivity activity = activityMapper.selectForUpdate(activityId);
+        if (activity == null) throw new BusinessException("活动不存在");
+        if (hasActivityHistory(activityId)) {
+            throw new BusinessException("活动已有订单或团队历史，请下架保留记录");
         }
-        
-        // 2. 检查活动状态和是否有进行中的团
-        // 状态：0-未发布 1-进行中 2-已结束 3-已下架
-        if (activity.getStatus() == 1) {
-            // 活动进行中，检查是否有进行中的团
-            QueryWrapper<GroupBuyTeam> ongoingTeamQuery = new QueryWrapper<>();
-            ongoingTeamQuery.eq("activity_id", activityId)
-                           .eq("status", 0); // 0-拼团中
-            long ongoingTeamCount = teamMapper.selectCount(ongoingTeamQuery);
-            
-            if (ongoingTeamCount > 0) {
-                throw new BusinessException("活动进行中且有未完成的拼团，无法删除");
-            }
-        }
-        
-        // 3. 删除关联数据（按照外键依赖顺序删除）
-        // 3.1 查询该活动的所有团
-        QueryWrapper<GroupBuyTeam> teamQuery = new QueryWrapper<>();
-        teamQuery.eq("activity_id", activityId);
-        List<GroupBuyTeam> teams = teamMapper.selectList(teamQuery);
-        
-        // 3.2 删除每个团的成员记录
-        for (GroupBuyTeam team : teams) {
-            QueryWrapper<GroupBuyMember> memberQuery = new QueryWrapper<>();
-            memberQuery.eq("team_id", team.getId());
-            memberMapper.delete(memberQuery);
-            log.info("删除团{}的成员记录", team.getId());
-        }
-        
-        // 3.3 删除所有团记录
-        if (!teams.isEmpty()) {
-            teamMapper.delete(teamQuery);
-            log.info("删除活动{}的所有团记录，共{}个", activityId, teams.size());
-        }
-        
-        // 3.4 删除活动
-        activityMapper.deleteById(activityId);
-        
-        log.info("删除拼团活动成功，活动ID: {}，状态: {}", activityId, activity.getStatus());
+        if (activityMapper.deleteById(activityId) != 1) throw new BusinessException("删除活动失败");
     }
     
     // ========== 拼团操作 ==========
     
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class, isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
     public Map<String, Object> startTeam(Long activityId, Long userId, Long addressId, Integer quantity) {
-        // 1. 检查活动是否有效
-        GroupBuyActivity activity = activityMapper.selectById(activityId);
-        if (activity == null || activity.getStatus() != 1) {
-            throw new BusinessException("活动不存在或已下架");
-        }
-        
-        // ✅ 获取商品信息并同步库存（因为系统设计是活动库存和商品库存同步）
-        Product product = productMapper.selectById(activity.getProductId());
-        if (product != null) {
-            activity.setStock(product.getStock());
-        }
-        
-        // 2. 检查库存（现在检查的是商品的实际库存）
-        if (activity.getStock() < quantity) {
-            throw new BusinessException("活动库存不足");
-        }
-        
-        // 3. ⭐ 检查用户是否有进行中的团（防止同时多个进行中的团）
-        // 逻辑：用户在同一活动中，同一时间只能有一个进行中的团
-        // 如果团已经成功或失败，可以重新开团
-        QueryWrapper<GroupBuyMember> memberQuery = new QueryWrapper<>();
-        memberQuery.eq("user_id", userId)
-                   .eq("is_leader", 1)  // 团长
-                   .eq("status", 1);    // 已支付
-        
-        // 查询该用户作为团长的所有已支付记录
-        List<GroupBuyMember> leaderRecords = memberMapper.selectList(memberQuery);
-        
-        if (!leaderRecords.isEmpty()) {
-            // 检查是否在当前活动中有进行中的团
-            for (GroupBuyMember member : leaderRecords) {
-                GroupBuyTeam existingTeam = teamMapper.selectById(member.getTeamId());
-                if (existingTeam != null 
-                    && existingTeam.getActivityId().equals(activityId)
-                    && existingTeam.getStatus() == 0) {  // ⭐ 关键：只检查进行中的团
-                    // 用户在该活动中有一个进行中的团
-                    throw new BusinessException("您已经在该活动中开团，请等待拼团结束后再开新团");
-                }
-            }
-        }
-        
-        // 4. ⭐ 检查用户是否已有该活动的未支付订单（防止重复创建）
-        QueryWrapper<Order> existingOrderQuery = new QueryWrapper<>();
-        existingOrderQuery.eq("user_id", userId)
-                         .eq("product_id", activity.getProductId())
-                         .eq("order_type", 1)  // 拼团订单
-                         .eq("status", 0)  // 待支付
-                         .orderByDesc("created_at")
-                         .last("LIMIT 1");
-        Order existingOrder = orderMapper.selectOne(existingOrderQuery);
-        
-        if (existingOrder != null) {
-            // 如果已有未支付订单，返回现有订单，不创建新订单
-            log.info("用户{}已有该活动的未支付订单，订单ID: {}", userId, existingOrder.getId());
-            
-            Map<String, Object> result = new HashMap<>();
-            result.put("orderId", existingOrder.getId());
-            result.put("activityId", activityId);
-            result.put("isLeader", true);
-            return result;
-        }
-        
-        // 5. 获取地址信息
-        Address address = addressMapper.selectById(addressId);
-        if (address == null) {
-            throw new BusinessException("收货地址不存在");
-        }
-        
-        // 6. 商品信息已在前面获取，这里直接使用
-        
-        // 7. 创建新订单（状态为待支付）
-        Order order = new Order();
-        order.setUserId(userId);
-        order.setProductId(activity.getProductId());
-        order.setActivityId(activityId);  // ⭐ 设置活动ID
-        order.setQuantity(quantity);
-        order.setPrice(activity.getGroupPrice());
-        order.setTotalPrice(activity.getGroupPrice().multiply(java.math.BigDecimal.valueOf(quantity)));
-        order.setStatus(0); // 待支付
-        order.setOrderType(1); // 拼团订单
-        order.setRecvAddress(address.getAddress());
-        order.setRecvPhone(address.getPhone());
-        order.setRecvName(address.getReceiver());
-        order.setPayMethod("alipay");
-        orderMapper.insert(order);
-        
-        // ⭐ 设置 out_trade_no（支付回调需要通过这个字段查询订单）
-        order.setOutTradeNo(String.valueOf(order.getId()));
-        orderMapper.updateById(order);
-        
-        // 8. 创建拼团（暂时不创建，等支付成功后再创建）
-        // 这样可以避免未支付的空团
-        
-        Map<String, Object> result = new HashMap<>();
-        result.put("orderId", order.getId());
-        result.put("activityId", activityId);
-        result.put("isLeader", true);
-        
-        log.info("用户{}发起拼团，活动ID: {}, 订单ID: {}", userId, activityId, order.getId());
-        return result;
+        return startTeam(activityId, userId, addressId, quantity, null);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class, isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
+    public Map<String, Object> startTeam(Long activityId, Long userId, Long addressId, Integer quantity, String requestKey) {
+        return createGroupOrder(activityId, userId, addressId, quantity, requestKey, false);
     }
     
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class, isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
     public Map<String, Object> joinTeam(Long teamId, Long userId, Long addressId, Integer quantity) {
-        // 1. 锁定团记录（防止并发问题）
-        GroupBuyTeam team = teamMapper.selectForUpdate(teamId);
-        if (team == null) {
-            throw new BusinessException("拼团不存在");
-        }
-        
-        // 2. 检查团状态
-        if (team.getStatus() != 0) {
-            throw new BusinessException("拼团已结束");
-        }
-        
-        // 3. 检查是否已满员
-        if (team.getCurrentPeople() >= team.getRequiredPeople()) {
-            throw new BusinessException("拼团已满员");
-        }
-        
-        // 4. 检查是否过期
-        if (team.getExpireTime().before(new Date())) {
-            throw new BusinessException("拼团已过期");
-        }
-        
-        // 5. 检查用户是否已参团（已支付且未退款）
-        QueryWrapper<GroupBuyMember> memberWrapper = new QueryWrapper<>();
-        memberWrapper.eq("team_id", teamId)
-                     .eq("user_id", userId)
-                     .ne("status", 2);  // 排除已退款的成员，允许退款后重新加入
-        if (memberMapper.selectCount(memberWrapper) > 0) {
-            throw new BusinessException("您已参加该拼团");
-        }
-        
-        // 5.5 ⭐ 检查用户是否已有该团的未支付订单（防止重复创建）
-        QueryWrapper<Order> existingOrderQuery = new QueryWrapper<>();
-        existingOrderQuery.eq("user_id", userId)
-                         .eq("order_type", 1)  // 拼团订单
-                         .eq("group_buy_team_id", teamId)
-                         .eq("status", 0)  // 待支付
-                         .orderByDesc("created_at")
-                         .last("LIMIT 1");
-        Order existingOrder = orderMapper.selectOne(existingOrderQuery);
-        
-        if (existingOrder != null) {
-            // 如果已有未支付订单，返回现有订单，不创建新订单
-            log.info("用户{}已有该团的未支付订单，订单ID: {}", userId, existingOrder.getId());
-            
-            Map<String, Object> result = new HashMap<>();
-            result.put("orderId", existingOrder.getId());
-            result.put("teamId", teamId);
-            result.put("isLeader", false);
-            return result;
-        }
-        
-        // 6. 获取活动信息
-        GroupBuyActivity activity = activityMapper.selectById(team.getActivityId());
-        if (activity == null || activity.getStatus() != 1) {
-            throw new BusinessException("活动不存在或已下架");
-        }
-        
-        // 7. 获取地址信息
-        Address address = addressMapper.selectById(addressId);
-        if (address == null) {
-            throw new BusinessException("收货地址不存在");
-        }
-        
-        // 8. 创建新订单（状态为待支付）
-        Order order = new Order();
-        order.setUserId(userId);
-        order.setProductId(activity.getProductId());
-        order.setActivityId(activity.getId());  // ⭐ 设置活动ID
-        order.setQuantity(quantity);
-        order.setPrice(activity.getGroupPrice());
-        order.setTotalPrice(activity.getGroupPrice().multiply(java.math.BigDecimal.valueOf(quantity)));
-        order.setStatus(0); // 待支付
-        order.setOrderType(1); // 拼团订单
-        order.setGroupBuyTeamId(teamId);
-        order.setRecvAddress(address.getAddress());
-        order.setRecvPhone(address.getPhone());
-        order.setRecvName(address.getReceiver());
-        order.setPayMethod("alipay");
-        orderMapper.insert(order);
-        
-        // ⭐ 设置 out_trade_no（支付回调需要通过这个字段查询订单）
-        order.setOutTradeNo(String.valueOf(order.getId()));
-        orderMapper.updateById(order);
-        
-        Map<String, Object> result = new HashMap<>();
-        result.put("orderId", order.getId());
-        result.put("teamId", teamId);
-        result.put("isLeader", false);
-        
-        log.info("用户{}参与拼团，团ID: {}, 订单ID: {}", userId, teamId, order.getId());
-        return result;
+        return joinTeam(teamId, userId, addressId, quantity, null);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class, isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
+    public Map<String, Object> joinTeam(Long teamId, Long userId, Long addressId, Integer quantity, String requestKey) {
+        return createGroupOrder(teamId, userId, addressId, quantity, requestKey, true);
     }
     
     @Override
@@ -533,24 +271,8 @@ public class GroupBuyServiceImpl implements GroupBuyService {
         
         List<GroupBuyTeam> teams = teamMapper.selectList(wrapper);
         
-        // 填充团长和成员信息
-        for (GroupBuyTeam team : teams) {
-            User leader = userMapper.selectById(team.getLeaderUserId());
-            team.setLeader(leader);
-            
-            // 获取成员列表
-            QueryWrapper<GroupBuyMember> memberWrapper = new QueryWrapper<>();
-            memberWrapper.eq("team_id", team.getId());
-            List<GroupBuyMember> members = memberMapper.selectList(memberWrapper);
-            
-            // 填充用户信息
-            for (GroupBuyMember member : members) {
-                User user = userMapper.selectById(member.getUserId());
-                member.setUser(user);
-            }
-            team.setMembers(members);
-        }
-        
+        fillTeamPeople(teams);
+
         return teams;
     }
     
@@ -569,21 +291,8 @@ public class GroupBuyServiceImpl implements GroupBuyService {
             team.setActivity(activity);
         }
         
-        // 填充团长信息
-        User leader = userMapper.selectById(team.getLeaderUserId());
-        team.setLeader(leader);
-        
-        // 填充成员列表
-        QueryWrapper<GroupBuyMember> memberWrapper = new QueryWrapper<>();
-        memberWrapper.eq("team_id", teamId).orderByAsc("join_time");
-        List<GroupBuyMember> members = memberMapper.selectList(memberWrapper);
-        
-        for (GroupBuyMember member : members) {
-            User user = userMapper.selectById(member.getUserId());
-            member.setUser(user);
-        }
-        team.setMembers(members);
-        
+        fillTeamPeople(List.of(team));
+
         return team;
     }
     
@@ -612,19 +321,13 @@ public class GroupBuyServiceImpl implements GroupBuyService {
         
         List<GroupBuyTeam> teams = teamMapper.selectList(teamWrapper);
         
-        // 填充详细信息
-        for (GroupBuyTeam team : teams) {
-            GroupBuyActivity activity = activityMapper.selectById(team.getActivityId());
-            if (activity != null) {
-                Product product = productMapper.selectById(activity.getProductId());
-                activity.setProduct(product);
-                team.setActivity(activity);
-            }
-            
-            User leader = userMapper.selectById(team.getLeaderUserId());
-            team.setLeader(leader);
-        }
-        
+        Set<Long> activityIds = teams.stream().map(GroupBuyTeam::getActivityId).filter(Objects::nonNull).collect(Collectors.toSet());
+        List<GroupBuyActivity> rows = activityIds.isEmpty() ? List.of() : activityMapper.selectBatchIds(activityIds);
+        fillActivityProducts(rows);
+        Map<Long, GroupBuyActivity> activities = rows.stream().collect(Collectors.toMap(GroupBuyActivity::getId, x -> x));
+        fillTeamPeople(teams);
+        for (GroupBuyTeam team : teams) team.setActivity(activities.get(team.getActivityId()));
+
         return teams;
     }
     
@@ -821,26 +524,127 @@ public class GroupBuyServiceImpl implements GroupBuyService {
         automaticRefunds.queueTeam(teamId);
     }
     
-    @Override
-    public void checkExpiredTeams() {
-        // 查询所有拼团中且已过期的团
-        QueryWrapper<GroupBuyTeam> wrapper = new QueryWrapper<>();
-        wrapper.eq("status", 0)
-               .lt("expire_time", new Date());
-        
-        List<GroupBuyTeam> expiredTeams = teamMapper.selectList(wrapper);
-        
-        log.info("扫描到{}个过期拼团", expiredTeams.size());
-        
-        for (GroupBuyTeam team : expiredTeams) {
-            if (team.getCurrentPeople() >= team.getRequiredPeople()) {
-                // 已满员，自动成团
-                completeTeam(team.getId());
-            } else {
-                // 未满员，失败退款
-                failTeam(team.getId());
+
+    private Map<String, Object> createGroupOrder(Long targetId, Long userId, Long addressId, Integer quantity, String requestKey, boolean joining) {
+        if (targetId == null || targetId < 1 || userId == null || userId < 1 || addressId == null || addressId < 1
+            || quantity == null || quantity < 1 || quantity > 1000) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "无效拼团参数");
+        CheckoutIdempotencyService.Token request = null;
+        if (requestKey != null) {
+            request = checkoutRequests.prepare(userId, joining ? "group-join" : "group-start", requestKey, List.of(targetId, addressId, quantity));
+            if (!request.existing().isEmpty()) return groupOrderResult(request.existing().get(0), joining, true);
+        } else {
+            User buyer = userMapper.selectForUpdate(userId);
+            if (buyer == null || !Integer.valueOf(1).equals(buyer.getStatus())) throw new BusinessException("用户不可用");
+        }
+        GroupBuyTeam initialTeam = joining ? teamMapper.selectById(targetId) : null;
+        if (joining && initialTeam == null) throw new BusinessException("拼团不存在");
+        Long activityId = joining ? initialTeam.getActivityId() : targetId;
+        GroupBuyActivity snapshot = activityMapper.selectById(activityId);
+        if (snapshot == null) throw new BusinessException("活动不存在");
+        // Match payment's product -> activity -> team lock order.
+        Product product = productMapper.selectForUpdate(snapshot.getProductId());
+        GroupBuyActivity activity = activityMapper.selectForUpdate(activityId);
+        if (activity != null && !Objects.equals(snapshot.getProductId(), activity.getProductId())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "活动商品已变化，请刷新重试");
+        }
+        Date now = new Date();
+        if (activity == null || !Integer.valueOf(1).equals(activity.getStatus()) || activity.getStartTime() == null
+            || activity.getStartTime().after(now) || activity.getEndTime() == null || !activity.getEndTime().after(now)) {
+            throw new BusinessException("活动未开始、已结束或已下架");
+        }
+        if (product == null || !Integer.valueOf(1).equals(product.getStatus()) || product.getStock() == null || product.getStock() < quantity) {
+            throw new BusinessException("商品已下架或库存不足");
+        }
+        GroupBuyTeam team = joining ? teamMapper.selectForUpdate(targetId) : null;
+        if (joining && (team == null || !Integer.valueOf(0).equals(team.getStatus()) || team.getCurrentPeople() >= team.getRequiredPeople()
+            || team.getExpireTime() == null || !team.getExpireTime().after(now))) throw new BusinessException("拼团已结束或满员");
+        if (joining && memberMapper.selectCount(new QueryWrapper<GroupBuyMember>().eq("team_id", targetId).eq("user_id", userId).ne("status", 2)) > 0) {
+            throw new BusinessException("您已参加该拼团");
+        }
+        if (!joining && teamMapper.selectCount(new QueryWrapper<GroupBuyTeam>().eq("activity_id", activityId).eq("leader_user_id", userId).eq("status", 0)) > 0) {
+            throw new BusinessException("您已经在该活动中开团，请等待拼团结束后再开新团");
+        }
+        Address address = addressMapper.selectById(addressId);
+        if (address == null || !Objects.equals(userId, address.getUserId())) throw new BusinessException("收货地址不可用");
+        QueryWrapper<Order> q = new QueryWrapper<Order>().eq("user_id", userId).eq("activity_id", activityId).eq("order_type", 1).eq("status", 0);
+        if (joining) q.eq("group_buy_team_id", targetId); else q.isNull("group_buy_team_id");
+        Order existing = orderMapper.selectOne(q.orderByDesc("id").last("LIMIT 1"));
+        if (existing != null) {
+            if (request != null || !Objects.equals(existing.getQuantity(), quantity)
+                || !Objects.equals(existing.getRecvName(), address.getReceiver()) || !Objects.equals(existing.getRecvPhone(), address.getPhone())
+                || !Objects.equals(existing.getRecvAddress(), address.getAddress())) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "已有待支付拼团订单，请先处理原订单");
             }
+            return groupOrderResult(existing, joining, true);
+        }
+        if (activity.getGroupPrice() == null || activity.getGroupPrice().signum() <= 0) throw new BusinessException("活动价格无效");
+        Order order = new Order();
+        order.setUserId(userId); order.setProductId(product.getId()); order.setActivityId(activityId);
+        if (joining) order.setGroupBuyTeamId(targetId);
+        order.setQuantity(quantity); order.setPrice(activity.getGroupPrice()); order.setTotalPrice(activity.getGroupPrice().multiply(java.math.BigDecimal.valueOf(quantity)));
+        order.setStatus(0); order.setOrderType(1); order.setRefundStatus(0);
+        order.setRecvName(address.getReceiver()); order.setRecvPhone(address.getPhone()); order.setRecvAddress(address.getAddress());
+        order.setPayMethod("alipay");
+        order.setOutTradeNo(request == null ? java.util.UUID.randomUUID().toString().replace("-", "") : request.tradeNo());
+        if (orderMapper.insert(order) != 1) throw new BusinessException("创建拼团订单失败");
+        return groupOrderResult(order, joining, false);
+    }
+
+    private Map<String, Object> groupOrderResult(Order order, boolean joining, boolean replayed) {
+        Map<String, Object> result = new HashMap<>();
+        result.put("orderId", order.getId()); result.put("activityId", order.getActivityId());
+        if (joining) result.put("teamId", order.getGroupBuyTeamId());
+        result.put("isLeader", !joining); result.put("replayed", replayed);
+        result.put("paymentAllowed", Integer.valueOf(0).equals(order.getStatus()));
+        return result;
+    }
+
+    private void validateActivity(GroupBuyActivity a, Product p) {
+        if (p == null || !Integer.valueOf(1).equals(p.getStatus()) || p.getMerchantId() == null || p.getPrice() == null || p.getPrice().signum() <= 0) throw new BusinessException("请选择有效的上架商品");
+        if (a.getActivityName() == null || a.getActivityName().isBlank() || a.getActivityName().length() > 100) throw new BusinessException("活动名称无效");
+        if (a.getGroupPrice() == null || a.getGroupPrice().signum() <= 0 || a.getGroupPrice().scale() > 2 || a.getGroupPrice().compareTo(p.getPrice()) >= 0) throw new BusinessException("拼团价须大于0、小于商品原价且最多两位小数");
+        if (a.getRequiredMembers() == null || a.getRequiredMembers() < 2 || a.getRequiredMembers() > 100) throw new BusinessException("成团人数应在2至100人之间");
+        if (a.getValidityHours() == null || a.getValidityHours() < 1 || a.getValidityHours() > 72) throw new BusinessException("拼团时限应在1至72小时之间");
+        if (a.getStartTime() == null || a.getEndTime() == null || !a.getEndTime().after(a.getStartTime())) throw new BusinessException("结束时间必须晚于开始时间");
+    }
+
+    private GroupBuyActivity editableActivity(GroupBuyActivity input) {
+        GroupBuyActivity a = new GroupBuyActivity();
+        a.setId(input.getId()); a.setProductId(input.getProductId()); a.setActivityName(input.getActivityName().strip());
+        a.setActivityDesc(input.getActivityDesc()); a.setGroupPrice(input.getGroupPrice()); a.setRequiredMembers(input.getRequiredMembers());
+        a.setValidityHours(input.getValidityHours()); a.setStartTime(input.getStartTime()); a.setEndTime(input.getEndTime());
+        return a;
+    }
+
+    private boolean hasActivityHistory(Long activityId) {
+        return teamMapper.selectCount(new QueryWrapper<GroupBuyTeam>().eq("activity_id", activityId)) > 0
+            || orderMapper.selectCount(new QueryWrapper<Order>().eq("activity_id", activityId)) > 0;
+    }
+
+    private boolean tradingRulesChanged(GroupBuyActivity a, GroupBuyActivity b) {
+        return !Objects.equals(a.getProductId(), b.getProductId()) || a.getGroupPrice() == null || b.getGroupPrice() == null
+            || a.getGroupPrice().compareTo(b.getGroupPrice()) != 0 || !Objects.equals(a.getRequiredMembers(), b.getRequiredMembers())
+            || !Objects.equals(a.getValidityHours(), b.getValidityHours()) || !Objects.equals(a.getStartTime(), b.getStartTime()) || !Objects.equals(a.getEndTime(), b.getEndTime());
+    }
+
+    private void fillActivityProducts(List<GroupBuyActivity> rows) {
+        Set<Long> ids = rows.stream().map(GroupBuyActivity::getProductId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Map<Long, Product> products = ids.isEmpty() ? Map.of() : productMapper.selectBatchIds(ids).stream().collect(Collectors.toMap(Product::getId, p -> p));
+        for (GroupBuyActivity row : rows) {
+            Product product = products.get(row.getProductId()); row.setProduct(product);
+            if (product != null) row.setStock(product.getStock());
         }
     }
-}
 
+    private void fillTeamPeople(List<GroupBuyTeam> teams) {
+        if (teams.isEmpty()) return;
+        Set<Long> teamIds = teams.stream().map(GroupBuyTeam::getId).collect(Collectors.toSet());
+        List<GroupBuyMember> members = memberMapper.selectList(new QueryWrapper<GroupBuyMember>().in("team_id", teamIds).eq("status", 1).orderByAsc("id"));
+        Set<Long> userIds = new java.util.HashSet<>();
+        teams.forEach(t -> userIds.add(t.getLeaderUserId())); members.forEach(m -> userIds.add(m.getUserId())); userIds.remove(null);
+        Map<Long, User> users = userIds.isEmpty() ? Map.of() : userMapper.selectBatchIds(userIds).stream().collect(Collectors.toMap(User::getId, u -> u));
+        Map<Long, List<GroupBuyMember>> grouped = members.stream().collect(Collectors.groupingBy(GroupBuyMember::getTeamId));
+        for (GroupBuyMember member : members) member.setUser(users.get(member.getUserId()));
+        for (GroupBuyTeam team : teams) { team.setLeader(users.get(team.getLeaderUserId())); team.setMembers(grouped.getOrDefault(team.getId(), List.of())); }
+    }
+}

@@ -445,7 +445,7 @@ export default {
       try {
         const params = {
           currentPage: this.queryParams.currentPage,
-          pageSize: this.queryParams.pageSize,
+          size: this.queryParams.pageSize,
           ...this.searchForm
         }
         const res = await Request.get('/group-buy/activities', { params })
@@ -571,7 +571,7 @@ export default {
       this.saving = true
       try {
         if (!(await this.$refs.form.validate().catch(() => false))) return
-        const payload = { ...this.form, merchantId: this.userInfo.id, groupPrice: parseFloat(this.form.groupPrice), requiredMembers: parseInt(this.form.requiredMembers), validityHours: parseInt(this.form.validityHours) }
+        const payload = { ...this.form, groupPrice: parseFloat(this.form.groupPrice), requiredMembers: parseInt(this.form.requiredMembers), validityHours: parseInt(this.form.validityHours) }
         const method = this.form.id ? 'put' : 'post'
         const res = await Request[method]('/group-buy/activity', payload, { silent: true })
         if (!['0', '200'].includes(String(res.code))) {

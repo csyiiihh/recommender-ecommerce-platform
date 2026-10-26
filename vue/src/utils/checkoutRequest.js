@@ -15,7 +15,7 @@ function write(name, rows) {
   try { sessionStorage.setItem(name, JSON.stringify(rows.filter(row => /^[a-f0-9]{64}$/.test(row.fingerprint)))) } catch { /* In-memory retries still work if storage is unavailable. */ }
 }
 export async function checkoutRequestKey(scope, buyerId, intent) {
-  if (!['single', 'cart'].includes(scope) || !buyerId) throw new Error('请重新登录后提交订单')
+  if (!['single', 'cart', 'group-start', 'group-join'].includes(scope) || !buyerId) throw new Error('请重新登录后提交订单')
   const serialized = JSON.stringify(intent)
   let fingerprint
   try {

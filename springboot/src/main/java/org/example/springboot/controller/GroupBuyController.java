@@ -7,9 +7,10 @@ import jakarta.validation.constraints.NotNull;
 import org.example.springboot.common.Result;
 import org.example.springboot.entity.GroupBuyActivity;
 import org.example.springboot.entity.GroupBuyTeam;
+import org.example.springboot.dto.*;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 import org.example.springboot.service.GroupBuyService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -26,7 +27,7 @@ import java.util.Map;
 public class GroupBuyController {
     @Autowired private org.example.springboot.service.AccessService access;
     
-    private static final Logger log = LoggerFactory.getLogger(GroupBuyController.class);
+
     
     @Autowired
     private GroupBuyService groupBuyService;
@@ -39,12 +40,14 @@ public class GroupBuyController {
      */
     @GetMapping("/activities")
     public Result<Page<GroupBuyActivity>> getActivities(
-            @RequestParam(defaultValue = "1") @Min(value = 1, message = "当前页必须大于0") Integer currentPage,
-            @RequestParam(defaultValue = "10") @Min(value = 1, message = "每页大小必须大于0") Integer size,
-            @RequestParam(required = false) Integer status) {
-        access.admin();
-        Page<GroupBuyActivity> page = groupBuyService.getActivityList(currentPage, size, status);
-        return Result.success(page);
+            @RequestParam(defaultValue = "1") @Min(1) Integer currentPage,
+            @RequestParam(defaultValue = "10") @Min(1) @jakarta.validation.constraints.Max(100) Integer size,
+            @RequestParam(required = false) Integer status,
+            @RequestParam(required = false) Long merchantId,
+            @RequestParam(required = false) String activityName) {
+        access.staff();
+        Long scopedMerchant = access.isAdmin() ? merchantId : access.current().getId();
+        return Result.success(groupBuyService.getActivityList(currentPage, size, status, scopedMerchant, activityName));
     }
     
     /**
@@ -72,30 +75,20 @@ public class GroupBuyController {
      * 创建拼团活动（商家）
      */
     @PostMapping("/activity")
-    public Result<GroupBuyActivity> createActivity(@Valid @RequestBody GroupBuyActivity activity) {
-        access.staff(); access.owner(activity.getMerchantId()); access.product(activity.getProductId()); activity.setId(null);
-        log.info("收到创建拼团活动请求");
-        log.info("活动数据: {}", activity);
-        log.info("活动名称: {}", activity.getActivityName());
-        log.info("商品ID: {}", activity.getProductId());
-        log.info("拼团价: {}", activity.getGroupPrice());
-        log.info("成团人数: {}", activity.getRequiredMembers());
-        log.info("有效期: {}", activity.getValidityHours());
-        log.info("商家ID: {}", activity.getMerchantId());
-
-        GroupBuyActivity created = groupBuyService.createActivity(activity);
-        log.info("拼团活动创建成功，ID: {}", created.getId());
-        return Result.success(created);
+    public Result<GroupBuyActivity> createActivity(@Valid @RequestBody GroupActivityRequest input) {
+        access.product(input.productId());
+        GroupBuyActivity activity = input.toEntity(); activity.setId(null);
+        return Result.success(groupBuyService.createActivity(activity));
     }
     
     /**
      * 更新拼团活动（商家）
      */
     @PutMapping("/activity")
-    public Result<?> updateActivity(@Valid @RequestBody GroupBuyActivity activity) {
-        access.activity(activity.getId()); access.owner(activity.getMerchantId()); access.product(activity.getProductId());
-        boolean success = groupBuyService.updateActivity(activity);
-        return success ? Result.success() : Result.error("-1", "更新失败");
+    public Result<?> updateActivity(@Valid @RequestBody GroupActivityRequest input) {
+        if (input.id() == null || input.id() < 1) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "活动ID不能为空");
+        access.activity(input.id()); access.product(input.productId());
+        return groupBuyService.updateActivity(input.toEntity()) ? Result.success() : Result.error("-1", "更新失败");
     }
     
     /**
@@ -126,61 +119,53 @@ public class GroupBuyController {
      * 发起拼团（开团）
      */
     @PostMapping("/start")
-    public Result<Map<String, Object>> startTeam(@RequestBody Map<String, Object> params) {
-        access.owner(Long.valueOf(params.get("userId").toString())); access.address(Long.valueOf(params.get("addressId").toString())); if(Integer.parseInt(params.getOrDefault("quantity", 1).toString()) < 1) throw new IllegalArgumentException("数量必须大于0");
-        Long activityId = Long.parseLong(params.get("activityId").toString());
-        Long userId = Long.parseLong(params.get("userId").toString());
-        Long addressId = Long.parseLong(params.get("addressId").toString());
-        Integer quantity = Integer.parseInt(params.getOrDefault("quantity", 1).toString());
-
-        Map<String, Object> result = groupBuyService.startTeam(activityId, userId, addressId, quantity);
-        return Result.success(result);
+    public Result<Map<String, Object>> startTeam(@Valid @RequestBody GroupOrderRequest input,
+            @RequestHeader(value = "Idempotency-Key", required = false) String requestKey) {
+        if (input.activityId() == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "缺少活动或团队ID");
+        access.owner(input.userId()); access.address(input.addressId());
+        return Result.success(groupBuyService.startTeam(input.activityId(), input.userId(), input.addressId(), input.quantity(), requestKey));
     }
     
     /**
      * 参与拼团（参团）
      */
     @PostMapping("/join")
-    public Result<Map<String, Object>> joinTeam(@RequestBody Map<String, Object> params) {
-        access.owner(Long.valueOf(params.get("userId").toString())); access.address(Long.valueOf(params.get("addressId").toString())); if(Integer.parseInt(params.getOrDefault("quantity", 1).toString()) < 1) throw new IllegalArgumentException("数量必须大于0");
-        Long teamId = Long.parseLong(params.get("teamId").toString());
-        Long userId = Long.parseLong(params.get("userId").toString());
-        Long addressId = Long.parseLong(params.get("addressId").toString());
-        Integer quantity = Integer.parseInt(params.getOrDefault("quantity", 1).toString());
-
-        Map<String, Object> result = groupBuyService.joinTeam(teamId, userId, addressId, quantity);
-        return Result.success(result);
+    public Result<Map<String, Object>> joinTeam(@Valid @RequestBody GroupOrderRequest input,
+            @RequestHeader(value = "Idempotency-Key", required = false) String requestKey) {
+        if (input.teamId() == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "缺少活动或团队ID");
+        access.owner(input.userId()); access.address(input.addressId());
+        return Result.success(groupBuyService.joinTeam(input.teamId(), input.userId(), input.addressId(), input.quantity(), requestKey));
     }
     
     /**
      * 获取正在进行的团列表
      */
     @GetMapping("/teams")
-    public Result<List<GroupBuyTeam>> getActiveTeams(@RequestParam @NotNull(message = "活动ID不能为空") @Min(value = 1, message = "活动ID必须大于0") Long activityId) {
+    public Result<List<PublicGroupTeam>> getActiveTeams(@RequestParam @NotNull(message = "活动ID不能为空") @Min(value = 1, message = "活动ID必须大于0") Long activityId) {
         List<GroupBuyTeam> teams = groupBuyService.getActiveTeams(activityId);
-        return Result.success(teams);
+        return Result.success(teams.stream().map(PublicGroupTeam::from).toList());
     }
     
     /**
      * 获取团详情
      */
     @GetMapping("/team/{teamId}")
-    public Result<GroupBuyTeam> getTeamDetail(@PathVariable @NotNull(message = "团ID不能为空") @Min(value = 1, message = "团ID必须大于0") Long teamId) {
+    public Result<PublicGroupTeam> getTeamDetail(@PathVariable @NotNull(message = "团ID不能为空") @Min(value = 1, message = "团ID必须大于0") Long teamId) {
         access.current();
         GroupBuyTeam team = groupBuyService.getTeamDetail(teamId);
-        return Result.success(team);
+        return Result.success(PublicGroupTeam.from(team));
     }
     
     /**
      * 获取我的拼团列表
      */
     @GetMapping("/my-teams")
-    public Result<List<GroupBuyTeam>> getUserTeams(
+    public Result<List<PublicGroupTeam>> getUserTeams(
             @RequestParam @NotNull(message = "用户ID不能为空") @Min(value = 1, message = "用户ID必须大于0") Long userId,
             @RequestParam(required = false) Integer status) {
         access.owner(userId);
         List<GroupBuyTeam> teams = groupBuyService.getUserTeams(userId, status);
-        return Result.success(teams);
+        return Result.success(teams.stream().map(PublicGroupTeam::from).toList());
     }
 }
 

@@ -282,6 +282,7 @@
 <script>
 import { buildImageUrl } from '@/utils/imageUrl'
 import Request from '@/utils/request'
+import { checkoutRequestKey, forgetCheckoutRequest } from '@/utils/checkoutRequest'
 import logger from '@/utils/logger'
 import CountDown from '@/components/CountDown.vue'
 import FrontHeader from '@/components/front/FrontHeader.vue'
@@ -309,7 +310,8 @@ export default {
       selectedAddressId: null,
       
       // 支付方式
-      paymentMethod: 'alipay', // 'balance' 或 'alipay'，默认余额支付
+      paymentMethod: 'alipay',
+      orderSubmitting: false,
       
       // 当前操作
       currentAction: '', // 'start' 或 'join'
@@ -420,88 +422,15 @@ export default {
     },
     
     async confirmAddress() {
-      if (!this.selectedAddressId) {
-        this.$message.warning('请选择收货地址')
-        return
-      }
-      
+      if (!this.selectedAddressId) { this.$message.warning('请选择收货地址'); return }
+      if (this.orderSubmitting) return
+      this.orderSubmitting = true
       this.addressDialogVisible = false
-      
-      const user = JSON.parse(localStorage.getItem('frontUser') || '{}')
-      
-      if (this.currentAction === 'start') {
-        if (this.paymentMethod === 'balance') {
-          await this.createTeamAndPayByBalance(user.id)
-        } else {
-          await this.createTeamAndPay(user.id)
-        }
-      } else if (this.currentAction === 'join') {
-        if (this.paymentMethod === 'balance') {
-          await this.joinTeamAndPayByBalance(user.id)
-        } else {
-          await this.joinTeamAndPay(user.id)
-        }
-      }
-    },
-    
-    // 开团 - 余额支付
-    async createTeamAndPayByBalance(userId) {
-      const loading = this.$loading({
-        lock: true,
-        text: '正在创建拼团订单...',
-        spinner: 'fas fa-spinner fa-spin'
-      })
-      
       try {
-        // 1. 创建拼团订单
-        const res = await Request.post('/group-buy/start', {
-          activityId: this.activityId,
-          userId: userId,
-          addressId: this.selectedAddressId,
-          quantity: 1
-        })
-        
-        if (res.code === '200' || res.code === '0') {
-          const orderId = res.data.orderId
-          
-          // 2. 调用余额支付
-          const payRes = await Request.post(`/order/${orderId}/pay-balance`)
-          loading.close()
-          
-          if (payRes.code === '0') {
-            this.$message.success('开团成功！支付完成')
-            
-            // 刷新拼团列表
-            await this.loadActiveTeams()
-            
-            // 跳转到我的拼团页面
-            setTimeout(() => {
-              this.$router.push('/my-group-buy')
-            }, 1500)
-          } else {
-            this.$message.error(payRes.msg || '支付失败')
-          }
-        } else {
-          loading.close()
-          this.$message.error(res.msg || '创建订单失败')
-        }
-      } catch (error) {
-        loading.close()
-        logger.error('开团失败:', error)
-        const msg = error.response?.data?.msg || error.message || '开团失败，请稍后重试'
-        
-        // 特殊处理重复开团的提示
-        if (msg.includes('已经在该活动中开团') || msg.includes('请等待拼团结束') || msg.includes('不能重复开团')) {
-          this.$message({
-            type: 'warning',
-            message: msg,
-            duration: 3000,
-            showClose: true
-          })
-        } else {
-          this.$message.error(msg)
-        }
-      }
+        const user = JSON.parse(localStorage.getItem('frontUser') || '{}')
+        if (this.currentAction === 'start') await this.createTeamAndPay(user.id)
+        else if (this.currentAction === 'join') await this.joinTeamAndPay(user.id)
+      } finally { this.orderSubmitting = false }
     },
     
     // 开团 - 支付宝支付
@@ -512,16 +441,16 @@ export default {
         spinner: 'fas fa-spinner fa-spin'
       })
       
+      let requestKey
+      const payload = { activityId: this.activityId, userId, addressId: this.selectedAddressId, quantity: 1 }
       try {
+        requestKey = await checkoutRequestKey('group-start', userId, payload)
         // 1. 创建拼团订单
-        const res = await Request.post('/group-buy/start', {
-          activityId: this.activityId,
-          userId: userId,
-          addressId: this.selectedAddressId,
-          quantity: 1
-        })
+        const res = await Request.post('/group-buy/start', payload, { headers: { 'Idempotency-Key': requestKey } })
         
         if (res.code === '200' || res.code === '0') {
+          forgetCheckoutRequest('group-start', userId, requestKey)
+          if (res.data.paymentAllowed === false) { this.$message.info('订单已处理，请在我的订单中查看'); return }
           const orderId = res.data.orderId
           
           // 2. 调用支付宝支付
@@ -530,6 +459,7 @@ export default {
           this.$message.error(res.msg || '创建订单失败')
         }
       } catch (error) {
+        if (error.response?.status === 409) forgetCheckoutRequest('group-start', userId, requestKey)
         logger.error('开团失败:', error)
         const msg = error.response?.data?.msg || error.message || '开团失败，请稍后重试'
         
@@ -549,54 +479,6 @@ export default {
       }
     },
     
-    // 参团 - 余额支付
-    async joinTeamAndPayByBalance(userId) {
-      const loading = this.$loading({
-        lock: true,
-        text: '正在加入拼团...',
-        spinner: 'fas fa-spinner fa-spin'
-      })
-      
-      try {
-        // 1. 参与拼团
-        const res = await Request.post('/group-buy/join', {
-          teamId: this.currentTeamId,
-          userId: userId,
-          addressId: this.selectedAddressId,
-          quantity: 1
-        })
-        
-        if (res.code === '200' || res.code === '0') {
-          const orderId = res.data.orderId
-          
-          // 2. 调用余额支付
-          const payRes = await Request.post(`/order/${orderId}/pay-balance`)
-          loading.close()
-          
-          if (payRes.code === '0') {
-            this.$message.success('参团成功！支付完成')
-            
-            // 刷新拼团列表
-            await this.loadActiveTeams()
-            
-            // 跳转到我的拼团页面
-            setTimeout(() => {
-              this.$router.push('/my-group-buy')
-            }, 1500)
-          } else {
-            this.$message.error(payRes.msg || '支付失败')
-          }
-        } else {
-          loading.close()
-          this.$message.error(res.msg || '参团失败')
-        }
-      } catch (error) {
-        loading.close()
-        logger.error('参团失败:', error)
-        this.$message.error(error.response?.data?.msg || '参团失败，请稍后重试')
-      }
-    },
-    
     // 参团 - 支付宝支付
     async joinTeamAndPay(userId) {
       const loading = this.$loading({
@@ -605,16 +487,16 @@ export default {
         spinner: 'fas fa-spinner fa-spin'
       })
       
+      let requestKey
+      const payload = { teamId: this.currentTeamId, userId, addressId: this.selectedAddressId, quantity: 1 }
       try {
+        requestKey = await checkoutRequestKey('group-join', userId, payload)
         // 1. 参与拼团
-        const res = await Request.post('/group-buy/join', {
-          teamId: this.currentTeamId,
-          userId: userId,
-          addressId: this.selectedAddressId,
-          quantity: 1
-        })
+        const res = await Request.post('/group-buy/join', payload, { headers: { 'Idempotency-Key': requestKey } })
         
         if (res.code === '200' || res.code === '0') {
+          forgetCheckoutRequest('group-join', userId, requestKey)
+          if (res.data.paymentAllowed === false) { this.$message.info('订单已处理，请在我的订单中查看'); return }
           const orderId = res.data.orderId
           
           // 2. 调用支付宝支付
@@ -623,6 +505,7 @@ export default {
           this.$message.error(res.msg || '参团失败')
         }
       } catch (error) {
+        if (error.response?.status === 409) forgetCheckoutRequest('group-join', userId, requestKey)
         logger.error('参团失败:', error)
         this.$message.error(error.response?.data?.msg || '参团失败，请稍后重试')
       } finally {
@@ -686,13 +569,7 @@ export default {
     },
     
     getUserAvatar(user) {
-      if (!user || !user.avatar) {
-        return ''
-      }
-      if (user.avatar.startsWith('http')) {
-        return user.avatar
-      }
-      return `http://localhost:1234${user.avatar}`
+      return buildImageUrl(user?.avatar)
     },
     
     getProgressColor(team) {
@@ -1105,9 +982,6 @@ export default {
   margin-bottom: 4px;
 }
 
-.payment-icon.balance-icon {
-  color: #67c23a;
-}
 
 .payment-icon.alipay-icon {
   color: var(--store-brand);

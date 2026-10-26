@@ -29,6 +29,7 @@ public interface GroupBuyService {
      * @return 分页结果
      */
     Page<GroupBuyActivity> getActivityList(Integer currentPage, Integer size, Integer status);
+    Page<GroupBuyActivity> getActivityList(Integer currentPage, Integer size, Integer status, Long merchantId, String activityName);
     
     /**
      * 获取进行中的活动列表（分页）- 用户前台使用
@@ -78,6 +79,7 @@ public interface GroupBuyService {
      * @return 返回团信息（含订单ID）
      */
     Map<String, Object> startTeam(Long activityId, Long userId, Long addressId, Integer quantity);
+    Map<String, Object> startTeam(Long activityId, Long userId, Long addressId, Integer quantity, String requestKey);
     
     /**
      * 参与拼团（参团）
@@ -88,6 +90,7 @@ public interface GroupBuyService {
      * @return 返回订单ID
      */
     Map<String, Object> joinTeam(Long teamId, Long userId, Long addressId, Integer quantity);
+    Map<String, Object> joinTeam(Long teamId, Long userId, Long addressId, Integer quantity, String requestKey);
     
     /**
      * 获取正在进行的团列表
@@ -138,9 +141,5 @@ public interface GroupBuyService {
      */
     void failTeam(Long teamId, String failReason);
     
-    /**
-     * 扫描过期的团（定时任务调用）
-     */
-    void checkExpiredTeams();
 }
 
