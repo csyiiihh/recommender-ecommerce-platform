@@ -151,9 +151,7 @@ private FavoriteMapper favoriteMapper;
     public User getByUsername(String  username){
         return userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getUsername,username));
     }
-    public boolean forgetPassword(String email, String newPassword) {
-        throw new BusinessException("请使用验证码重置密码");
-    }
+
 
     public boolean updatePassword(int id, UserPasswordUpdate userPasswordUpdate) {
         String password = userPasswordUpdate.getNewPassword();
@@ -265,11 +263,5 @@ private FavoriteMapper favoriteMapper;
       return true;
     }
 
-    private void deleteProductRelations(Long productId){
-        orderMapper.delete(new LambdaQueryWrapper<Order>().eq(Order::getProductId,productId));
-        favoriteMapper.delete(new LambdaQueryWrapper<Favorite>().eq(Favorite::getProductId,productId));
-        cartMapper.delete(new LambdaQueryWrapper<Cart>().eq(Cart::getProductId,productId));
-        reviewMapper.delete(new LambdaQueryWrapper<Review>().eq(Review::getProductId,productId));
 
-    }
 }

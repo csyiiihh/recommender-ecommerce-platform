@@ -1,95 +1,53 @@
 package org.example.springboot.controller.email;
 
 import jakarta.annotation.Resource;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.*;
 import org.example.springboot.common.Result;
-import org.example.springboot.entity.User;
 import org.example.springboot.service.UserService;
 import org.example.springboot.service.email.EmailService;
 import org.example.springboot.service.email.VerificationCodeService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
-/**
- * 邮件发送控制器
- * 重构后使用Service层处理业务逻辑，符合分层架构原则
- */
 @RestController
-@CrossOrigin(origins = "*", maxAge = 3600)
 @RequestMapping("/email")
 public class SendEmailController {
-    private static final Logger LOGGER = LoggerFactory.getLogger(SendEmailController.class);
+    private static final Logger LOG = LoggerFactory.getLogger(SendEmailController.class);
+    @Resource private UserService userService;
+    @Resource private EmailService emailService;
+    @Resource private VerificationCodeService verificationCodeService;
+    public record EmailRequest(@NotBlank @Email @Size(max = 254) String email) {}
 
-    @Resource
-    private UserService userService;
-
-    @Resource
-    private EmailService emailService;
-
-    @Resource
-    private VerificationCodeService verificationCodeService;
-
-    /**
-     * 发送注册验证码
-     */
-    @GetMapping("/sendEmail/{email}")
-    public Result<?> emailRegister(@PathVariable String email) {
-        LOGGER.info("发送注册验证码请求：{}", email);
-
-        // 检查邮箱是否已被注册
-        if (userService.getByEmail(email) != null) {
-            return Result.error("-1", "邮箱已被注册");
-        }
-
-        try {
-            // 生成验证码
-            String code = verificationCodeService.generateCode();
-            
-            // 存储验证码（有效期10分钟）
-            verificationCodeService.storeCode("register", email, code, 10);
-            
-            // 发送邮件
-            emailService.sendRegisterCode(email, code);
-            
-            LOGGER.info("注册验证码已发送至：{}", email);
-            // 注意：实际生产环境不应该返回验证码，这里为了兼容前端暂时返回
-            // 建议前端通过单独的验证接口验证码验证
-    return Result.success();
-        } catch (Exception e) {
-            LOGGER.error("注册验证码发送失败：{}", e.getMessage(), e);
-            return Result.error("-1", "验证码发送失败，请联系管理员");
-        }
+    @PostMapping("/sendEmail")
+    public Result<?> emailRegister(@Valid @RequestBody EmailRequest input, HttpServletRequest request) {
+        return send(input.email(), "register", request.getRemoteAddr());
     }
-
-    /**
-     * 发送找回密码验证码
-     */
-    @GetMapping("/findByEmail/{email}")
-    public Result<?> findByEmail(@PathVariable String email) {
-        LOGGER.info("发送找回密码验证码请求：{}", email);
-
-        // 检查邮箱是否存在
-                User user = userService.getByEmail(email);
-        if (user == null) {
-            return Result.error("-1", "邮箱不存在");
-        }
-
+    @PostMapping("/findByEmail")
+    public Result<?> findByEmail(@Valid @RequestBody EmailRequest input, HttpServletRequest request) {
+        return send(input.email(), "reset", request.getRemoteAddr());
+    }
+    private Result<?> send(String input, String purpose, String peer) {
+        String email = input.strip().toLowerCase(java.util.Locale.ROOT);
+        verificationCodeService.reserveSend(peer);
+        boolean exists = userService.getByEmail(email) != null;
+        // The same public response avoids disclosing whether an address has an account.
+        if (("register".equals(purpose) && exists) || ("reset".equals(purpose) && !exists)) return Result.success();
+        String code = verificationCodeService.generateCode();
+        try { verificationCodeService.storeCode(purpose, email, code, 10); }
+        catch (IllegalArgumentException e) { throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS, "请60秒后重试"); }
         try {
-            // 生成验证码
-            String code = verificationCodeService.generateCode();
-
-            // 存储验证码（有效期10分钟）
-            verificationCodeService.storeCode("reset", email, code, 10);
-            
-            // 发送邮件
-            emailService.sendResetPasswordCode(email, code);
-            
-            LOGGER.info("找回密码验证码已发送至：{}", email);
-            // 注意：实际生产环境不应该返回验证码，这里为了兼容前端暂时返回
-            return Result.success();
+            if ("register".equals(purpose)) emailService.sendRegisterCode(email, code);
+            else emailService.sendResetPasswordCode(email, code);
         } catch (Exception e) {
-            LOGGER.error("找回密码验证码发送失败：{}", e.getMessage(), e);
-            return Result.error("-1", "邮件发送失败，请联系管理员");
+            verificationCodeService.discardCode(purpose, email, code);
+            LOG.error("验证码邮件发送失败，用途={}", purpose, e);
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "邮件发送暂不可用");
         }
+        return Result.success();
     }
 }

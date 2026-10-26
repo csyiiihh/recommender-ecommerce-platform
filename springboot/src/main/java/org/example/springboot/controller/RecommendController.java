@@ -75,10 +75,6 @@ public class RecommendController {
         return recommendService.getCategoryMatches(userId);
     }
 
-    @PostMapping("/update")
-    public Result<?> updateRecommendations() {
-        access.admin();
-        recommendService.updateRecommendations();
-        return Result.success();
-    }
+
+
 } 

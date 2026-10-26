@@ -110,21 +110,22 @@ public class ArticleService {
         return ResultUtils.success(article);
     }
 
-    public Page<Article> getArticlesByPage(String title, Integer status,
-                                         Integer currentPage, Integer size) {
-        LambdaQueryWrapper<Article> queryWrapper = new LambdaQueryWrapper<>();
-        
-        if (title != null && !title.trim().isEmpty()) {
-            queryWrapper.like(Article::getTitle, title.trim());
-        }
-        if (status != null) {
-            queryWrapper.eq(Article::getStatus, status);
-        }
-        
-        queryWrapper.orderByDesc(Article::getCreatedAt);
+    public Page<Article> getArticlesByPage(String title, Integer status, Integer currentPage, Integer size) {
+        return getArticlesByPage(title, status, currentPage, size, "newest");
+    }
 
-        Page<Article> page = new Page<>(currentPage, size);
-        return articleMapper.selectPage(page, queryWrapper);
+    public Page<Article> getArticlesByPage(String title, Integer status, Integer currentPage, Integer size, String sort) {
+        LambdaQueryWrapper<Article> q = new LambdaQueryWrapper<>();
+        if (title != null && !title.isBlank()) q.like(Article::getTitle, title.strip());
+        if (status != null) q.eq(Article::getStatus, status);
+        switch (sort == null ? "newest" : sort) {
+            case "newest" -> q.orderByDesc(Article::getCreatedAt);
+            case "oldest" -> q.orderByAsc(Article::getCreatedAt);
+            case "popular" -> q.orderByDesc(Article::getViewCount);
+            default -> throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST, "无效资讯排序");
+        }
+        q.orderByDesc(Article::getId);
+        return articleMapper.selectPage(new Page<>(currentPage, Math.min(size, 100)), q);
     }
 
     public Result<?> updateArticleStatus(Long id, Integer status) {

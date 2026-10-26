@@ -135,12 +135,12 @@ export default {
             }
 
             this.sendingCode = true;
-            request.get(`/email/findByEmail/${this.resetForm.email}`)
+            request.post('/email/findByEmail', { email: this.resetForm.email.trim().toLowerCase() })
             .then(res => {
                 if (res.code == '0') {
                     this.$message({
                         type: 'success',
-                        message: "验证码已发送到您的邮箱,请查收"
+                        message: "如邮箱符合条件，验证码将发送，请查收"
                     })
                     this.startCountdown();
                 } else {

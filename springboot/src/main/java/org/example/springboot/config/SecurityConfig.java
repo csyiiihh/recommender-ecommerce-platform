@@ -21,8 +21,8 @@ public class SecurityConfig {
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                .requestMatchers(HttpMethod.POST, "/api/user/login", "/api/user/register", "/api/user/forget", "/alipay/notify").permitAll()
-                .requestMatchers(HttpMethod.GET, "/alipay/success", "/api/email/**", "/api/img/**",
+                .requestMatchers(HttpMethod.POST, "/api/user/login", "/api/user/register", "/api/user/forget", "/api/email/sendEmail", "/api/email/findByEmail", "/alipay/notify").permitAll()
+                .requestMatchers(HttpMethod.GET, "/alipay/success", "/api/img/**",
                     "/api/product/**", "/api/category/**", "/api/article/**", "/api/carousel/**", "/api/notice/**",
                     "/api/review/product/**", "/api/group-buy/activities/active", "/api/group-buy/activity/*", "/api/group-buy/teams").permitAll()
                 .anyRequest().authenticated())

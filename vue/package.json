@@ -6,7 +6,7 @@
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
     "lint": "vue-cli-service lint",
-    "test:e2e": "node scripts/smoke.cjs && node scripts/product-form.cjs && node scripts/article-form.cjs && node scripts/group-form.cjs"
+    "test:e2e": "node scripts/smoke.cjs && node scripts/product-form.cjs && node scripts/article-form.cjs && node scripts/group-form.cjs && node scripts/public-safety.cjs"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.1",

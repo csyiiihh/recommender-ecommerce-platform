@@ -125,51 +125,7 @@ public class OrderService {
         return Result.error("400", "订单属于交易历史，请使用取消订单，暂不支持物理删除");
     }
 
-    public void deleteRelation(Long id){
-        // 删除物流记录
-        logisticsMapper.delete(new LambdaQueryWrapper<Logistics>().eq(Logistics::getOrderId,id));
-        
-        // 检查是否是拼团订单
-        Order order = orderMapper.selectById(id);
-        if (order != null && order.getOrderType() != null && order.getOrderType() == 1) {
-            // 查询该订单对应的成员记录
-            LambdaQueryWrapper<GroupBuyMember> memberQuery = new LambdaQueryWrapper<>();
-            memberQuery.eq(GroupBuyMember::getOrderId, id);
-            GroupBuyMember member = groupBuyMemberMapper.selectOne(memberQuery);
-            
-            if (member != null) {
-                Long teamId = member.getTeamId();
-                Integer isLeader = member.getIsLeader();
-                
-                // 删除成员记录
-                groupBuyMemberMapper.delete(memberQuery);
-                
-                if (isLeader != null && isLeader == 1) {
-                    // 如果是团长订单，删除整个团和所有成员
-                    LOGGER.info("删除团长订单，同时删除整个拼团，团ID：{}", teamId);
-                    
-                    // 删除该团的所有成员记录
-                    groupBuyMemberMapper.delete(
-                        new LambdaQueryWrapper<GroupBuyMember>().eq(GroupBuyMember::getTeamId, teamId)
-                    );
-                    
-                    // 删除团记录
-                    groupBuyTeamMapper.deleteById(teamId);
-                    
-                } else {
-                    // 如果是团员订单，更新团的人数
-                    GroupBuyTeam team = groupBuyTeamMapper.selectById(teamId);
-                    if (team != null && team.getCurrentPeople() > 0) {
-                        team.setCurrentPeople(team.getCurrentPeople() - 1);
-                        groupBuyTeamMapper.updateById(team);
-                        LOGGER.info("删除团员订单，更新团人数，团ID：{}，剩余人数：{}", teamId, team.getCurrentPeople());
-                    }
-                }
-            }
-        }
-        
-        LOGGER.info("删除订单关联数据成功，订单ID：{}", id);
-    }
+
 
     public Result<?> getOrderById(Long id) {
         Order order = orderMapper.selectById(id);

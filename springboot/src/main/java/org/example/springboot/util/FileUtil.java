@@ -2,12 +2,8 @@ package org.example.springboot.util;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -16,19 +12,6 @@ import java.nio.file.Paths;
 public class FileUtil {
     private final static  Logger LOGGER = LoggerFactory.getLogger(FileUtil.class);
     public final static String FILE_BASE_PATH = System.getProperty("app.upload-dir", System.getenv().getOrDefault("FILE_STORAGE_ROOT", System.getProperty("user.dir") + "/files/"));
-    // 获取项目根目录路�?
-    public static Path getProjectRootPath() throws IOException {
-
-        PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
-        Resource[] resources = resolver.getResources("classpath*:.");
-        if (resources.length == 0) {
-            throw new IOException("Cannot find project root path.");
-        }
-        // 通常第一个资源就是项目的根目�?
-        File rootDir = resources[0].getFile();
-        return rootDir.toPath();
-    }
-
     // 公共的文件保存方�?
     public static String saveFile(MultipartFile file, String folderName, String baseDir) {
         if (file == null || file.isEmpty() || file.getSize() > 8 * 1024 * 1024) {
@@ -68,10 +51,6 @@ public class FileUtil {
         return saveFile(file, folderName, "img");
     }
 
-    // 保存视频的方�?
-    public static String saveVideo(MultipartFile file, String folderName) {
-        return saveFile(file, folderName, "videos");
-    }
     /**
      * 根据文件名删除文�?
      *
@@ -98,17 +77,5 @@ public class FileUtil {
         }
     }
 
-    public static void writeToFile(String fileName, String content) throws IOException {
-        // 创建文件对象
-        File file = new File(fileName);
 
-        // 获取并打印文件的绝对路径
-        System.out.println("Writing to file: " + file.getAbsolutePath());
-
-        // 使用 try-with-resources 确保 FileWriter 在使用完毕后自动关闭
-        try (FileWriter fileWriter = new FileWriter(file)) {
-            fileWriter.write(content);
-        }
-
-    }
 }

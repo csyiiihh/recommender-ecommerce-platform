@@ -33,7 +33,7 @@
             </div>
             <div class="stat-item" v-if="viewStats.totalViews > 0">
               <i class="fas fa-eye"></i>
-              <span class="stat-label">总阅读</span>
+              <span class="stat-label">本页阅读</span>
               <span class="stat-value">{{ formatNumber(viewStats.totalViews) }}</span>
             </div>
           </div>
@@ -225,23 +225,7 @@
     </div>
     <front-footer></front-footer>
 
-    <!-- 文章详情对话框 -->
-    <el-dialog
-      :title="currentArticle?.title"
-      v-model="dialogVisible"
-      width="70%"
-      class="article-dialog">
-      <div class="article-content-wrapper">
-        <div class="article-info">
-          <span class="publish-time">发布时间：{{ formatTime(currentArticle?.createdAt) }}</span>
-          <span class="view-count">
-            <i class="fas fa-eye"></i>
-            {{ currentArticle?.viewCount }} 阅读
-          </span>
-        </div>
-        <div class="article-full-content" v-html="currentArticle?.content"></div>
-      </div>
-    </el-dialog>
+
   </div>
 </template>
 
@@ -265,8 +249,6 @@ export default {
       currentPage: 1,
       pageSize: 10,
       total: 0,
-      dialogVisible: false,
-      currentArticle: null,
       searchKeyword: '',
       sortBy: 'newest',
       viewMode: 'grid', // 'grid' 或 'list'
@@ -302,11 +284,12 @@ export default {
             currentPage: this.currentPage,
             size: this.pageSize,
             status: 1, // 只获取上架的文章
+            sort: this.sortBy,
             title: this.searchKeyword || '' // 搜索关键词
           }
         })
         if (res.code === '0') {
-          let articles = res.data.records.map(article => ({
+          const articles = res.data.records.map(article => ({
             id: article.id,
             title: article.title,
             content: article.content,
@@ -317,13 +300,11 @@ export default {
             updatedAt: article.updatedAt
           }))
 
-          // 根据排序方式排序
-          articles = this.sortArticles(articles)
 
           this.articles = articles
           this.total = res.data.total
 
-          // 计算总阅读数
+          // 计算本页阅读数
           this.viewStats.totalViews = articles.reduce((sum, article) => sum + article.viewCount, 0)
         }
       } catch (error) {
@@ -331,20 +312,6 @@ export default {
         this.$message.error('获取文章失败')
       } finally {
         this.loading = false
-      }
-    },
-
-    // 排序文章
-    sortArticles(articles) {
-      switch (this.sortBy) {
-        case 'newest':
-          return articles.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-        case 'oldest':
-          return articles.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
-        case 'popular':
-          return articles.sort((a, b) => b.viewCount - a.viewCount)
-        default:
-          return articles
       }
     },
 
@@ -408,6 +375,7 @@ export default {
     // 排序改变处理
     handleSortChange(command) {
       this.sortBy = command
+      this.currentPage = 1
       this.getArticles()
     },
 

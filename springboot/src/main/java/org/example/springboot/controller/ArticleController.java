@@ -53,8 +53,14 @@ public class ArticleController {
     public Result<?> getArticlesByPage(
             @RequestParam(required = false) String title,
             @RequestParam(required = false) Integer status,
-            @RequestParam(defaultValue = "1") @Min(value = 1, message = "当前页必须大于0") Integer currentPage,
-            @RequestParam(defaultValue = "10") @Min(value = 1, message = "每页大小必须大于0") Integer size) {
+            @RequestParam(defaultValue = "1") @Min(1) Integer currentPage,
+            @RequestParam(defaultValue = "10") @Min(1) Integer size,
+            @RequestParam(required = false) String sort) {
+        return sort == null ? getArticlesByPage(title, status, currentPage, size)
+            : Result.success(articleService.getArticlesByPage(title, 1, currentPage, size, sort));
+    }
+
+    public Result<?> getArticlesByPage(String title, Integer status, Integer currentPage, Integer size) {
         return Result.success(articleService.getArticlesByPage(title, 1, currentPage, size));
     }
 

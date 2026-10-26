@@ -104,13 +104,14 @@
           <span class="notice-detail-time">发布时间：{{ formatTime(currentNotice.time, true) }}</span>
         </div>
       </div>
-      <div class="notice-detail-content" v-html="currentNotice.content"></div>
+      <div class="notice-detail-content" v-html="sanitizedNotice"></div>
     </el-dialog>
   </div>
 </template>
 
 <script>
 import Request from '@/utils/request'
+import DOMPurify from 'dompurify'
 import logger from '@/utils/logger'
 
 export default {
@@ -130,6 +131,7 @@ export default {
       carouselHeight: '220px'
     }
   },
+  computed: { sanitizedNotice() { return DOMPurify.sanitize(this.currentNotice?.content || '') } },
   created() {
     this.fetchNotices()
   },

@@ -181,11 +181,11 @@ export default {
                 return;
             }
 
-            request.get(`/email/sendEmail/${this.registerForm.email}`).then(res => {
+            request.post('/email/sendEmail', { email: this.registerForm.email.trim().toLowerCase() }).then(res => {
                 if (res.code === '0') {
                     this.$message({
                         type: 'success',
-                        message: "验证码已发送到您的邮箱,请查收"
+                        message: "如邮箱符合条件，验证码将发送，请查收"
                     });
 
                     this.startCountdown();

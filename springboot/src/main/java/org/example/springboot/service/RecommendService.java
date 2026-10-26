@@ -136,26 +136,6 @@ public class RecommendService {
         return ResultUtils.success(generateRecommendationsWithExplanation(userId, null, null).getData().getProducts());
     }
 
-    // 定时更新推荐
-    public void updateRecommendations() {
-        try {
-            // 获取所有用户ID
-            List<Long> userIds = orderMapper.selectList(new LambdaQueryWrapper<>())
-                .stream()
-                .map(Order::getUserId)
-                .distinct()
-                .toList();
-
-            // 为每个用户生成推?
-            for (Long userId : userIds) {
-                generateRecommendations(userId);
-            }
-
-            LOGGER.info("成功更新所有用户推");
-        } catch (Exception e) {
-            LOGGER.error("更新推荐失败: {}", e.getMessage());
-        }
-    }
 
     /**
      * 获取用户分类匹配度（基于订单+收藏的分类分布，趋势基于销量占比）

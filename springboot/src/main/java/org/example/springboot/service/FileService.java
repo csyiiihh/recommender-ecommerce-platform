@@ -13,7 +13,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -52,30 +51,7 @@ public class FileService {
             throw new BusinessException(ResultCode.OPERATION_FAILED.getCode(), "文件上传失败：" + e.getMessage());
         }
     }
-    public Result<?> fileRemove(String filename) {
-        try {
-            if (com.baomidou.mybatisplus.core.toolkit.StringUtils.isBlank(filename)) {
-                LOGGER.warn("删除文件失败，文件名为空");
-                return ResultUtils.paramError("文件名不能为空");
-            }
-            
-            String filePath = "\\img\\" + filename;
-            LOGGER.info("开始删除文件：{}", filePath);
-            
-            boolean res = FileUtil.deleteFile(filePath);
-            
-            if (res) {
-                LOGGER.info("文件删除成功：{}", filePath);
-                return ResultUtils.success();
-            } else {
-                LOGGER.warn("文件删除失败，文件路径：{}", filePath);
-                return ResultUtils.dataNotFound("文件不存在或删除失败");
-            }
-        } catch (Exception e) {
-            LOGGER.error("文件删除异常，文件名：{}，错误：{}", filename, e.getMessage(), e);
-            throw new BusinessException(ResultCode.OPERATION_FAILED.getCode(), "删除文件失败：" + e.getMessage());
-        }
-    }
+
 
     public List<String> uploadMultiple(List<MultipartFile> files) {
         if (files == null || files.isEmpty()) {
@@ -98,7 +74,7 @@ public class FileService {
                 }
                 
                 LOGGER.debug("上传文件：{}", file.getOriginalFilename());
-                String path = FileUtil.saveFile(file, null, FileType.COMMON.getTypeName());
+                String path = FileUtil.saveFile(file, null, FileType.IMG.getTypeName());
                 
                 if (StringUtils.isNotBlank(path)) {
                     successPaths.add(path);
@@ -121,14 +97,7 @@ public class FileService {
             // 如果有文件上传失败，删除所有成功上传的文件
             for (String path : successPaths) {
                 try {
-                    File uploadedFile = new File(path);
-                    if (uploadedFile.exists() && uploadedFile.isFile()) {
-                        if (uploadedFile.delete()) {
-                            LOGGER.info("已删除成功上传的文件：{}", path);
-                        } else {
-                            LOGGER.warn("删除文件失败：{}", path);
-                        }
-                    }
+                    FileUtil.deleteFile(path);
                 } catch (Exception e) {
                     LOGGER.error("删除文件异常，路径：{}，错误：{}", path, e.getMessage(), e);
                 }
