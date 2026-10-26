@@ -141,72 +141,45 @@ public class GroupBuyServiceImpl implements GroupBuyService {
     }
     
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public boolean updateActivityStatus(Long activityId, Integer status) {
         if (status == null || !Set.of(0, 1, 2, 3).contains(status)) throw new BusinessException("无效活动状态");
-        // 1. 检查活动是否存在
         GroupBuyActivity activity = activityMapper.selectForUpdate(activityId);
-        if (activity == null) {
-            throw new BusinessException("活动不存在");
-        }
-        
-        log.info("更新活动{}状态：当前状态={}，目标状态={}，活动结束时间={}", 
-                activityId, activity.getStatus(), status, activity.getEndTime());
-        
+        if (activity == null) throw new BusinessException("活动不存在");
         if (status == 0 && hasActivityHistory(activityId)) throw new BusinessException("已有历史的活动不能恢复为草稿，请下架或结束");
-        // 2. 如果是上架(1)或开始操作，检查活动时间是否有效
         if (status == 1) {
             Date now = new Date();
-            
-            // 检查活动是否已过期
-            if (activity.getEndTime() != null && activity.getEndTime().before(now)) {
-                log.error("活动{}已过期：结束时间={}，当前时间={}", 
-                        activityId, activity.getEndTime(), now);
-                throw new BusinessException("活动已过期，无法开启。请先修改活动结束时间。");
+            if (activity.getStartTime() == null || activity.getEndTime() == null || !activity.getEndTime().after(now)) {
+                throw new BusinessException("活动已过期或时间无效，请修改活动时间");
             }
-            
-            // 检查活动是否还未开始
-            if (activity.getStartTime() != null && activity.getStartTime().after(now)) {
-                log.error("活动{}未开始：开始时间={}，当前时间={}", 
-                        activityId, activity.getStartTime(), now);
-                throw new BusinessException("活动开始时间未到，无法开启。当前时间：" + 
-                    new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(now) + 
-                    "，活动开始时间：" + 
-                    new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(activity.getStartTime()));
-            }
-            
-            log.info("活动{}时间验证通过，允许开启", activityId);
-        } else {
-            log.info("活动{}操作不需要时间验证：目标状态={}", activityId, status);
+            if (activity.getStartTime().after(now)) throw new BusinessException("活动开始时间未到，暂不能开启");
         }
-        
-        // 3. 如果是下架(3)或结束(2)操作，需要处理进行中的团队
-        if (status == 3 || status == 2) {
-            // 查询所有进行中的团队
-            QueryWrapper<GroupBuyTeam> teamQuery = new QueryWrapper<>();
-            teamQuery.eq("activity_id", activityId)
-                    .eq("status", 0); // 0-拼团中
-            List<GroupBuyTeam> ongoingTeams = teamMapper.selectList(teamQuery);
-            
-            if (!ongoingTeams.isEmpty()) {
-                String failReason = (status == 3) ? "cancelled_offline" : "cancelled_ended";
-                log.info("管理员{}活动{}，需要处理 {} 个进行中的团队", 
-                        status == 3 ? "下架" : "结束", activityId, ongoingTeams.size());
-                
-                // 让所有进行中的团队失败并退款
-                for (GroupBuyTeam team : ongoingTeams) {
-                    failTeam(team.getId(), failReason);
-
-                }
-            }
-        }
-        
-        // 4. 更新活动状态
-        GroupBuyActivity patch = new GroupBuyActivity();
-        patch.setId(activityId); patch.setStatus(status);
-        return activityMapper.updateById(patch) == 1;
+        writeActivityState(activityId, status, status == 3 ? "cancelled_offline" : "cancelled_ended");
+        return true;
     }
-    
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean expireActivityIfDue(Long activityId, java.time.Instant cutoff) {
+        if (cutoff == null) throw new IllegalArgumentException("Missing expiry cutoff");
+        GroupBuyActivity activity = activityMapper.selectForUpdate(activityId);
+        if (activity == null || !Integer.valueOf(1).equals(activity.getStatus()) || activity.getEndTime() == null
+            || !activity.getEndTime().toInstant().isBefore(cutoff)) return false;
+        writeActivityState(activityId, 2, "cancelled_ended");
+        return true;
+    }
+
+    private void writeActivityState(Long activityId, int status, String failReason) {
+        if (status == 2 || status == 3) {
+            List<GroupBuyTeam> ongoing = teamMapper.selectList(new QueryWrapper<GroupBuyTeam>()
+                .eq("activity_id", activityId).eq("status", 0).orderByAsc("id"));
+            for (GroupBuyTeam team : ongoing) failTeam(team.getId(), failReason);
+        }
+        GroupBuyActivity patch = new GroupBuyActivity();
+        patch.setId(activityId); patch.setStatus(status); patch.setUpdatedAt(new Timestamp(System.currentTimeMillis()));
+        if (activityMapper.updateById(patch) != 1) throw new BusinessException("更新活动状态失败");
+    }
+
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean updateActivity(GroupBuyActivity input) {
@@ -518,7 +491,7 @@ public class GroupBuyServiceImpl implements GroupBuyService {
             team.setStatus(2);
             team.setFailReason(failReason);
             team.setUpdatedAt(new Timestamp(System.currentTimeMillis()));
-            teamMapper.updateById(team);
+            if (teamMapper.updateById(team) != 1) throw new BusinessException("更新拼团失败状态失败");
         }
         // No remote calls in the team transition. Pending orders survive failures and restarts.
         automaticRefunds.queueTeam(teamId);

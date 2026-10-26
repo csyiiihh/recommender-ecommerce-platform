@@ -22,6 +22,7 @@ import java.util.List;
  * 以及自动更新过期活动的状态
  */
 @Component
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(name = "group-buy.tasks.enabled", havingValue = "true", matchIfMissing = true)
 public class GroupBuyTask {
     
     private static final Logger log = LoggerFactory.getLogger(GroupBuyTask.class);
@@ -45,13 +46,17 @@ public class GroupBuyTask {
             // 查询所有过期且未完成的拼团
             QueryWrapper<GroupBuyTeam> wrapper = new QueryWrapper<>();
             wrapper.eq("status", 0) // 拼团中
-                   .lt("expire_time", new Date()); // 已过期
+                   .lt("expire_time", new Date())
+                   .orderByAsc("expire_time", "id").last("LIMIT 100"); // bounded scan
             
             List<GroupBuyTeam> expiredTeams = teamMapper.selectList(wrapper);
             var failedWithPaidOrders = teamMapper.selectList(new QueryWrapper<GroupBuyTeam>().eq("status", 2)
                 .inSql("id", "SELECT group_buy_team_id FROM `order` WHERE (status = 1 OR (status = 5 AND refund_status = 1 AND refund_reason LIKE '拼团失败自动退款%')) AND order_type = 1")
-                .last("LIMIT 100"));
-            for (GroupBuyTeam failed : failedWithPaidOrders) groupBuyService.failTeam(failed.getId(), failed.getFailReason());
+                .orderByAsc("id").last("LIMIT 100"));
+            for (GroupBuyTeam failed : failedWithPaidOrders) {
+                try { groupBuyService.failTeam(failed.getId(), failed.getFailReason()); }
+                catch (Exception e) { log.error("重试拼团失败处理异常，团ID={}", failed.getId(), e); }
+            }
             
             if (!expiredTeams.isEmpty()) {
                 log.info("发现 {} 个过期的拼团，开始处理...", expiredTeams.size());
@@ -104,40 +109,20 @@ public class GroupBuyTask {
      */
     @Scheduled(cron = "0 0/5 * * * ?")
     public void checkExpiredActivities() {
+        java.time.Instant cutoff = java.time.Instant.now();
         try {
-            Date now = new Date();
-            
-            // 查询所有状态为"进行中"但已经过了结束时间的活动
-            QueryWrapper<GroupBuyActivity> wrapper = new QueryWrapper<>();
-            wrapper.eq("status", 1)  // 进行中
-                   .lt("end_time", now);  // 结束时间 < 当前时间
-            
-            List<GroupBuyActivity> expiredActivities = activityMapper.selectList(wrapper);
-            
-            if (!expiredActivities.isEmpty()) {
-                log.info("发现 {} 个已过期的活动，开始更新状态...", expiredActivities.size());
-                
-                int successCount = 0;
-                for (GroupBuyActivity activity : expiredActivities) {
-                    try {
-                        // 更新活动状态为"已结束"
-                        activity.setStatus(2);  // 2-已结束
-                        activity.setUpdatedAt(new Timestamp(System.currentTimeMillis()));
-                        activityMapper.updateById(activity);
-                        
-                        successCount++;
-                        log.info("活动已自动结束，活动ID: {}，活动名称: {}，结束时间: {}",
-                                activity.getId(), activity.getActivityName(), activity.getEndTime());
-                    } catch (Exception e) {
-                        log.error("更新活动状态失败，活动ID: " + activity.getId(), e);
-                    }
+            List<GroupBuyActivity> due = activityMapper.selectList(new QueryWrapper<GroupBuyActivity>()
+                .eq("status", 1).lt("end_time", Timestamp.from(cutoff))
+                .orderByAsc("end_time", "id").last("LIMIT 100"));
+            for (GroupBuyActivity activity : due) {
+                try {
+                    groupBuyService.expireActivityIfDue(activity.getId(), cutoff);
+                } catch (Exception e) {
+                    log.error("活动到期处理失败，活动ID={}", activity.getId(), e);
                 }
-                
-                log.info("过期活动状态更新完成，成功: {}，失败: {}", 
-                        successCount, expiredActivities.size() - successCount);
             }
         } catch (Exception e) {
-            log.error("检查过期活动任务执行失败", e);
+            log.error("查询到期活动失败", e);
         }
     }
 }

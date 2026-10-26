@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import java.sql.Timestamp;
 
 @Component
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(name = "refund.retry.enabled", havingValue = "true", matchIfMissing = true)
 public class AutomaticRefundTask {
     private static final Logger LOG = LoggerFactory.getLogger(AutomaticRefundTask.class);
     private final OrderMapper orders;
@@ -30,8 +31,13 @@ public class AutomaticRefundTask {
                 service.handleRefund(order.getId(), 6, "系统自动退款");
             } catch (Exception e) {
                 // The failed refund transaction has rolled back; delay this order without losing its intent.
-                orders.update(null, new LambdaUpdateWrapper<Order>().eq(Order::getId, order.getId()).eq(Order::getStatus, 5)
-                    .set(Order::getUpdatedAt, new Timestamp(System.currentTimeMillis())));
+                try {
+                    orders.update(null, new LambdaUpdateWrapper<Order>().eq(Order::getId, order.getId()).eq(Order::getStatus, 5)
+                        .eq(Order::getRefundStatus, AutomaticRefundService.AUTO_PENDING)
+                        .set(Order::getUpdatedAt, new Timestamp(System.currentTimeMillis())));
+                } catch (Exception delayFailure) {
+                    LOG.error("更新自动退款重试时间失败，订单ID={}，保留退款意图供后续重试", order.getId(), delayFailure);
+                }
                 LOG.error("自动退款待重试，订单ID={}，请在退款管理中核对", order.getId(), e);
             }
         }

@@ -107,6 +107,7 @@ class CommerceRoundTwoTest {
     @Test void failedTeamQueuesRefundsWithoutCallingPaymentNetwork() {
         GroupBuyTeam t=new GroupBuyTeam();t.setId(5L);t.setStatus(0);
         when(groupBuyTeamMapper.selectForUpdate(5L)).thenReturn(t);
+        when(groupBuyTeamMapper.updateById(any(GroupBuyTeam.class))).thenReturn(1);
         groups.failTeam(5L,"timeout");assertEquals(2,t.getStatus());verify(automaticRefunds).queueTeam(5L);verifyNoInteractions(alipay);
     }
     @Test void retrySchedulerContinuesAfterOneFailedRefund() {

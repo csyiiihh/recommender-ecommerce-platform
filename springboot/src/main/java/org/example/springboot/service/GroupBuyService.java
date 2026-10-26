@@ -54,6 +54,9 @@ public interface GroupBuyService {
      * @return 是否成功
      */
     boolean updateActivityStatus(Long activityId, Integer status);
+
+    /** Recheck the latest activity under lock before an expiry scan changes its state. */
+    boolean expireActivityIfDue(Long activityId, java.time.Instant cutoff);
     
     /**
      * 更新活动（编辑）

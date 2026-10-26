@@ -38,7 +38,7 @@ docker compose --env-file .env.integration -f compose.integration.yml exec mysql
 powershell -File scripts/integration/start-backend.ps1 -Start
 ```
 
-脚本先检查环境，关闭默认的 application-local.properties 导入，再固定使用 integration 示例配置；监听 13334，上传文件使用 JVM 参数指向项目内 `integration-uploads`。普通订单超时清理和库存预占默认关闭。拼团过期及补偿任务仍存在，只能对本测试库运行，准备样本时不要混入真实待退款数据。
+脚本先检查环境，关闭默认的 application-local.properties 导入，再固定使用 integration 示例配置；监听 13334，上传文件使用 JVM 参数指向项目内 `integration-uploads`。普通订单超时清理和库存预占默认关闭；拼团扫描与自动退款重试也默认关闭。启动器以命令行参数固定这些默认值，避免被同名环境变量意外覆盖。仅在已核对独立测试库、样本与支付配置，并有意验证定时任务时，才使用 `-Start -EnableBusinessTasks` 开启拼团扫描和退款重试；普通订单超时清理、库存预占仍保持关闭。不要混入真实待退款数据。
 
 支付网关固定为无服务的本机地址，不能支付。真实沙箱验收前必须另行审查网关、配套沙箱证书、收款方和回调可达性，再在独立配置中启用。不要将生产密钥带入本示例环境。
 
@@ -58,3 +58,10 @@ node scripts/integration/public-smoke.cjs
 库存预占先在测试库审查迁移，统一启用所有实例后验证；默认模式与预占模式分别验收。退款重试应使用渠道稳定请求号，核对渠道金额和本地状态。真实测试没有执行前，结果只能标为“待执行”。
 
 退出时可运行 `docker compose --env-file .env.integration -f compose.integration.yml stop`，保留专用数据。重置或删除卷属于单独维护操作，不在这些脚本中自动执行。
+
+
+## 定时任务边界（2026-10-26）
+
+业务环境默认保持 `group-buy.tasks.enabled=true`、`refund.retry.enabled=true`；仅隔离示例配置与启动器默认关闭。活动到期后会在事务中复核最新结束时间，将未完成团队标记失败并记录退款意图；到期扫描不会调用支付渠道。自动退款仍由独立重试任务按稳定退款请求号处理。
+
+单次扫描最多 100 个记录，单条处理失败会记录日志并允许后续记录继续。活动关闭与待退款意图的数据库原子性、并发回调以及实际渠道恢复，仍需独立 MySQL 和沙箱验收；本地模拟测试不能证明这些场景已通过。
