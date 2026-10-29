@@ -39,6 +39,7 @@ jobs:
           node-version: '22'
           cache: npm
           cache-dependency-path: vue/package-lock.json
+      - run: node --test ../scripts/integration/public-smoke.test.cjs
       - run: npm ci
       - run: npm run lint -- --no-fix
       - run: npm run build

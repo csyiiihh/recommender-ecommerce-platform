@@ -119,7 +119,7 @@ npm run serve
 
 ## 测试与验证
 
-最近一次本地验证（2026-10-26）：后端 **359 项测试通过**并打包成功；前端静态检查、生产构建和仓库内 **22 个浏览器模拟场景通过**，覆盖路由、图片、公告净化、资讯排序及表单重复提交 / 网络失败重试。
+最近一次本地验证（2026-10-28）：后端 **359 项测试通过**并打包成功；前端静态检查、生产构建和仓库内 **22 个浏览器模拟场景通过**，覆盖路由、图片、公告净化、资讯排序及表单重复提交 / 网络失败重试。
 
 ```bash
 # springboot 目录：测试并打包
@@ -134,7 +134,7 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-后端回归使用 JUnit / Mockito；浏览器回归使用 Playwright，静态资源和 API 均在浏览器内拦截，不连接业务后端。已提供 GitHub Actions 检查工作流，推送后需查看首次远程运行结果；本地通过不代表远程 CI 或真实 MySQL 并发、事务回滚、支付宝沙箱联调已通过。
+后端回归使用 JUnit / Mockito；浏览器回归使用 Playwright，静态资源和 API 均在浏览器内拦截，不连接业务后端。已核实业务代码 `2c0ef2c` 的 [GitHub Actions 前后端检查均通过](https://github.com/csyiiihh/recommender-ecommerce-platform/actions/runs/40313583820)，运行包含后端 359 项测试和前端 22 个浏览器场景。模拟回归及 CI 通过不代表真实 MySQL 并发、事务回滚或支付宝沙箱联调已通过；[最终验收清单](docs/FINAL_ACCEPTANCE.md) 分别记录了已通过与待执行项目。
 
 ## 开发文档
 
@@ -148,6 +148,7 @@ npm run test:e2e
 - [六步优化交付记录](docs/SIX_STEP_PROGRESS.md)
 - [2026-10-26 审查修复与接口变更](docs/AUDIT_FIXES.md)
 - [拼团任务与退款重试验证](docs/TASK_CONSISTENCY.md)
+- [隔离收尾、远程 CI 与最终验收清单](docs/FINAL_ACCEPTANCE.md)
 
 ## 当前边界与后续计划
 
